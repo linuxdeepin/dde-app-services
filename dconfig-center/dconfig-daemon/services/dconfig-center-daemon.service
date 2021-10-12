@@ -1,0 +1,10 @@
+[Unit]
+Description=DDE DConfig Center Daemon
+
+[Service]
+Type=dbus
+BusName=org.desktopspec.ConfigManager
+ExecStart=/usr/bin/dconfig-daemon
+
+[Install]
+WantedBy=multi-user.target

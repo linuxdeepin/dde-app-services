@@ -1,0 +1,35 @@
+Source: dde-app-services
+Section: libdevel
+Priority: optional
+Maintainer: Deepin Packages Builder <yeshanshan@uniontech.com>
+Build-Depends:
+ debhelper (>=9),
+ pkg-config,
+ cmake,
+ qtbase5-dev,
+ libdtkcommon-dev,
+ libdtkcore-dev,
+ libdtkgui-dev,
+ libdtkwidget-dev,
+ libgtest-dev
+Standards-Version: 4.3.0
+
+Package: dconfig-daemon
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ libdtkcore5
+Description: deepin desktop-environment - dconfig-daemon module
+ dconfig-daemon provids dbus service for reading and writing configuration.
+
+Package: dconfig-editor
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ libdtkcore5,
+ libdtkgui5,
+ libdtkwidget5
+Description: deepin desktop-environment - dconfig-editor module
+ dconfig-editor is a GUI or Console tool, it's used to view and edit configuration for current user.
