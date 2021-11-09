@@ -24,6 +24,7 @@
 #include "helper.hpp"
 
 #include "valuehandler.h"
+#include "iteminfo.h"
 
 #include <QHBoxLayout>
 #include <DLabel>
@@ -39,6 +40,8 @@
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include <DSpinBox>
+#include <DDBusSender>
+#include <QDBusPendingReply>
 
 MainWindow::MainWindow(QWidget *parent) :
     DMainWindow(parent)
@@ -131,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(resourceListView, &QListView::clicked, this, [this, scrollArea, contentHeader](const QModelIndex &index){
         if (auto model = qobject_cast<QStandardItemModel*>(resourceListView->model())){
             const auto &type = model->data(index, ConfigUserRole + 1).toInt();
-            if (type == ConfigType::ResourceType || type == ConfigType::SubpathType) {
+            if (type & ConfigType::ResourceType || type == ConfigType::SubpathType) {
                 const auto &appid = model->data(index, ConfigUserRole + 2).toString();
                 const auto &resourceId = model->data(index, ConfigUserRole + 3).toString();
                 const auto &subpath = model->data(index, ConfigUserRole + 4).toString();
@@ -199,6 +202,7 @@ void MainWindow::refreshApps(const QString &matchAppid)
         model->appendRow(item);
     }
     appListView->setModel(model);
+    translateAppName();
 }
 
 void MainWindow::refreshAppResources(const QString &appid, const QString &matchResource)
@@ -215,7 +219,7 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
 
         auto resourceItem = new DStandardItem();
         resourceItem->setSizeHint(QSize(200, 45));
-        resourceItem->setData(ConfigType::ResourceType, ConfigUserRole + 1);
+        resourceItem->setData(ConfigType::AppResourceType, ConfigUserRole + 1);
         resourceItem->setData(appid, ConfigUserRole + 2);
         resourceItem->setData(resource, ConfigUserRole + 3);
         resourceItem->setText(resource);
@@ -235,7 +239,7 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
         auto resourceItem = new DStandardItem();
         resourceItem->setSizeHint(QSize(200, 45));
         resourceItem->setToolTip(resource);
-        resourceItem->setData(ConfigType::ResourceType, ConfigUserRole + 1);
+        resourceItem->setData(ConfigType::CommonResourceType, ConfigUserRole + 1);
         resourceItem->setData(appid, ConfigUserRole + 2);
         resourceItem->setData(resource, ConfigUserRole + 3);
         resourceItem->setText(resource);
@@ -245,6 +249,9 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
     }
 
     resourceListView->setModel(model);
+    if (model->rowCount() > 0) {
+        resourceListView->setCurrentIndex(resourceListView->model()->index(0, 0));
+    }
 }
 
 void MainWindow::refreshResourceSubpaths(QStandardItemModel *model, const QString &appid, const QString &resourceId)
@@ -271,7 +278,7 @@ void MainWindow::refreshResourceKeys(const QString &appid, const QString &resour
 void MainWindow::installTranslate()
 {
     DTitlebar *titlebar = this->titlebar();
-    auto languageMenu = titlebar->menu()->addMenu("language");
+    auto languageMenu = titlebar->menu()->addMenu("config language");
     connect(languageMenu->addAction("default"), &QAction::triggered, [this](){
         contentView->setLanguage("");
     });
@@ -281,7 +288,50 @@ void MainWindow::installTranslate()
     connect(languageMenu->addAction("english"), &QAction::triggered, [this](){
         contentView->setLanguage("en_US");
     });
+    connect(contentView, &Content::languageChanged, this, [this](){
+        emit resourceListView->clicked(resourceListView->currentIndex());
+    });
 
+}
+
+void MainWindow::translateAppName()
+{
+    ItemInfo::registerMetaType();
+
+    DTK_USE_NAMESPACE;
+    QDBusPendingCall call = DDBusSender()
+            .service("com.deepin.dde.daemon.Launcher")
+            .interface("com.deepin.dde.daemon.Launcher")
+            .path("/com/deepin/dde/daemon/Launcher")
+            .method(QString("GetAllItemInfos"))
+            .call();
+
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
+
+    QObject::connect(watcher, &QDBusPendingCallWatcher::finished,
+                     this, [this](QDBusPendingCallWatcher* call){
+
+        QDBusPendingReply<ItemInfoList> reply = *call;
+        if (!reply.isError()) {
+            for (auto item : reply.value()) {
+                appIdToNameMaps[item.m_key] = item.m_name;
+            }
+            refreshAppTranslate();
+        }
+        call->deleteLater();
+    });
+}
+
+void MainWindow::refreshAppTranslate()
+{
+    if (auto model = qobject_cast<QStandardItemModel*>(appListView->model())) {
+        for (int i = 0; i < model->rowCount(); i++) {
+            auto item = model->item(i);
+            if (appIdToNameMaps.contains(item->text())) {
+                item->setText(appIdToNameMaps.value(item->text()));
+            }
+        }
+    }
 }
 
 LevelDelegate::LevelDelegate(QAbstractItemView *parent)
@@ -306,10 +356,19 @@ void LevelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
 
     // draw text
     switch (level) {
-    case ConfigType::ResourceType: {
+    case ConfigType::AppResourceType: {
         QColor pen = option.palette.color(isSelected ? QPalette::HighlightedText : QPalette::BrightText);
         painter->setPen(pen);
         painter->setFont(DFontSizeManager::instance()->get(DFontSizeManager::T4, QFont::Medium, opt.font));
+        QRect rect = opt.rect.marginsRemoved(QMargins(10, 0, 10, 0));
+        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideRight, rect.width());
+        painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
+        break;
+    }
+    case ConfigType::CommonResourceType: {
+        QColor pen = option.palette.color(isSelected ? QPalette::HighlightedText : QPalette::BrightText);
+        painter->setPen(pen);
+        painter->setFont(DFontSizeManager::instance()->get(DFontSizeManager::T4, QFont::ExtraBold, opt.font));
         QRect rect = opt.rect.marginsRemoved(QMargins(10, 0, 10, 0));
         auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideRight, rect.width());
         painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
@@ -336,7 +395,7 @@ void LevelDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIn
 
     auto level = static_cast<ConfigType>(index.data(ConfigUserRole + 1).toInt());
 
-    if (level == ConfigType::ResourceType) {
+    if (level & ConfigType::ResourceType) {
         option->font = DFontSizeManager::instance()->get(DFontSizeManager::T4, option->font);
         option->font.setBold(true);
         option->fontMetrics = QFontMetrics(option->font);
@@ -368,6 +427,7 @@ void Content::remove(QLayout *layout)
 void Content::setLanguage(const QString &language)
 {
     m_language = language;
+    emit languageChanged();
 }
 
 void Content::refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId)

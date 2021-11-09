@@ -27,11 +27,13 @@ qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_MANAGER} configmanage
 set(HEADERS
     mainwindow.h
     valuehandler.h
+    iteminfo.h
 )
 set(SOURCES
     main.cpp
     mainwindow.cpp
     valuehandler.cpp
+    iteminfo.cpp
 )
 
 ADD_EXECUTABLE(dconfig-editor ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})

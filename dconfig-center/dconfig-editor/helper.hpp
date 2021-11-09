@@ -36,11 +36,13 @@ using SubpathList = QList<SubpathKey>;
 static const QString &SUFFIX = QString(".json");
 constexpr int ConfigUserRole = Qt::UserRole + 10;
 enum ConfigType {
-    InvalidType = 0,
-    AppType = 1,
-    ResourceType = 2,
-    SubpathType = 3,
-    KeyType = 4
+    InvalidType = 0x00,
+    AppType = 0x10,
+    ResourceType = 0x20,
+    AppResourceType = ResourceType | 0x01,
+    CommonResourceType = ResourceType | 0x02,
+    SubpathType = 0x30,
+    KeyType = 0x40,
 };
 
 static QString resourcePath(const QString &appid, const QString &localPrefix = QString())
@@ -150,7 +152,7 @@ static ResourceList subpathsForResource(const AppId &appid, const ResourceId &re
 
 static bool existAppid(const QString &appid, const QString &localPrefix = QString())
 {
-    return resourcePath(appid, localPrefix).isEmpty();
+    return !resourcePath(appid, localPrefix).isEmpty();
 }
 
 static bool existResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
@@ -158,23 +160,9 @@ static bool existResource(const AppId &appid, const ResourceId &resourceId, cons
     if (!existAppid(appid, localPrefix))
         return false;
 
-    const auto &resPath = resourcePath(appid, localPrefix);
-    if (resPath.isEmpty()) {
-        return false;
-    }
-    QDir resourceDir(resPath);
-    auto filters = QDir::Dirs | QDir::NoDotAndDotDot;
-    resourceDir.setFilter(filters);
-    QDirIterator iterator(resourceDir, QDirIterator::Subdirectories);
-    SubpathList result;
-
-    while(iterator.hasNext()) {
-        iterator.next();
-        const QFileInfo &file(iterator.fileInfo());
-        if (QDir(file.absoluteFilePath()).exists(resourceId + SUFFIX)) {
-            return true;
-        }
-    }
+    const ResourceList &apps = resourcesForApp(appid, localPrefix);
+    if (apps.contains(resourceId))
+        return true;
 
     const ResourceList &commons = resourcesForAllApp(localPrefix);
     if (commons.contains(resourceId)) {

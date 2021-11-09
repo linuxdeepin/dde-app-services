@@ -81,6 +81,8 @@ public:
 Q_SIGNALS:
     void sendValueUpdated(const QStringList &keyid, const QVariant &pre, const QVariant &now);
 
+    void languageChanged();
+
 private Q_SLOTS:
     void onValueChanged(const QVariant &value);
 private:
@@ -125,6 +127,10 @@ private slots:
 private:
     void installTranslate();
 
+    void translateAppName();
+
+    void refreshAppTranslate();
+
 private:
     QWidget *centralwidget;
     DListView *appListView;
@@ -132,6 +138,7 @@ private:
     Content *contentView;
 
     HistoryDialog *historyView = nullptr;
+    QMap<QString, QString> appIdToNameMaps;
 
 
 };

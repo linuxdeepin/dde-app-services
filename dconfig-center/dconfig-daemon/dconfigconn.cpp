@@ -131,6 +131,7 @@ void DSGConfigConn::release()
  */
 void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 {
+    qDebug() << "set value:" << key << "now:" << value.variant() << "old:" << m_config->value(key, m_cache);
     if(!m_config->setValue(key, value.variant(), getAppid(), m_cache))
         return;
 
@@ -148,6 +149,7 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
  */
 QDBusVariant DSGConfigConn::value(const QString &key)
 {
+    qDebug() << "now value:" << m_config->value(key, m_cache);
     return QDBusVariant{m_config->value(key, m_cache)};
 }
 

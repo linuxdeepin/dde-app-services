@@ -51,6 +51,7 @@ inline void outpuSTDError(const QString &value)
 int main(int argc, char *argv[])
 {
     DApplication a(argc, argv);
+    a.setApplicationVersion("1.0.0");
 
     QCommandLineParser parser;
     parser.addHelpOption();
