@@ -27,6 +27,9 @@
 #include <functional>
 #include <QRegularExpression>
 #include <DStandardPaths>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(cfLog);
 
 using ConnKey = QString;
 using ResourceKey = QString;

@@ -119,7 +119,7 @@ QString DSGConfigConn::name(const QString &key, const QString &locale)
 void DSGConfigConn::release()
 {
     const QString &service = calledFromDBus() ? message().service() : "test.service";
-    qDebug() << QString("received release request, service:%1, path:%2.").arg(service, m_key);
+    qCDebug(cfLog, "received release request, service:%s, path:%s.", qPrintable(service), qPrintable(m_key));
 
     emit releaseChanged(service);
 }
@@ -131,7 +131,7 @@ void DSGConfigConn::release()
  */
 void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 {
-    qDebug() << "set value:" << key << "now:" << value.variant() << "old:" << m_config->value(key, m_cache);
+    qCDebug(cfLog, "set value key:[%s], now value:[%s], old value:[%s]", qPrintable(key), qPrintable(value.variant().toString()), qPrintable(m_config->value(key, m_cache).toString()));
     if(!m_config->setValue(key, value.variant(), getAppid(), m_cache))
         return;
 
@@ -149,7 +149,7 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
  */
 QDBusVariant DSGConfigConn::value(const QString &key)
 {
-    qDebug() << "now value:" << m_config->value(key, m_cache);
+    qCDebug(cfLog, "get value key:[%s], value:[%s]", qPrintable(key), qPrintable(m_config->value(key, m_cache).toString()));
     return QDBusVariant{m_config->value(key, m_cache)};
 }
 

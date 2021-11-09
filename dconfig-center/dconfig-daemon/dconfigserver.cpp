@@ -28,10 +28,17 @@
 #include <QDBusConnectionInterface>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QLoggingCategory>
 
 #include "configmanager_adaptor.h"
 
 #define DSG_CONFIG "org.desktopspec.ConfigManager"
+
+#ifndef QT_DEBUG
+Q_LOGGING_CATEGORY(cfLog, "dsg.config", QtInfoMsg);
+#else
+Q_LOGGING_CATEGORY(cfLog, "dsg.config");
+#endif
 
 __attribute__((constructor)) // 在库被加载时就执行此函数
 static void registerMetaType ()
@@ -127,7 +134,7 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
 {
     const auto &service = calledFromDBus() ? message().service() : "test.service";
     const uint &uid = calledFromDBus() ? connection().interface()->serviceUid(service).value() : 0U;
-    qDebug() << "acquireManager service:" << service << " uid:" << uid;
+    qCDebug(cfLog, "acquireManager service:%s, uid:%d", qPrintable(service), uid);
     QString path = validDBusObjectPath(QString("/%1/%2%3").arg(appid, name, subpath));
     auto resource = resourceObject(path);
     if (!resource) {
@@ -160,9 +167,9 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
             qInfo() << errorMsg;
             return QDBusObjectPath();
         }
-        qInfo() << "created connection:" << conn->key();
+        qCInfo(cfLog, "created connection:%s", qPrintable(conn->key()));
     } else {
-        qInfo() << "reuse connection:" << conn->key();
+        qCInfo(cfLog, "reuse connection:%s", qPrintable(conn->key()));
     }
     addConnWatchedService(service);
     m_refManager->refResource(service, conn->key());
@@ -179,8 +186,8 @@ void DSGConfigServer::onReleaseChanged(const ConnServiceName &service, const Con
 {
     m_refManager->derefResource(service, connKey);
 
-    const auto remainingCount = QString::number(m_refManager->getRefResourceCountOnTheSR(service, connKey));
-    qInfo() << QString("reduced connection refrence service. service:%1, path:%2, remaining refrence %3").arg(service, connKey, remainingCount);
+    const auto remainingCount = m_refManager->getRefResourceCountOnTheSR(service, connKey);
+    qCInfo(cfLog, "reduced connection refrence service. service:%s, path:%s, remaining refrence %d", qPrintable(service), qPrintable(connKey), remainingCount);
 }
 
 /*!
@@ -192,10 +199,10 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
     const ResourceKey resourceKey = getResourceKey(connKey);
     if (m_resources.contains(resourceKey)) {
         auto resource = m_resources.value(resourceKey);
-        qInfo() << "remove connection:" << connKey;
+        qCInfo(cfLog, "remove connection:%s", qPrintable(connKey));
         resource->removeConn(connKey);
         if (resource->isEmptyConn()) {
-            qInfo() << "remove resource:" << resourceKey;
+            qCInfo(cfLog, "remove resource:%s", qPrintable(resourceKey));
             m_resources.remove(resourceKey);
             resource->deleteLater();
         }
@@ -317,15 +324,16 @@ void DSGConfigServer::addConnWatchedService(const ConnServiceName & service)
         m_watcher->setWatchMode(QDBusServiceWatcher::WatchForUnregistration);
         connect(m_watcher, &QDBusServiceWatcher::serviceUnregistered, [this](const QString &service){
 
-            qInfo() << "remove watchered service:" << service;
+            qCInfo(cfLog, "remove watchered service:%s", qPrintable(service));
             m_watcher->removeWatchedService(service);
             m_refManager->releaseService(service);
         });
     }
     if (!m_watcher->watchedServices().contains(service)) {
-        qInfo() << QString("add watchered service:%1, appid:%2, user:%3.").arg(service).
-                   arg(getProcessNameByPid(connection().interface()->servicePid(service).value())).
-                   arg(getUserNameByUid(connection().interface()->serviceUid(service).value()));
+        qCInfo(cfLog, "add watchered service:%s, appid:%s, user:%s.",
+                qPrintable(service),
+                qPrintable(getProcessNameByPid(connection().interface()->servicePid(service).value())),
+                qPrintable(getUserNameByUid(connection().interface()->serviceUid(service).value())));
         m_watcher->addWatchedService(service);
     }
 }

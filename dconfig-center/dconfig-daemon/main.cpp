@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
         QDir().mkpath(logDir.path());
 
     Dtk::Core::DLogManager::registerFileAppender();
-    qDebug() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
+    qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
 
     QCommandLineParser parser;
     parser.addHelpOption();
