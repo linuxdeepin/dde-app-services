@@ -1,5 +1,5 @@
-dde-app-services (1.0.0-1) unstable; urgency=medium
+dde-app-services (0.0.1-1) unstable; urgency=medium
 
-  * Initial release Tag 1.0.0
+  * Initial release Tag 0.0.1
 
  --  Deepin Package Builder <yeshanshan@uniontech.com>  Wed, 20 Oct 2021 17:39:08 +0800

@@ -14,22 +14,29 @@ Build-Depends:
  libgtest-dev
 Standards-Version: 4.3.0
 
-Package: dconfig-daemon
+Package: dde-dconfig-daemon
 Architecture: any
+Provides: dconfig-daemon
+Conflicts: dconfig-daemon
+Replaces: dconfig-daemon
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  libdtkcore5
-Description: deepin desktop-environment - dconfig-daemon module
- dconfig-daemon provids dbus service for reading and writing configuration.
+Description: deepin desktop-environment - dde-dconfig-daemon module
+ dde-dconfig-daemon provids dbus service for reading and writing DSG configuration.
 
-Package: dconfig-editor
+Package: dde-dconfig-editor
 Architecture: any
+Provides: dconfig-editor
+Conflicts: dconfig-editor
+Replaces: dconfig-editor
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  libdtkcore5,
  libdtkgui5,
  libdtkwidget5
-Description: deepin desktop-environment - dconfig-editor module
- dconfig-editor is a GUI or Console tool, it's used to view and edit configuration for current user.
+Description: deepin desktop-environment - dde-dconfig-editor module
+ dde-dconfig-editor is a GUI or Console tool, it's used to view and edit 
+ DSG configuration for current user.

@@ -4,7 +4,10 @@ Description=DDE DConfig Center Daemon
 [Service]
 Type=dbus
 BusName=org.desktopspec.ConfigManager
-ExecStart=/usr/bin/dconfig-daemon
+ExecStart=/usr/bin/dde-dconfig-daemon
+Restart=always
+RestartSec=5
+OOMScoreAdjust=-250
 
 [Install]
 WantedBy=multi-user.target

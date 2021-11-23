@@ -1,10 +1,10 @@
 find_package(Qt5DBus REQUIRED)
 
-qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dconfig-daemon/services/org.desktopspec.ConfigManager.xml
+qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml
     dconfigserver.h DSGConfigServer
     configmanager_adaptor DSGConfig)
 
-qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml
+qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml
     dconfigconn.h DSGConfigConn
     manager_adaptor DSGConfigManager)
 

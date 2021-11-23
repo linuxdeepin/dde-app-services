@@ -1,5 +1,5 @@
 [D-BUS Service]
 Name=org.desktopspec.ConfigManager
-Exec=/usr/bin/dconfig-daemon
+Exec=/usr/bin/dde-dconfig-daemon
 User=root
 SystemdService=dconfig-center-daemon.service

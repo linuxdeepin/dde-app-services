@@ -18,7 +18,7 @@ if (DTK_HAS_UNIT_TEST)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lgcov --coverage")
 endif()
 
-include(../dconfig-daemon/src.cmake)
+include(../dde-dconfig-daemon/src.cmake)
 
 list(APPEND SOURCES
     ut_dconfigconn.cpp
@@ -29,7 +29,7 @@ list(APPEND SOURCES
 ADD_EXECUTABLE(dconfigtest main.cpp ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML} data.qrc)
 
 target_include_directories(dconfigtest PUBLIC
-    ../dconfig-daemon
+    ../dde-dconfig-daemon
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}
 )

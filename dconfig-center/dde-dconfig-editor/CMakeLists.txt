@@ -1,4 +1,4 @@
-PROJECT(dconfig-editor)
+PROJECT(dde-dconfig-editor)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 set(REQUIRED_QT_VERSION 5.11.3)
@@ -16,11 +16,11 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX /usr)
 endif ()
 
-set(DCONFIG_DBUS_XML_CONFIGMANAGER ../dconfig-daemon/services/org.desktopspec.ConfigManager.xml)
+set(DCONFIG_DBUS_XML_CONFIGMANAGER ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml)
 set_source_files_properties(${DCONFIG_DBUS_XML_CONFIGMANAGER} PROPERTIES CLASSNAME DSGConfig NO_NAMESPACE NO_NAMESPACE)
 qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_CONFIGMANAGER} manager_interface)
 
-set(DCONFIG_DBUS_XML_MANAGER ../dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml)
+set(DCONFIG_DBUS_XML_MANAGER ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml)
 set_source_files_properties(${DCONFIG_DBUS_XML_MANAGER} PROPERTIES CLASSNAME DSGConfigManager NO_NAMESPACE NO_NAMESPACE)
 qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_MANAGER} configmanager_interface)
 
@@ -36,7 +36,7 @@ set(SOURCES
     iteminfo.cpp
 )
 
-ADD_EXECUTABLE(dconfig-editor ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
+ADD_EXECUTABLE(dde-dconfig-editor ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
 
 set(COMMON_LIBS
     Qt5::Core
@@ -54,4 +54,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${DtkWidget_INCLUDE_DIRS}
 )
 
-install(TARGETS dconfig-editor DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS dde-dconfig-editor DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

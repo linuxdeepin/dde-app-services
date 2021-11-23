@@ -1,4 +1,4 @@
-PROJECT(dconfig-daemon)
+PROJECT(dde-dconfig-daemon)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 set(REQUIRED_QT_VERSION 5.11.3)
@@ -15,7 +15,7 @@ endif ()
 
 include(src.cmake)
 
-ADD_EXECUTABLE(dconfig-daemon main.cpp ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
+ADD_EXECUTABLE(dde-dconfig-daemon main.cpp ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
 
 set(COMMON_LIBS
     Qt5::Core
@@ -23,9 +23,9 @@ set(COMMON_LIBS
     ${DtkCore_LIBRARIES}
 )
 
-target_link_libraries(dconfig-daemon PUBLIC ${COMMON_LIBS})
+target_link_libraries(dde-dconfig-daemon PUBLIC ${COMMON_LIBS})
 
-target_include_directories(dconfig-daemon PUBLIC
+target_include_directories(dde-dconfig-daemon PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}
 )
@@ -45,4 +45,4 @@ install(FILES services/org.desktopspec.ConfigManager.service DESTINATION /usr/sh
 install(FILES services/dconfig-center-daemon.service DESTINATION /usr/lib/systemd/system)
 
 ## bin
-install(TARGETS dconfig-daemon DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
