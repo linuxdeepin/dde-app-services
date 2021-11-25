@@ -26,6 +26,9 @@
 
 #include <DConfigFile>
 
+static constexpr char const *DSG_CONFIG = "org.desktopspec.ConfigManager";
+static constexpr char const *DSG_CONFIG_MANAGER = "org.desktopspec.ConfigManager";
+
 class DBusHandler : public ConfigGetter {
 
 public:
@@ -116,10 +119,6 @@ private:
 
     QScopedPointer<DSGConfigManager> manager;
     ValueHandler *owner;
-
-private:
-    static constexpr char const *DSG_CONFIG = "org.desktopspec.ConfigManager";
-    static constexpr char const *DSG_CONFIG_MANAGER = "org.desktopspec.ConfigManager";
 };
 
 DCORE_USE_NAMESPACE;

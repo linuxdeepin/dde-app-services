@@ -31,6 +31,10 @@
 #include "dconfigresource.h"
 #include "dconfigconn.h"
 
+static constexpr char const *LocalPrefix = "/tmp/example/";
+static constexpr char const *APP_ID = "org.foo.appid";
+static constexpr char const *FILE_NAME = "example";
+
 class ut_DConfigServer : public testing::Test
 {
 protected:
@@ -58,11 +62,7 @@ protected:
         const QString metaPath = QString("%1/opt/apps/%2/files/schemas/configs").arg(LocalPrefix, APP_ID);
 
         return QString("%1/%2.json").arg(metaPath, FILE_NAME);
-    }
-    QScopedPointer<DSGConfigServer> server;
-    static constexpr char const *LocalPrefix = "/tmp/example/";
-    static constexpr char const *APP_ID = "org.foo.appid";
-    static constexpr char const *FILE_NAME = "example";
+    }    QScopedPointer<DSGConfigServer> server;
 };
 
 void ut_DConfigServer::TearDown() {
