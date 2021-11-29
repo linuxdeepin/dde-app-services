@@ -126,7 +126,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(appListView, &QListView::clicked, this, [this, resourceHeader](const QModelIndex &index){
         if (auto model = qobject_cast<QStandardItemModel*>(appListView->model())){
-             this->refreshAppResources(model->data(index).toString(), resourceHeader->text());
+             this->refreshAppResources(model->data(index, ConfigUserRole + 2).toString(), resourceHeader->text());
              emit resourceListView->clicked(resourceListView->currentIndex());
         }
     });
