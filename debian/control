@@ -16,7 +16,6 @@ Standards-Version: 4.3.0
 
 Package: dde-dconfig-daemon
 Architecture: any
-Provides: dconfig-daemon
 Conflicts: dconfig-daemon
 Replaces: dconfig-daemon
 Depends:
@@ -28,7 +27,6 @@ Description: deepin desktop-environment - dde-dconfig-daemon module
 
 Package: dde-dconfig-editor
 Architecture: any
-Provides: dconfig-editor
 Conflicts: dconfig-editor
 Replaces: dconfig-editor
 Depends:
