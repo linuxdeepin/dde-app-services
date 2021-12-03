@@ -168,6 +168,11 @@ QString DSGConfigConn::permissions(const QString &key)
     return m_config->meta()->permissions(key) == DTK_CORE_NAMESPACE::DConfigFile::ReadWrite ? QString("readwrite") : QString("readonly");
 }
 
+int DSGConfigConn::flags(const QString &key)
+{
+    return static_cast<int>(m_config->meta()->flags(key));
+}
+
 uint DSGConfigConn::getUid()
 {
     if (calledFromDBus()) {

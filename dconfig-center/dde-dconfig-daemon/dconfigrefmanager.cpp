@@ -208,6 +208,24 @@ void RefManager::releaseService(const ConnServiceName &service)
 void RefManager::setDelayReleaseTime(const int ms)
 {
     m_delayReleaseTime = ms;
+
+    const int TimeOut = 1; // min
+    if (ms > (TimeOut * 1000 * 60)) {
+        qCWarning(cfLog()) << "It maybe consume resources too much when delayReleaseTime too long"
+                           <<", recommand less " << TimeOut  << " min.";
+    }
+
+    for (auto timer : m_delayReleaseingConns.values()) {
+        // Recalculate remainingTime, to stop the timer when remainingTime less 0.
+        int newRemainingTime = ms - timer->remainingTime();
+        if (newRemainingTime > 0) {
+            qCDebug(cfLog()) << "Reduce remaining time " << newRemainingTime << " ms";
+            timer->start(newRemainingTime);
+        } else {
+            qCDebug(cfLog()) << "Stop Early " << std::abs(newRemainingTime) << " ms";
+            timer->stop();
+        }
+    }
 }
 
 /*!

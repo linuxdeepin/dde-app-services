@@ -48,9 +48,6 @@ public:
 
     DSGConfigResource* resourceObject(const ResourceKey &key);
 
-    void setDelayReleaseTime(const int ms);
-    int delayReleaseTime() const;
-
     void setLocalPrefix(const QString &localPrefix);
 
     int resourceSize() const;
@@ -66,6 +63,9 @@ public Q_SLOTS:
     void update(const QString &path);
 
     void sync(const QString &path);
+
+    void setDelayReleaseTime(const int ms);
+    int delayReleaseTime() const;
 
 private Q_SLOTS:
     void onReleaseChanged(const ConnServiceName &service, const ConnKey &connKey);

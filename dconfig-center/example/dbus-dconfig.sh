@@ -1,5 +1,9 @@
 #!/bin/bash
 
+dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.setDelayReleaseTime int32:1000
+
+echo delayReleaseTime: $(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.delayReleaseTime)
+
 #acquireManager
 DCONFIG_RESOURCE_PATH=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.acquireManager string:'dconfig-example' string:'example' string:'')
 
@@ -22,6 +26,9 @@ dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.Confi
 
 #permissions
 dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.permissions string:'canExit'
+
+#flags
+dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.flags string:'canExit'
 
 
 #value

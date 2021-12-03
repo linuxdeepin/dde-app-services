@@ -27,6 +27,10 @@
       <arg type='s' name='key' direction='in'/>
       <arg type='s' name='permissions' direction='out'/>
     </method>
+    <method name='flags'>
+      <arg type='s' name='key' direction='in'/>
+      <arg type='i' name='flags' direction='out'/>
+    </method>
     <!--采用引用计数的方式，引用为 0 时才真正的销毁-->
     <method name='release'>
     </method>

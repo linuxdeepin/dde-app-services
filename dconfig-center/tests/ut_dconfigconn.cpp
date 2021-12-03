@@ -119,6 +119,7 @@ TEST_F(ut_DConfigConn, description_name) {
     ASSERT_EQ(conn->name("canExit", ""), "I am name");
     ASSERT_EQ(conn->name("canExit", "zh_CN"), QString("我是名字"));
     ASSERT_EQ(conn->name("canExit", QLocale(QLocale::Japanese).name()), "");
+    ASSERT_EQ(conn->flags("canExit"), 0);
 }
 
 TEST_F(ut_DConfigConn, value) {

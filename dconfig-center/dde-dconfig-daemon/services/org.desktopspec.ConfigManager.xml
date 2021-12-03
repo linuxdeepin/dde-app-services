@@ -11,4 +11,10 @@
     <method name='sync'>
       <arg type='s' name='path' direction='in'/>
     </method>
+    <method name='setDelayReleaseTime'>
+      <arg type='i' name='time' direction='in'/>
+    </method>
+    <method name='delayReleaseTime'>
+      <arg type='i' name='time' direction='out'/>
+    </method>
 </interface>

@@ -73,6 +73,7 @@ public Q_SLOTS: // METHODS
     QDBusVariant value(const QString &key);
     QString visibility(const QString &key) ;
     QString permissions(const QString &key) ;
+    int flags(const QString &key);
 Q_SIGNALS: // SIGNALS
     void valueChanged(const QString &key);
     void globalValueChanged(const QString &key);
