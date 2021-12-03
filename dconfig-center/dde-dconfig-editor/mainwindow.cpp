@@ -194,6 +194,10 @@ void MainWindow::refreshApps(const QString &matchAppid)
             continue;
         }
 
+        if (resourcesForApp(app).isEmpty()) {
+            continue;
+        }
+
         DStandardItem *item = new DStandardItem(app);
         item->setSizeHint(QSize(200, 45));
         item->setToolTip(app);
