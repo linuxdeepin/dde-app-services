@@ -25,6 +25,7 @@
 
 #include "valuehandler.h"
 #include "iteminfo.h"
+#include "exportdialog.h"
 
 #include <QHBoxLayout>
 #include <DLabel>
@@ -42,6 +43,10 @@
 #include <DSpinBox>
 #include <DDBusSender>
 #include <QDBusPendingReply>
+#include <QFileDialog>
+#include <QApplication>
+#include <QClipboard>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent) :
     DMainWindow(parent)
@@ -126,8 +131,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(appListView, &QListView::clicked, this, [this, resourceHeader](const QModelIndex &index){
         if (auto model = qobject_cast<QStandardItemModel*>(appListView->model())){
-             this->refreshAppResources(model->data(index, ConfigUserRole + 2).toString(), resourceHeader->text());
-             emit resourceListView->clicked(resourceListView->currentIndex());
+            this->refreshAppResources(model->data(index, ConfigUserRole + 2).toString(), resourceHeader->text());
+            emit resourceListView->clicked(resourceListView->currentIndex());
         }
     });
 
@@ -153,7 +158,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // set history
     DTitlebar *titlebar = this->titlebar();
     connect(titlebar->menu()->addAction("setting history"), &QAction::triggered, [this](){
-
         qInfo() << "show history view";
         historyView->show();
 
@@ -164,20 +168,20 @@ MainWindow::MainWindow(QWidget *parent) :
     historyView->setFixedSize(QSize(400, 600));
     QObject::connect(contentView, &Content::sendValueUpdated, historyView, &HistoryDialog::onSendValueUpdated);
     QObject::connect(historyView, &HistoryDialog::refreshResourceKeys, this, [this, contentHeader](const QString &appid, const QString &resourceId, const QString &subpath){
-
         refreshResourceKeys(appid, resourceId, subpath, contentHeader->text());
     });
+
+    connect(titlebar->menu()->addAction("export"), &QAction::triggered, [this]() {
+        qInfo() << "export setting";
+        exportView->loadData(contentView->language());
+        exportView->show();
+    });
+    exportView = new ExportDialog(this);
+    exportView->setFixedSize(QSize(400, 600));
 
     installTranslate();
 
     refreshApps(appHeader->text());
-//    {
-//    //  test init
-//        refreshApps("dconfig");
-//        appListView->clicked(appListView->model()->index(0, 0));
-//        resourceListView->clicked(resourceListView->model()->index(0, 0));
-//        historyView->show();
-//    }
     setCentralWidget(centralwidget);
 }
 
@@ -283,13 +287,25 @@ void MainWindow::installTranslate()
 {
     DTitlebar *titlebar = this->titlebar();
     auto languageMenu = titlebar->menu()->addMenu("config language");
-    connect(languageMenu->addAction("default"), &QAction::triggered, [this](){
+    auto defaultAction = languageMenu->addAction("default");
+    defaultAction->setCheckable(true);
+    auto chineseAction = languageMenu->addAction("chinese");
+    chineseAction->setCheckable(true);
+    auto englishAction = languageMenu->addAction("english");
+    englishAction->setCheckable(true);
+    QActionGroup *languageGroup = new QActionGroup(this);
+    languageGroup->addAction(defaultAction);
+    languageGroup->addAction(chineseAction);
+    languageGroup->addAction(englishAction);
+    defaultAction->setChecked(true);
+
+    connect(defaultAction, &QAction::triggered, [this](){
         contentView->setLanguage("");
     });
-    connect(languageMenu->addAction("chinese"), &QAction::triggered, [this](){
+    connect(chineseAction, &QAction::triggered, [this](){
         contentView->setLanguage("zh_CN");
     });
-    connect(languageMenu->addAction("english"), &QAction::triggered, [this](){
+    connect(englishAction, &QAction::triggered, [this](){
         contentView->setLanguage("en_US");
     });
     connect(contentView, &Content::languageChanged, this, [this](){
@@ -350,7 +366,7 @@ LevelDelegate::~LevelDelegate()
 }
 
 void LevelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
-                               const QModelIndex &index) const
+                          const QModelIndex &index) const
 {
     QStyleOptionViewItem opt = option;
     opt.text = QString();
@@ -451,7 +467,7 @@ void Content::refreshResourceKeys(const QString &appid, const QString &resourceI
 
         if (!isVisible(manager.get(), key)) {
             // TODO visiblity
-//            continue;
+            //            continue;
             ;
         }
 
@@ -464,6 +480,10 @@ void Content::refreshResourceKeys(const QString &appid, const QString &resourceI
         connect(keyItem, &KeyContent::valueChanged, this, &Content::onValueChanged);
 
         m_contentLayout->addWidget(keyItem, 0, Qt::AlignTop);
+        keyItem->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(keyItem, &QWidget::customContextMenuRequested, this, [this, keyItem, appid, resourceId, subpath, key](const QPoint&) {
+            onCustomContextMenuRequested(keyItem, appid, resourceId, subpath, key);
+        });
     }
     m_contentLayout->addStretch();
 }
@@ -508,6 +528,56 @@ void Content::onValueChanged(const QVariant &value)
     emit sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << keyContent->key(), old, value);
 }
 
+void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid, const QString &resource, const QString &subpath, const QString &key)
+{
+    m_getter.reset(new ValueHandler(appid, resource, subpath));
+    QScopedPointer<ConfigGetter> manager(m_getter->createManager());
+    const QString &value =  manager.get()->value(key).toString();
+    const QString &description = manager.get()->description(key, m_language);
+
+    QMenu *menu = new QMenu(widget);
+
+    QAction *exportAction = menu->addAction("导出");
+    QAction *copyAction = menu->addAction("复制");
+    QAction *copyCmdAction = menu->addAction("复制命令");
+
+    QString setCmd = QString("dde-dconfig --set -a %1 -r %2 -k %3 -v %4").arg(appid).arg(resource).arg(key).arg(value);
+    QString getCmd = QString("dde-dconfig --get -a %1 -r %2  -k %3").arg(appid).arg(resource).arg(key);
+    if (!subpath.isEmpty()) {
+        setCmd.append(QString(" -s %1").arg(subpath));
+        getCmd.append(QString(" -s %1").arg(subpath));
+    }
+    connect(exportAction, &QAction::triggered, this, [this, appid, resource, subpath, key, value, description, setCmd, getCmd]{
+        QString fileName = QFileDialog::getSaveFileName(this, tr("导出当前配置"), "", tr("文件(*.csv)"));
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream stream(&file);
+            QStringList headers = (QStringList() << "appid" << "resource" << "subpath" << "key" << "value" <<"description" << "set command" <<  "get command");
+            stream << headers.join(',');
+            stream << "\n";
+            QStringList datas = QStringList() << appid <<  resource << subpath << key << value << description << setCmd << getCmd;
+            stream << datas.join(',');
+            stream << "\n";
+            stream.flush();
+            file.close();
+            if (stream.status() != QTextStream::Ok) {
+                qWarning() << "stream.status:" << stream.status();
+                DDialog dialog("文件保存失败!", "",this);
+                dialog.addButton("确定", true, DDialog::ButtonWarning);
+                dialog.exec();
+            }
+        }
+    });
+    QClipboard *clip = QApplication::clipboard();
+    connect(copyAction, &QAction::triggered, this, [clip, key] {
+        clip->setText(key);
+    });
+    connect(copyCmdAction, &QAction::triggered, this, [clip, setCmd] {
+        clip->setText(setCmd);
+    });
+    menu->exec(QCursor::pos());
+}
+
 KeyContent::KeyContent(const QString &key, QWidget *parent)
     : QWidget (parent),
       m_key(key),
@@ -525,7 +595,6 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
 
     DLabel *labelWidget = new DLabel(QString("%1 [%2]").arg(getter->displayName(m_key, language), m_key));
     labelWidget->setToolTip(getter->description(m_key, language));
-
     m_hLay->addWidget(labelWidget);
     QWidget *valueWidget = nullptr;
     if (v.type() == QVariant::Bool) {
@@ -621,8 +690,6 @@ void HistoryDialog::onSendValueUpdated(const QStringList &key, const QVariant &p
     item->setData(key[1], ConfigUserRole + 3);
     item->setData(key[2], ConfigUserRole + 4);
     item->setData(key[3], ConfigUserRole + 5);
-
-
     item->setData(pre, ConfigUserRole + 6);
 
     if (model->rowCount() >= maxRows) {

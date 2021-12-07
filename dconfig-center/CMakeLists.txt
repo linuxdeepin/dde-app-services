@@ -7,5 +7,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_subdirectory("dde-dconfig-daemon")
 add_subdirectory("dde-dconfig-editor")
+add_subdirectory("dde-dconfig")
 add_subdirectory("example")
 add_subdirectory("tests")

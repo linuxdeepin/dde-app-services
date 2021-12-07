@@ -30,6 +30,7 @@
 #include <DDialog>
 class ValueHandler;
 class ConfigGetter;
+class ExportDialog;
 DWIDGET_USE_NAMESPACE
 
 class LevelDelegate : public DStyledItemDelegate {
@@ -77,7 +78,7 @@ public:
     static void remove(QLayout *layout);
 
     void setLanguage(const QString &language);
-
+    QString language() { return m_language; }
 Q_SIGNALS:
     void sendValueUpdated(const QStringList &keyid, const QVariant &pre, const QVariant &now);
 
@@ -85,6 +86,7 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void onValueChanged(const QVariant &value);
+    void onCustomContextMenuRequested(QWidget *widget, const QString &appid, const QString &resource, const QString &subpath, const QString &key);
 private:
     QVBoxLayout *m_contentLayout = nullptr;
     QScopedPointer<ValueHandler> m_getter;
@@ -138,6 +140,7 @@ private:
     Content *contentView;
 
     HistoryDialog *historyView = nullptr;
+    ExportDialog *exportView = nullptr;
     QMap<QString, QString> appIdToNameMaps;
 
 

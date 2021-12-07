@@ -35,13 +35,6 @@ using SubpathList = QList<SubpathKey>;
 
 static const QString &SUFFIX = QString(".json");
 constexpr int ConfigUserRole = Qt::UserRole + 10;
-constexpr int AppidRole = Qt::UserRole + 11;
-constexpr int ResourceRole = Qt::UserRole + 12;
-constexpr int SubpathRole = Qt::UserRole + 13;
-constexpr int KeyRole = Qt::UserRole + 14;
-constexpr int ValueRole = Qt::UserRole + 15;
-constexpr int DescriptionRole = Qt::UserRole + 16;
-
 enum ConfigType {
     InvalidType = 0x00,
     AppType = 0x10,

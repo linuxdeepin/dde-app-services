@@ -1,10 +1,8 @@
-PROJECT(dde-dconfig-editor)
+PROJECT(dde-dconfig)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 set(REQUIRED_QT_VERSION 5.11.3)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus)
-find_package(DtkCore REQUIRED)
-find_package(DtkGui REQUIRED)
+find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
 find_package(DtkWidget REQUIRED)
 
 # generate moc_predefs.h
@@ -25,25 +23,18 @@ set_source_files_properties(${DCONFIG_DBUS_XML_MANAGER} PROPERTIES CLASSNAME DSG
 qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_MANAGER} configmanager_interface)
 
 set(HEADERS
-    mainwindow.h
+    helper.hpp
     valuehandler.h
-    iteminfo.h
-    exportdialog.h
 )
 set(SOURCES
     main.cpp
-    mainwindow.cpp
     valuehandler.cpp
-    iteminfo.cpp
-    exportdialog.cpp
 )
 
-ADD_EXECUTABLE(dde-dconfig-editor ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
+ADD_EXECUTABLE(dde-dconfig ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
 
 set(COMMON_LIBS
     Qt5::Core
-    Qt5::Gui
-    Qt5::Widgets
     Qt5::DBus
     ${DtkWidget_LIBRARIES}
 )
@@ -56,4 +47,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${DtkWidget_INCLUDE_DIRS}
 )
 
-install(TARGETS dde-dconfig-editor DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS dde-dconfig DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
