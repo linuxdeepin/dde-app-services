@@ -29,6 +29,7 @@ set(HEADERS
     valuehandler.h
     iteminfo.h
     exportdialog.h
+    oemdialog.h
 )
 set(SOURCES
     main.cpp
@@ -36,6 +37,7 @@ set(SOURCES
     valuehandler.cpp
     iteminfo.cpp
     exportdialog.cpp
+    oemdialog.cpp
 )
 
 ADD_EXECUTABLE(dde-dconfig-editor ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})

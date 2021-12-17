@@ -31,6 +31,7 @@
 class ValueHandler;
 class ConfigGetter;
 class ExportDialog;
+class OEMDialog;
 DWIDGET_USE_NAMESPACE
 
 class LevelDelegate : public DStyledItemDelegate {
@@ -141,6 +142,7 @@ private:
 
     HistoryDialog *historyView = nullptr;
     ExportDialog *exportView = nullptr;
+    OEMDialog *oemView = nullptr;
     QMap<QString, QString> appIdToNameMaps;
 
 

@@ -26,6 +26,7 @@
 #include "valuehandler.h"
 #include "iteminfo.h"
 #include "exportdialog.h"
+#include "oemdialog.h"
 
 #include <QHBoxLayout>
 #include <DLabel>
@@ -178,6 +179,12 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     exportView = new ExportDialog(this);
     exportView->setFixedSize(QSize(400, 600));
+    connect(titlebar->menu()->addAction("OEM"), &QAction::triggered, [this]() {
+        oemView->loadData(contentView->language());
+        oemView->show();
+    });
+    oemView = new OEMDialog(this);
+    oemView->setFixedSize(QSize(800, 600));
 
     installTranslate();
 
