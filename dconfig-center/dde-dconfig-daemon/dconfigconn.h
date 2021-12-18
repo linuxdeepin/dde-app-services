@@ -81,10 +81,12 @@ Q_SIGNALS: // SIGNALS
 private:
     uint getUid();
     QString getAppid();
+    bool contains(const QString &key);
 
 private:
     DTK_CORE_NAMESPACE::DConfigFile *m_config;
     DTK_CORE_NAMESPACE::DConfigCache *m_cache;
     QString m_key;
+    QSet<QString> m_keys;
 };
 

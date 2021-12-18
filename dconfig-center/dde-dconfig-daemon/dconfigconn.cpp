@@ -64,6 +64,7 @@ DConfigCache *DSGConfigConn::cache() const
 void DSGConfigConn::setConfigFile(DConfigFile *configFile)
 {
     m_config = configFile;
+    m_keys = m_config->meta()->keyList().toSet();
 }
 
 void DSGConfigConn::setConfigCache(DConfigCache *cache)
@@ -98,6 +99,9 @@ QString DSGConfigConn::version() const
  */
 QString DSGConfigConn::description(const QString &key, const QString &locale)
 {
+    if (!contains(key))
+        return QString();
+
     return m_config->meta()->description(key, locale.isEmpty() ? QLocale::AnyLanguage :  QLocale(locale));
 }
 
@@ -109,6 +113,9 @@ QString DSGConfigConn::description(const QString &key, const QString &locale)
  */
 QString DSGConfigConn::name(const QString &key, const QString &locale)
 {
+    if (!contains(key))
+        return QString();
+
     return m_config->meta()->displayName(key, locale.isEmpty() ? QLocale::AnyLanguage :  QLocale(locale));
 }
 
@@ -131,6 +138,9 @@ void DSGConfigConn::release()
  */
 void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 {
+    if (!contains(key))
+        return;
+
     qCDebug(cfLog, "set value key:[%s], now value:[%s], old value:[%s]", qPrintable(key), qPrintable(value.variant().toString()), qPrintable(m_config->value(key, m_cache).toString()));
     if(!m_config->setValue(key, value.variant(), getAppid(), m_cache))
         return;
@@ -149,6 +159,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
  */
 QDBusVariant DSGConfigConn::value(const QString &key)
 {
+    if (!contains(key))
+        return QDBusVariant();
+
     qCDebug(cfLog, "get value key:[%s], value:[%s]", qPrintable(key), qPrintable(m_config->value(key, m_cache).toString()));
     return QDBusVariant{m_config->value(key, m_cache)};
 }
@@ -160,11 +173,17 @@ QDBusVariant DSGConfigConn::value(const QString &key)
  */
 QString DSGConfigConn::visibility(const QString &key)
 {
+    if (!contains(key))
+        return QString();
+
     return m_config->meta()->visibility(key) == DTK_CORE_NAMESPACE::DConfigFile::Private ? QString("private") : QString("public");
 }
 
 QString DSGConfigConn::permissions(const QString &key)
 {
+    if (!contains(key))
+        return QString();
+
     return m_config->meta()->permissions(key) == DTK_CORE_NAMESPACE::DConfigFile::ReadWrite ? QString("readwrite") : QString("readonly");
 }
 
@@ -189,4 +208,17 @@ QString DSGConfigConn::getAppid()
         return getProcessNameByPid(connection().interface()->servicePid(service));
     }
     return QString("testappid");
+}
+
+bool DSGConfigConn::contains(const QString &key)
+{
+    if (m_keys.contains(key))
+        return true;
+
+    QString errorMsg = QString("[%1] requires Non-existent configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
+    if (calledFromDBus())
+        sendErrorReply(QDBusError::Failed, errorMsg);
+    qWarning() << errorMsg;
+
+    return false;
 }
