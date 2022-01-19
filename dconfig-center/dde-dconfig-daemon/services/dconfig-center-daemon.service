@@ -8,6 +8,3 @@ ExecStart=/usr/bin/dde-dconfig-daemon
 Restart=always
 RestartSec=5
 OOMScoreAdjust=-250
-
-[Install]
-WantedBy=multi-user.target
