@@ -115,6 +115,16 @@ public:
         return QDBusConnection::systemBus().interface()->isServiceRegistered(DSG_CONFIG);
     }
 
+    static bool isServiceActivatable()
+    {
+         const QDBusReply<QStringList> activatableNames = QDBusConnection::systemBus().interface()->
+                 callWithArgumentList(QDBus::AutoDetect,
+                 QLatin1String("ListActivatableNames"),
+                 QList<QVariant>());
+
+         //qInfo() << activatableNames.value() << activatableNames.value().contains(DSG_CONFIG);
+         return activatableNames.value().contains(DSG_CONFIG);
+    }
 private:
 
     QScopedPointer<DSGConfigManager> manager;
@@ -237,7 +247,7 @@ ValueHandler::~ValueHandler()
 
 ConfigGetter* ValueHandler::createManager()
 {
-    if (DBusHandler::isServiceRegistered()) {
+    if (DBusHandler::isServiceRegistered() || DBusHandler::isServiceActivatable()) {
         auto tmp = new DBusHandler(this);
         if (tmp->createManager(appid, fileName, subpath)) {
             return tmp;
