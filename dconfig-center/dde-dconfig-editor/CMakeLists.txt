@@ -26,7 +26,8 @@ qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_MANAGER} configmanage
 
 set(HEADERS
     mainwindow.h
-    valuehandler.h
+    ../common/valuehandler.h
+    ../common/helper.hpp
     iteminfo.h
     exportdialog.h
     oemdialog.h
@@ -34,7 +35,7 @@ set(HEADERS
 set(SOURCES
     main.cpp
     mainwindow.cpp
-    valuehandler.cpp
+    ../common/valuehandler.cpp
     iteminfo.cpp
     exportdialog.cpp
     oemdialog.cpp

@@ -21,9 +21,9 @@
 #include "mainwindow.h"
 
 
-#include "helper.hpp"
+#include "../common/helper.hpp"
 
-#include "valuehandler.h"
+#include "../common/valuehandler.h"
 #include "iteminfo.h"
 #include "exportdialog.h"
 #include "oemdialog.h"

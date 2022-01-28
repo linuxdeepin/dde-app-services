@@ -19,21 +19,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include <QCoreApplication>
 #include <QRegularExpression>
-
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QDBusError>
 #include <QDBusPendingReply>
 #include <QLoggingCategory>
-#include "helper.hpp"
-#include "valuehandler.h"
-
-
 #include <QProcess>
 #include <iostream>
+
+#include "../common/helper.hpp"
+#include "../common/valuehandler.h"
+
+struct Options {
+    QCommandLineOption appidOption;
+    QCommandLineOption resourceOption;
+    QCommandLineOption subpathOption;
+    QCommandLineOption keyOption;
+    QCommandLineOption methodOption;
+    QCommandLineOption languageOption;
+    QCommandLineOption valueOption;
+};
+
 // output for standard ostream(dev 1)
 inline void outpuSTD(const QString &value)
 {
@@ -44,6 +52,11 @@ inline void outpuSTDError(const QString &value)
 {
     std::cerr << qPrintable(value) << std::endl;
 }
+
+int onListOption(const QCommandLineParser &parser, const Options &options);
+int onGetOption(const QCommandLineParser &parser, const Options &options);
+int onSetOption(const QCommandLineParser &parser, const Options &options);
+int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, const Options &options);
 
 int main(int argc, char *argv[])
 {
@@ -98,184 +111,218 @@ int main(int argc, char *argv[])
         parser.showHelp(0);
     }
 
+    Options options { appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption };
     if (parser.isSet(guiOption)) {
         QProcess::startDetached("/bin/dde-dconfig-editor");
         return 0;
     } else {
-        const auto &appid = parser.value(appidOption);
-        const auto &resourceid = parser.value(resourceOption);
-        const auto &subpathid = parser.value(subpathOption);
-        const auto &key = parser.value(keyOption);
-
-        const auto &method = parser.value(methodOption);
-
-        QLoggingCategory::setFilterRules("dtk.dsg.config=false");
-
         if (parser.isSet(listOption)) {
-            // list命令，查看app、resource、subpath
-            if (parser.isSet(appidOption)) {
-                if (!existAppid(appid)) {
-                    outpuSTDError(QString("not exist appid:%1").arg(appid));
-                    return 1;
-                }
-                if (parser.isSet(resourceOption)) {
-                    if (!existResource(appid, resourceid)) {
-                        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
-                        return 1;
-                    }
-                    auto subpaths = subpathsForResource(appid, resourceid);
-                    for (auto item : subpaths) {
-                        outpuSTD(item);
-                    }
-                } else {
-                    auto resources = resourcesForApp(appid);
-                    for (auto item : resources) {
-                        outpuSTD(item);
-                    }
-                }
-            } else if(parser.isSet(resourceOption)) {
-                const auto &commons = resourcesForAllApp();
-                QRegularExpression re(resourceid);
-                for (auto item : commons) {
-                    auto match = re.match(item);
-                    if (match.hasMatch()) {
-                        outpuSTD(item);
-                    }
-                }
-            } else {
-                auto apps = applications();
-                for (auto item : apps) {
-                    outpuSTD(item);
-                }
-            }
-
+            return onListOption(parser, options);
         } else if (parser.isSet(getOption)) {
-            // query命令，查看指定配置的详细信息，操作方法和配置项信息
-            if (!parser.isSet(appidOption) || !parser.isSet(resourceOption)) {
-                const QStringList methods{"value",
-                                    "name",
-                                    "description",
-                                    "visibility",
-                                    "permissions",
-                                    "version"};
-                for (auto item : methods) {
-                    outpuSTD(item);
-                }
-                return 0;
-            }
-
-            if (!existResource(appid, resourceid)) {
-                outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
-                return 1;
-            }
-
-            ValueHandler handler(appid, resourceid, subpathid);
-            if (auto manager = handler.createManager()) {
-                if (!parser.isSet(keyOption) && !parser.isSet(methodOption)) {
-
-                    QStringList result = manager->keyList();
-                    for (auto item : result) {
-                        outpuSTD(item);
-                    }
-                    return 0;
-                }
-                if (parser.isSet(keyOption)) {
-                    const auto &language = parser.value(languageOption);
-
-                    if (method == "value") {
-                        QVariant result = manager->value(key);
-                        if (result.type() == QVariant::Bool) {
-                            outpuSTD(result.toBool() ? "true" : "false");
-                        } else if (result.type() == QVariant::Double) {
-                            outpuSTD(QString::number(result.toDouble()));
-                        } else {
-                            outpuSTD(QString("\"%1\"").arg(result.toString()));
-                        }
-                    } else if (method == "name") {
-                        QString result = manager->displayName(key, language);
-                        outpuSTD(result);
-                    } else if (method == "description") {
-                        QString result = manager->description(key, language);
-                        outpuSTD(result);
-                    } else if (method == "visibility") {
-                        QString result = manager->visibility(key);
-                        outpuSTD(result);
-                    } else if (method == "permissions") {
-                        QString result = manager->permissions(key);
-                        outpuSTD(result);
-                    } else if (method == "version") {
-                        QString result = manager->version();
-                        outpuSTD(result);
-                    } else {
-                        outpuSTDError(QString("not exit the method:[%1] for `query` command.").arg(method));
-                        return 1;
-                    }
-                } else {
-                    outpuSTDError("not set key for `query` command.");
-                    return 1;
-                }
-            } else {
-                outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
-                return 1;
-            }
+            return onGetOption(parser, options);
         } else if (parser.isSet(setOption)) {
-            // set命令，设置指定配置项
-            if (!parser.isSet(appidOption) || !parser.isSet(resourceOption) || !parser.isSet(keyOption)
-                    ||!parser.isSet(valueOption)) {
-                outpuSTDError("not set appid, resource, key or value.");
-                return 1;
-            }
-
-            if (!existResource(appid, resourceid)) {
-                outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
-                return 1;
-            }
-
-            const auto &value = parser.value(valueOption);
-            ValueHandler handler(appid, resourceid, subpathid);
-            QScopedPointer<ConfigGetter> manager(handler.createManager());
-            if (manager) {
-                QVariant result = manager->value(key);
-                if (result.type() == QVariant::Bool) {
-                    manager->setValue(key, QVariant(value).toBool());
-                } else if (result.type() == QVariant::Double) {
-                    manager->setValue(key, value.toDouble());
-                } else {
-                    manager->setValue(key, value);
-                }
-            } else {
-                outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
-                return 1;
-            }
+            return onSetOption(parser, options);
         } else if (parser.isSet(watchOption)) {
-            // watch命令，监控一些配置项改变信号
-            if (!parser.isSet(appidOption) || !parser.isSet(resourceOption)) {
-                outpuSTDError("not set appid or resource.");
-                return 1;
-            }
+            return onWatchOption(a, parser, options);
+        }
+        parser.showHelp(0);
+    }
+}
 
+int onListOption(const QCommandLineParser &parser, const Options &options)
+{
+    const auto &appid = parser.value(options.appidOption);
+    const auto &resourceid = parser.value(options.resourceOption);
+    // list命令，查看app、resource、subpath
+    if (parser.isSet(options.appidOption)) {
+        if (!existAppid(appid)) {
+            outpuSTDError(QString("not exist appid:%1").arg(appid));
+            return 1;
+        }
+        if (parser.isSet(options.resourceOption)) {
             if (!existResource(appid, resourceid)) {
                 outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
                 return 1;
             }
-
-            ValueHandler handler(appid, resourceid, subpathid);
-            QScopedPointer<ConfigGetter> manager(handler.createManager());
-            if (manager) {
-                const auto &matchKey = key;
-                QObject::connect(&handler, &ValueHandler::valueChanged, [matchKey](const QString &key){
-                    QRegularExpression re(matchKey);
-                    auto match = re.match(key);
-                    if (match.hasMatch()) {
-                        outpuSTD(key);
-                    }
-                });
-            } else {
-                outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
-                return 1;
+            auto subpaths = subpathsForResource(appid, resourceid);
+            for (auto item : subpaths) {
+                outpuSTD(item);
             }
-            return a.exec();
+        } else {
+            auto resources = resourcesForApp(appid);
+            for (auto item : resources) {
+                outpuSTD(item);
+            }
+        }
+    } else if(parser.isSet(options.resourceOption)) {
+        const auto &commons = resourcesForAllApp();
+        QRegularExpression re(resourceid);
+        for (auto item : commons) {
+            auto match = re.match(item);
+            if (match.hasMatch()) {
+                outpuSTD(item);
+            }
+        }
+    } else {
+        auto apps = applications();
+        for (auto item : apps) {
+            outpuSTD(item);
+        }
+    }
+    return 0;
+}
+
+int onGetOption(const QCommandLineParser &parser, const Options &options)
+{
+    const auto &appid = parser.value(options.appidOption);
+    const auto &resourceid = parser.value(options.resourceOption);
+    const auto &subpathid = parser.value(options.subpathOption);
+    const auto &key = parser.value(options.keyOption);
+    const auto &method = parser.value(options.methodOption);
+
+    // query命令，查看指定配置的详细信息，操作方法和配置项信息
+    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption)) {
+        const QStringList methods{"value",
+                            "name",
+                            "description",
+                            "visibility",
+                            "permissions",
+                            "version"};
+        for (auto item : methods) {
+            outpuSTD(item);
         }
         return 0;
     }
+
+    if (!existResource(appid, resourceid)) {
+        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
+        return 1;
+    }
+
+    ValueHandler handler(appid, resourceid, subpathid);
+    if (auto manager = handler.createManager()) {
+        if (!parser.isSet(options.keyOption) && !parser.isSet(options.methodOption)) {
+
+            QStringList result = manager->keyList();
+            for (auto item : result) {
+                outpuSTD(item);
+            }
+            return 0;
+        }
+        if (parser.isSet(options.keyOption)) {
+            const auto &language = parser.value(options.languageOption);
+
+            if (method == "value") {
+                QVariant result = manager->value(key);
+                if (result.type() == QVariant::Bool) {
+                    outpuSTD(result.toBool() ? "true" : "false");
+                } else if (result.type() == QVariant::Double) {
+                    outpuSTD(QString::number(result.toDouble()));
+                } else {
+                    outpuSTD(QString("\"%1\"").arg(result.toString()));
+                }
+            } else if (method == "name") {
+                QString result = manager->displayName(key, language);
+                outpuSTD(result);
+            } else if (method == "description") {
+                QString result = manager->description(key, language);
+                outpuSTD(result);
+            } else if (method == "visibility") {
+                QString result = manager->visibility(key);
+                outpuSTD(result);
+            } else if (method == "permissions") {
+                QString result = manager->permissions(key);
+                outpuSTD(result);
+            } else if (method == "version") {
+                QString result = manager->version();
+                outpuSTD(result);
+            } else {
+                outpuSTDError(QString("not exit the method:[%1] for `query` command.").arg(method));
+                return 1;
+            }
+        } else {
+            outpuSTDError("not set key for `query` command.");
+            return 1;
+        }
+    } else {
+        outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
+        return 1;
+    }
+    return 0;
+}
+
+int onSetOption(const QCommandLineParser &parser, const Options &options)
+{
+    const auto &appid = parser.value(options.appidOption);
+    const auto &resourceid = parser.value(options.resourceOption);
+    const auto &subpathid = parser.value(options.subpathOption);
+    const auto &key = parser.value(options.keyOption);
+
+    // set命令，设置指定配置项
+    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption) || !parser.isSet(options.keyOption)
+            ||!parser.isSet(options.valueOption)) {
+        outpuSTDError("not set appid, resource, key or value.");
+        return 1;
+    }
+
+    if (!existResource(appid, resourceid)) {
+        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
+        return 1;
+    }
+
+    const auto &value = parser.value(options.valueOption);
+    ValueHandler handler(appid, resourceid, subpathid);
+    {
+        QScopedPointer<ConfigGetter> manager(handler.createManager());
+        if (manager) {
+            QVariant result = manager->value(key);
+            if (result.type() == QVariant::Bool) {
+                manager->setValue(key, QVariant(value).toBool());
+            } else if (result.type() == QVariant::Double) {
+                manager->setValue(key, value.toDouble());
+            } else {
+                manager->setValue(key, value);
+            }
+        } else {
+            outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, const Options &options)
+{
+    const auto &appid = parser.value(options.appidOption);
+    const auto &resourceid = parser.value(options.resourceOption);
+    const auto &subpathid = parser.value(options.subpathOption);
+    const auto &key = parser.value(options.keyOption);
+
+    // watch命令，监控一些配置项改变信号
+    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption)) {
+        outpuSTDError("not set appid or resource.");
+        return 1;
+    }
+
+    if (!existResource(appid, resourceid)) {
+        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
+        return 1;
+    }
+
+    ValueHandler handler(appid, resourceid, subpathid);
+    QScopedPointer<ConfigGetter> manager(handler.createManager());
+    if (manager) {
+        const auto &matchKey = key;
+        QObject::connect(&handler, &ValueHandler::valueChanged, [matchKey](const QString &key){
+            QRegularExpression re(matchKey);
+            auto match = re.match(key);
+            if (match.hasMatch()) {
+                outpuSTD(key);
+            }
+        });
+    } else {
+        outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
+        return 1;
+    }
+    return a.exec();
 }

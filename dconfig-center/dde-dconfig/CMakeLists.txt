@@ -23,12 +23,12 @@ set_source_files_properties(${DCONFIG_DBUS_XML_MANAGER} PROPERTIES CLASSNAME DSG
 qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_MANAGER} configmanager_interface)
 
 set(HEADERS
-    helper.hpp
-    valuehandler.h
+    ../common/helper.hpp
+    ../common/valuehandler.h
 )
 set(SOURCES
     main.cpp
-    valuehandler.cpp
+    ../common/valuehandler.cpp
 )
 
 ADD_EXECUTABLE(dde-dconfig ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
