@@ -1,0 +1,47 @@
+#
+# Copyright (C) 2022 Uniontech Technology Co., Ltd.
+#
+# Author:     wangfeia <wangfeia@uniontech.com>
+#
+# Maintainer: wangfeia <wangfeia@uniontech.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+#!/bin/sh
+
+_dde_dconfig()
+{
+    COMPREPLY=()
+    local cur=${COMP_WORDS[COMP_CWORD]};
+    local cmd=${COMP_WORDS[COMP_CWORD-1]};
+    case $cmd in
+    'dde-dconfig')
+        COMPREPLY=( $(compgen -W '--help --list --set --get --gui' -- $cur) ) ;;
+    '-a')
+        local result=( $(dde-dconfig --list) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    '-r')
+        local a=${COMP_WORDS[COMP_CWORD-2]}
+        local result=( $(dde-dconfig --list -a $a) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    '-k')
+        local a=${COMP_WORDS[COMP_CWORD-4]}
+        local r=${COMP_WORDS[COMP_CWORD-2]}
+        local result=( $(dde-dconfig --get -a $a -r $r) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    esac
+    return 0
+}
+complete -F _dde_dconfig dde-dconfig
