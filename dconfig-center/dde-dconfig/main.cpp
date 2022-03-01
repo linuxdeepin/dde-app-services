@@ -29,8 +29,8 @@
 #include <QProcess>
 #include <iostream>
 
-#include "../common/helper.hpp"
-#include "../common/valuehandler.h"
+#include "helper.hpp"
+#include "valuehandler.h"
 
 struct Options {
     QCommandLineOption appidOption;
@@ -219,7 +219,7 @@ int onGetOption(const QCommandLineParser &parser, const Options &options)
                 } else if (result.type() == QVariant::Double) {
                     outpuSTD(QString::number(result.toDouble()));
                 } else {
-                    outpuSTD(QString("\"%1\"").arg(result.toString()));
+                    outpuSTD(QString("\"%1\"").arg(qvariantToString(result)));
                 }
             } else if (method == "name") {
                 QString result = manager->displayName(key, language);
@@ -281,7 +281,7 @@ int onSetOption(const QCommandLineParser &parser, const Options &options)
             } else if (result.type() == QVariant::Double) {
                 manager->setValue(key, value.toDouble());
             } else {
-                manager->setValue(key, value);
+                manager->setValue(key, stringToQVariant(value));
             }
         } else {
             outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));

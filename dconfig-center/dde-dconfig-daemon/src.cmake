@@ -8,6 +8,8 @@ qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktop
     dconfigconn.h DSGConfigConn
     manager_adaptor DSGConfigManager)
 
+include_directories(../common)
+
 set(HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/dconfig_global.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigserver.h

@@ -21,9 +21,8 @@
 #include "mainwindow.h"
 
 
-#include "../common/helper.hpp"
-
-#include "../common/valuehandler.h"
+#include "helper.hpp"
+#include "valuehandler.h"
 #include "iteminfo.h"
 #include "exportdialog.h"
 #include "oemdialog.h"
@@ -622,11 +621,11 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
         valueWidget = widget;
     } else {
         auto widget = new DLineEdit(this);
-        widget->setText(v.toString());
+        widget->setText(qvariantToString(v));
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::editingFinished, widget, [this, widget](){
             widget->clearFocus();
-            emit valueChanged(widget->text());
+            emit valueChanged(stringToQVariant(widget->text()));
         });
         valueWidget = widget;
     }

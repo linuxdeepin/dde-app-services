@@ -18,11 +18,15 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
+
 #include <QString>
 #include <QSet>
 #include <QList>
 #include <QDir>
 #include <QDirIterator>
+#include <QDBusArgument>
+#include <QJsonDocument>
 
 #include <DStandardPaths>
 
@@ -177,4 +181,44 @@ static bool existResource(const AppId &appid, const ResourceId &resourceId, cons
     }
 
     return false;
+}
+
+static QVariant decodeQDBusArgument(const QVariant &v)
+{
+    if (v.canConvert<QDBusArgument>()) {
+        // we use QJsonValue to resolve all data type in DConfigInfo class, so it's type is equal QJsonValue::Type,
+        // now we parse Map and Array type to QVariant explicitly.
+        const QDBusArgument &complexType = v.value<QDBusArgument>();
+        switch (complexType.currentType()) {
+        case QDBusArgument::MapType: {
+            QVariantMap list;
+            complexType >> list;
+            return list;
+        }
+        case QDBusArgument::ArrayType: {
+            QVariantList list;
+            complexType >> list;
+            return list;
+        }
+        default:
+            qWarning("Can't parse the type, it maybe need user to do it, "
+                     "QDBusArgument::ElementType: %d.", complexType.currentType());
+        }
+    }
+    return v;
+}
+
+static QString qvariantToString(const QVariant &v)
+{
+    const auto &doc = QJsonDocument::fromVariant(v);
+    return doc.isNull() ? v.toString() : doc.toJson();
+}
+
+static QVariant stringToQVariant(const QString &s)
+{
+    QJsonParseError error;
+    const auto &doc = QJsonDocument::fromJson(s.toUtf8(), &error);
+    if (error.error == QJsonParseError::NoError)
+        return doc.toVariant();
+    return s;
 }

@@ -19,10 +19,11 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "valuehandler.h"
+
 #include "configmanager_interface.h"
 #include "manager_interface.h"
-
-#include "valuehandler.h"
+#include "helper.hpp"
 
 #include <DConfigFile>
 
@@ -55,7 +56,8 @@ public:
 
     QVariant value(const QString &key) const override
     {
-        return manager->value(key).value().variant();
+        const auto &v = manager->value(key).value().variant();
+        return decodeQDBusArgument(v);
     }
 
     QString permissions(const QString &key) const override

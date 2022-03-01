@@ -22,6 +22,8 @@
 #include "dconfigconn.h"
 #include "dconfigresource.h"
 #include "dconfigfile.h"
+#include "helper.hpp"
+
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -141,8 +143,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
     if (!contains(key))
         return;
 
-    qCDebug(cfLog, "set value key:[%s], now value:[%s], old value:[%s]", qPrintable(key), qPrintable(value.variant().toString()), qPrintable(m_config->value(key, m_cache).toString()));
-    if(!m_config->setValue(key, value.variant(), getAppid(), m_cache))
+    const auto &v = decodeQDBusArgument(value.variant());
+    qCDebug(cfLog) << "set value key:" << key << ", now value:" << v << ", old value:" << m_config->value(key, m_cache);
+    if(!m_config->setValue(key, v, getAppid(), m_cache))
         return;
 
     if (m_config->meta()->flags(key).testFlag(DConfigFile::Global)) {
@@ -162,7 +165,7 @@ QDBusVariant DSGConfigConn::value(const QString &key)
     if (!contains(key))
         return QDBusVariant();
 
-    qCDebug(cfLog, "get value key:[%s], value:[%s]", qPrintable(key), qPrintable(m_config->value(key, m_cache).toString()));
+    qCDebug(cfLog) << "get value key:" << key << ", value:" << m_config->value(key, m_cache);
     return QDBusVariant{m_config->value(key, m_cache)};
 }
 

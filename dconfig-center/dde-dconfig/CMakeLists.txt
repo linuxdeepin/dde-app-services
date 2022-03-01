@@ -45,6 +45,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}
     ${DtkWidget_INCLUDE_DIRS}
+    ../common
 )
 
 install(TARGETS dde-dconfig DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

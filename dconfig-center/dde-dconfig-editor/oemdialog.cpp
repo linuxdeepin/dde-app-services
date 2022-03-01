@@ -19,8 +19,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "oemdialog.h"
-#include "../common/helper.hpp"
-#include "../common/valuehandler.h"
+#include "helper.hpp"
+#include "valuehandler.h"
 
 #include <QHBoxLayout>
 #include <QFileDialog>

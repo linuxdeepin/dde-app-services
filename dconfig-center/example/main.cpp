@@ -70,6 +70,10 @@ public:
         // 获取所有配置项的key
         qDebug() << "All key items." << config.keyList();
 
+        for (auto item :config.keyList()) {
+            qDebug() << item << config.value(item);
+        }
+
         // 获取指定配置项的值
         qDebug() << "key item's value:" << config.value("canExit").toBool();
 
