@@ -43,6 +43,9 @@ dde-dconfig --set -a dconfig-example -r=example -k=array -v="[ \"value1\", \"val
 # set value for the key, which data type is map and value is json format.
 dde-dconfig --set -a dconfig-example -r=example -k=map -v="{ \"key1\": \"value1\", \"key2\": \"value2\" }"
 
+# reset value for the key.
+dde-dconfig --reset -a=dconfig-example -r=example -k=canExit
+
 # query value for the key
 dde-dconfig --get -a=dconfig-example -r=example -k=canExit
 # query value for the key, which data type is array and value is json format.

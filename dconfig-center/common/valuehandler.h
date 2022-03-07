@@ -31,6 +31,7 @@ public:
     virtual QStringList keyList() const = 0;
     virtual void setValue(const QString &key, const QVariant &value) = 0;
     virtual QVariant value(const QString &key) const = 0;
+    virtual void reset(const QString &key) = 0;
     virtual QString permissions(const QString &key) const = 0;
     virtual QString visibility(const QString &key) const = 0;
     virtual QString displayName(const QString &key, const QString &locale) = 0;

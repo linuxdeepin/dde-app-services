@@ -79,6 +79,9 @@ public:
 
         // 设置值指定配置项的值
         config.setValue("canExit", false);
+
+        // 重置指定配置项的值
+//        config.reset("canExit");
     }
 
     void subpath()

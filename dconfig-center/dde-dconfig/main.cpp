@@ -56,6 +56,7 @@ inline void outpuSTDError(const QString &value)
 int onListOption(const QCommandLineParser &parser, const Options &options);
 int onGetOption(const QCommandLineParser &parser, const Options &options);
 int onSetOption(const QCommandLineParser &parser, const Options &options);
+int onResetOption(const QCommandLineParser &parser, const Options &options);
 int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, const Options &options);
 
 int main(int argc, char *argv[])
@@ -96,6 +97,9 @@ int main(int argc, char *argv[])
     QCommandLineOption setOption("set", QCoreApplication::translate("main", "set configure item 's value."));
     parser.addOption(setOption);
 
+    QCommandLineOption resetOption("reset", QCoreApplication::translate("main", "reset configure item 's value."));
+    parser.addOption(resetOption);
+
     QCommandLineOption valueOption("v", QCoreApplication::translate("main", "new value to set configure item."), "value", QString());
     parser.addOption(valueOption);
 
@@ -122,6 +126,8 @@ int main(int argc, char *argv[])
             return onGetOption(parser, options);
         } else if (parser.isSet(setOption)) {
             return onSetOption(parser, options);
+        } else if (parser.isSet(resetOption)) {
+            return onResetOption(parser, options);
         } else if (parser.isSet(watchOption)) {
             return onWatchOption(a, parser, options);
         }
@@ -283,6 +289,37 @@ int onSetOption(const QCommandLineParser &parser, const Options &options)
             } else {
                 manager->setValue(key, stringToQVariant(value));
             }
+        } else {
+            outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int onResetOption(const QCommandLineParser &parser, const Options &options)
+{
+    // reset命令，设置指定配置项
+    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption) || !parser.isSet(options.keyOption)) {
+        outpuSTDError("not set appid, resource or key.");
+        return 1;
+    }
+
+    const auto &appid = parser.value(options.appidOption);
+    const auto &resourceid = parser.value(options.resourceOption);
+    const auto &subpathid = parser.value(options.subpathOption);
+    const auto &key = parser.value(options.keyOption);
+
+    if (!existResource(appid, resourceid)) {
+        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
+        return 1;
+    }
+
+    ValueHandler handler(appid, resourceid, subpathid);
+    {
+        QScopedPointer<ConfigGetter> manager(handler.createManager());
+        if (manager) {
+            manager->reset(key);
         } else {
             outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
             return 1;

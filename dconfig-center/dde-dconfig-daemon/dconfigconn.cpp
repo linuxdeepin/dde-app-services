@@ -155,6 +155,23 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
     }
 }
 
+void DSGConfigConn::reset(const QString &key)
+{
+    if (!contains(key))
+        return;
+
+    const auto &v = m_config->meta()->value(key);
+    qCDebug(cfLog) << "reset key:" << key << ", meta value:" << v << ", old value:" << m_config->value(key, m_cache);
+    if(!m_config->setValue(key, v, getAppid(), m_cache))
+        return;
+
+    if (m_config->meta()->flags(key).testFlag(DConfigFile::Global)) {
+        emit globalValueChanged(key);
+    } else {
+        emit valueChanged(key);
+    }
+}
+
 /*!
  \brief 返回指定配置项的值
  \a key 配置项名称

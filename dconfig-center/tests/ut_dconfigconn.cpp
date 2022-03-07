@@ -136,6 +136,15 @@ TEST_F(ut_DConfigConn, setValue) {
     ASSERT_EQ(spy.count(), 1);
 }
 
+TEST_F(ut_DConfigConn, reset) {
+    conn->setValue("canExit", QDBusVariant{false});
+
+    QSignalSpy spy(conn, &DSGConfigConn::valueChanged);
+    conn->reset("canExit");
+    ASSERT_EQ(conn->value("canExit").variant(), true);
+    ASSERT_EQ(spy.count(), 1);
+}
+
 TEST_F(ut_DConfigConn, visibility) {
 
     ASSERT_EQ(conn->visibility("canExit"), "private");

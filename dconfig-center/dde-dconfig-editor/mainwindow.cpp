@@ -114,6 +114,15 @@ MainWindow::MainWindow(QWidget *parent) :
         const auto &subpath = resourceListView->model()->data(resourceListView->currentIndex(), ConfigUserRole + 4).toString();
         refreshResourceKeys(appid, resourceId, subpath, keyid);
     });
+    QObject::connect(contentView, &Content::requestRefreshResourceKeys, this, [this, contentHeader](){
+        const auto &appid = appListView->model()->data(appListView->currentIndex(), ConfigUserRole + 2).toString();
+        const auto &resourceId = resourceListView->model()->data(resourceListView->currentIndex(), ConfigUserRole + 3).toString();
+        if (appid.isEmpty() || resourceId.isEmpty()) {
+            return;
+        }
+        const auto &subpath = resourceListView->model()->data(resourceListView->currentIndex(), ConfigUserRole + 4).toString();
+        refreshResourceKeys(appid, resourceId, subpath, contentHeader->text());
+    });
 
     contentViewLayout->addWidget(contentHeader);
     contentViewLayout->addWidget(contentView);
@@ -546,6 +555,7 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
     QAction *exportAction = menu->addAction("导出");
     QAction *copyAction = menu->addAction("复制");
     QAction *copyCmdAction = menu->addAction("复制命令");
+    QAction *resetCmdAction = menu->addAction("重置");
 
     QString setCmd = QString("dde-dconfig --set -a %1 -r %2 -k %3 -v %4").arg(appid).arg(resource).arg(key).arg(value);
     QString getCmd = QString("dde-dconfig --get -a %1 -r %2  -k %3").arg(appid).arg(resource).arg(key);
@@ -580,6 +590,17 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
     });
     connect(copyCmdAction, &QAction::triggered, this, [clip, setCmd] {
         clip->setText(setCmd);
+    });
+
+    connect(resetCmdAction, &QAction::triggered, this, [this, key] {
+        QScopedPointer<ConfigGetter> manager(m_getter->createManager());
+        const auto &old = manager->value(key);
+        manager->reset(key);
+        const auto value = manager->value(key);
+        if (old != value) {
+            emit sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << key, old, value);
+            requestRefreshResourceKeys();
+        }
     });
     menu->exec(QCursor::pos());
 }
@@ -689,8 +710,8 @@ void HistoryDialog::onSendValueUpdated(const QStringList &key, const QVariant &p
     item->setText(QString("%1: [%2][%3][%4] \n[%5] from [%6] to [%7].").
                   arg(QTime::currentTime().toString(Qt::ISODate)).
                   arg(key[0]).arg(key[1]).arg(key[2]).arg(key[3]).
-                  arg(pre.toString()).
-                  arg(now.toString()));
+                  arg(qvariantToString(pre)).
+                  arg(qvariantToString(now)));
 
     item->setData(key[0], ConfigUserRole + 2);
     item->setData(key[1], ConfigUserRole + 3);

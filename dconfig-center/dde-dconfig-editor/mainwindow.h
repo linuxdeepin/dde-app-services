@@ -84,6 +84,7 @@ Q_SIGNALS:
     void sendValueUpdated(const QStringList &keyid, const QVariant &pre, const QVariant &now);
 
     void languageChanged();
+    void requestRefreshResourceKeys();
 
 private Q_SLOTS:
     void onValueChanged(const QVariant &value);

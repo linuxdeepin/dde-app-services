@@ -70,6 +70,7 @@ public Q_SLOTS: // METHODS
     QString name(const QString &key, const QString &locale);
     void release();
     void setValue(const QString &key, const QDBusVariant &value);
+    void reset(const QString &key);
     QDBusVariant value(const QString &key);
     QString visibility(const QString &key) ;
     QString permissions(const QString &key) ;

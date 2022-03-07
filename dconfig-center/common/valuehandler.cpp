@@ -60,6 +60,15 @@ public:
         return decodeQDBusArgument(v);
     }
 
+    void reset(const QString &key) override
+    {
+        auto reply = manager->reset(key);
+        reply.waitForFinished();
+        if (reply.isError()) {
+            qWarning() << "reset error key:" << key << ", error message:" << reply.error().message();
+        }
+    }
+
     QString permissions(const QString &key) const override
     {
         return manager->permissions(key);
@@ -162,6 +171,12 @@ public:
     QVariant value(const QString &key) const override
     {
         return manager->value(key, userCache.get());
+    }
+
+    void reset(const QString &key) override
+    {
+        const auto &v = manager->meta()->value(key);
+        setValue(key, v);
     }
 
     QString permissions(const QString &key) const override
