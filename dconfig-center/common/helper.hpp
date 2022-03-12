@@ -56,15 +56,18 @@ enum ConfigType {
     KeyType = 0x40,
 };
 
+#ifdef DSG_DATA_DIR
+#define D_GET_NAMESPACE_STR_IMPL(M) #M
+#define D_GET_NAMESPACE_STR(M) D_GET_NAMESPACE_STR_IMPL(M)
+const QString MetaFileInstalledDir = QString("%1/configs").arg(D_GET_NAMESPACE_STR(DSG_DATA_DIR));
+#else
+const QString MetaFileInstalledDir = QString("/usr/share/dsg/configs");
+#endif
 static QString resourcePath(const QString &appid, const QString &localPrefix = QString())
 {
-    const auto &usrDir = QString("%1/usr/share/dsg/apps/%2/configs").arg(localPrefix, appid);
+    const auto &usrDir = QString("%1/%2/%3").arg(localPrefix, MetaFileInstalledDir, appid);
     if (QDir(usrDir).exists())
         return usrDir;
-
-    const auto &optDir = QString("%1/opt/apps/%2/files/schemas/configs").arg(localPrefix, appid);
-    if (QDir(optDir).exists())
-        return optDir;
 
     return QString();
 }
@@ -74,14 +77,18 @@ static AppList applications(const QString &localPrefix = QString())
     AppList result;
     result.reserve(50);
 
-    QStringList appDirs = {QString("%1/opt/apps").arg(localPrefix),
-                           QString("%1/usr/share/dsg/apps").arg(localPrefix)
-                          };
+    // TODO calling service interface to get app list,
+    // and now we can't distingush between `subpath` or `appid` for common configuration.
+    QStringList appDirs = {QString("%1/%2").arg(localPrefix, MetaFileInstalledDir)};
+    const QStringList filterDirs {"overrides"};
     for (auto item : appDirs)
     {
         QDir appsDir(item);
 
         for (auto appid : appsDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+            if (filterDirs.contains(appid))
+                continue;
+
             result.insert(appid);
         }
     }
@@ -117,7 +124,7 @@ static ResourceList resourcesForApp(const QString &appid, const QString &localPr
 static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
 {
     DCORE_USE_NAMESPACE;
-    QDir resourceDir(QString("%1/%2/configs").arg(localPrefix, DStandardPaths::path(DStandardPaths::DSG::DataDir)));
+    QDir resourceDir(QString("%1/%2").arg(localPrefix, MetaFileInstalledDir));
     QDirIterator iterator(resourceDir);
     QSet<ResourceId> result;
     result.reserve(50);

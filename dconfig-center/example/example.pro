@@ -28,8 +28,20 @@ meta_file.files += \
     $$PWD/configs/a/example.json
 
 meta_file.base = $$PWD/configs
+meta_file.appid = $$TARGET
 
-DCONFIG_META_FILES += meta_file
+meta_file2.files += \
+    $$PWD/configs/example.json \
+
+meta_file2.base = $$PWD/configs
+
+meta_file3.files += \
+    $$PWD/configs/example.json \
+
+meta_file3.base = $$PWD/configs
+meta_file3.commonid=true
+
+DCONFIG_META_FILES += meta_file meta_file2 meta_file3
 
 override_file.files += \
     $$PWD/configs/dconf-example.override.json \

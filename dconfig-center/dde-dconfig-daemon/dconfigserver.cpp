@@ -219,8 +219,11 @@ ConfigureId DSGConfigServer::getConfigureIdByPath(const QString &path)
     const auto &absolutePath = fileInfo.absoluteFilePath();
 
     auto res = getAppConfigureId(absolutePath);
-    if (res.resource.isEmpty()) {
+    if (res.isInValid()) {
         res = getGenericConfigureId(absolutePath);
+        if (res.isInValid()) {
+            res = getOverrideConfigureId(absolutePath);
+        }
     }
     return res;
 }
@@ -258,7 +261,7 @@ void DSGConfigServer::update(const QString &path)
     qInfo() << "update resource:" << path;
 
     const auto &configureInfo = getConfigureIdByPath(path);
-    if (configureInfo.resource.isEmpty()) {
+    if (configureInfo.isInValid()) {
         QString errorMsg = QString("it's illegal resource [%1].").arg(path);
         if (calledFromDBus()) {
             sendErrorReply(QDBusError::Failed, errorMsg);
@@ -289,7 +292,7 @@ void DSGConfigServer::sync(const QString &path)
     qInfo() << "sync resource:" << path;
 
     const auto &configureInfo = getConfigureIdByPath(path);
-    if (configureInfo.resource.isEmpty()) {
+    if (configureInfo.isInValid()) {
         QString errorMsg = QString("it's illegal resource [%1].").arg(path);
         if (calledFromDBus()) {
             sendErrorReply(QDBusError::Failed, errorMsg);

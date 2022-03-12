@@ -47,6 +47,14 @@
           "name": "map",
           "permissions": "readwrite",
           "visibility": "public"
+        },
+        "userItem": {
+          "value": "user item",
+          "serial": 0,
+          "flags": [],
+          "name": "",
+          "permissions": "readwrite",
+          "visibility": "public"
         }
     }
 }

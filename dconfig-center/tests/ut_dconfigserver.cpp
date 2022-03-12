@@ -30,7 +30,10 @@
 #include "dconfigserver.h"
 #include "dconfigresource.h"
 #include "dconfigconn.h"
+#include "test_helper.hpp"
 
+
+static EnvGuard dsgDataDir;
 static constexpr char const *LocalPrefix = "/tmp/example/";
 static constexpr char const *APP_ID = "org.foo.appid";
 static constexpr char const *FILE_NAME = "example";
@@ -46,11 +49,13 @@ protected:
 
         ASSERT_TRUE(QFile::copy(":/config/example.json", path));
         qputenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS", "true");
+        dsgDataDir.set("DSG_DATA_DIRS", "/usr/share/dsg");
     }
     static void TearDownTestCase() {
         QFile::remove(configPath());
         qunsetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS");
         QDir(LocalPrefix).removeRecursively();
+        dsgDataDir.restore();
     }
     virtual void SetUp() override {
         server.reset(new DSGConfigServer);
@@ -59,7 +64,7 @@ protected:
     virtual void TearDown() override;
     static QString configPath()
     {
-        const QString metaPath = QString("%1/opt/apps/%2/files/schemas/configs").arg(LocalPrefix, APP_ID);
+        const QString metaPath = QString("%1/usr/share/dsg/configs/%2").arg(LocalPrefix, APP_ID);
 
         return QString("%1/%2.json").arg(metaPath, FILE_NAME);
     }    QScopedPointer<DSGConfigServer> server;
