@@ -128,13 +128,15 @@ public:
 
     static bool isServiceActivatable()
     {
-         const QDBusReply<QStringList> activatableNames = QDBusConnection::systemBus().interface()->
-                 callWithArgumentList(QDBus::AutoDetect,
-                 QLatin1String("ListActivatableNames"),
-                 QList<QVariant>());
+         const QDBusReply<void> reply = QDBusConnection::systemBus().interface()->
+                 call(QLatin1String("StartServiceByName"),
+                 DSG_CONFIG,
+                 uint(0));
 
-         //qInfo() << activatableNames.value() << activatableNames.value().contains(DSG_CONFIG);
-         return activatableNames.value().contains(DSG_CONFIG);
+         if (!reply.isValid())
+             qDebug() << "Can't start dbus service" << reply.error().message();
+
+         return reply.isValid();
     }
 private:
 
@@ -272,6 +274,7 @@ ConfigGetter* ValueHandler::createManager()
     } else {
         auto tmp = new FileHandler(this);
         if (tmp->createManager(appid, fileName, subpath)) {
+            qDebug() << QString("using FileHandler to get value for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath);
             return tmp;
         }
     }
