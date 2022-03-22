@@ -200,12 +200,21 @@ static QVariant decodeQDBusArgument(const QVariant &v)
         case QDBusArgument::MapType: {
             QVariantMap list;
             complexType >> list;
-            return list;
+            QVariantMap res;
+            for (auto iter = list.begin(); iter != list.end(); iter++) {
+                res[iter.key()] = decodeQDBusArgument(iter.value());
+            }
+            return res;
         }
         case QDBusArgument::ArrayType: {
             QVariantList list;
             complexType >> list;
-            return list;
+            QVariantList res;
+            res.reserve(list.size());
+            for (auto iter = list.begin(); iter != list.end(); iter++) {
+                res << decodeQDBusArgument(*iter);
+            }
+            return res;
         }
         default:
             qWarning("Can't parse the type, it maybe need user to do it, "

@@ -130,6 +130,20 @@ TEST_F(ut_DConfigConn, description_name) {
 TEST_F(ut_DConfigConn, value) {
     conn->setValue("canExit", QDBusVariant{true});
     ASSERT_EQ(conn->value("canExit").variant(), true);
+    const QStringList array{"value1", "value2"};
+    QVariantMap map;
+    map.insert("key1", "value1");
+    map.insert("key2", "value2");
+    ASSERT_EQ(conn->value("array").variant().toStringList(), array);
+    ASSERT_EQ(conn->value("map").variant().toMap(), map);
+
+    QVariantMap mapArray;
+    mapArray.insert("key1", QStringList{"value1"});
+    mapArray.insert("key2", QStringList{"value2"});
+    QVariantList arrayMap;
+    arrayMap.append(map);
+    ASSERT_EQ(conn->value("map_array").variant().toMap(), mapArray);
+    ASSERT_EQ(conn->value("array_map").variant().toList(), arrayMap);
 }
 
 TEST_F(ut_DConfigConn, setValue) {
