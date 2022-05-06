@@ -20,8 +20,7 @@ Conflicts: dconfig-daemon
 Replaces: dconfig-daemon
 Depends:
  ${shlibs:Depends},
- ${misc:Depends},
- libdtkcore5
+ ${misc:Depends}
 Description: deepin desktop-environment - dde-dconfig-daemon module
  dde-dconfig-daemon provids dbus service for reading and writing DSG configuration.
 
@@ -31,10 +30,7 @@ Conflicts: dconfig-editor
 Replaces: dconfig-editor
 Depends:
  ${shlibs:Depends},
- ${misc:Depends},
- libdtkcore5,
- libdtkgui5,
- libdtkwidget5
+ ${misc:Depends}
 Description: deepin desktop-environment - dde-dconfig-editor module
  dde-dconfig-editor is a GUI or Console tool, it's used to view and edit 
  DSG configuration for current user.
