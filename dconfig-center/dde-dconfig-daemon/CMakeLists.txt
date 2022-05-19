@@ -42,7 +42,6 @@ install (FILES services/org.desktopspec.ConfigManager.conf DESTINATION /usr/shar
 
 ## services files
 install(FILES services/org.desktopspec.ConfigManager.service DESTINATION /usr/share/dbus-1/system-services)
-install(FILES services/dconfig-center-daemon.service DESTINATION /usr/lib/systemd/system)
 
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

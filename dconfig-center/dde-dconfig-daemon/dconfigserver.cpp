@@ -54,6 +54,7 @@ DSGConfigServer::DSGConfigServer(QObject *parent)
 {
     connect(this, &DSGConfigServer::releaseResource, this, &DSGConfigServer::onReleaseResource);
     connect(m_refManager, &RefManager::releaseResource, this, &DSGConfigServer::releaseResource);
+    connect(this, &DSGConfigServer::tryExit, this, &DSGConfigServer::onTryExit);
 }
 
 DSGConfigServer::~DSGConfigServer()
@@ -120,6 +121,11 @@ int DSGConfigServer::delayReleaseTime() const
 void DSGConfigServer::setLocalPrefix(const QString &localPrefix)
 {
     m_localPrefix = localPrefix;
+}
+
+void DSGConfigServer::setEnableExit(const bool enable)
+{
+    m_enableExit = enable;
 }
 
 int DSGConfigServer::resourceSize() const
@@ -210,7 +216,23 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
             m_resources.remove(resourceKey);
             resource->save();
             resource->deleteLater();
+
+            if (m_enableExit) {
+                Q_EMIT tryExit();
+            }
         }
+    }
+}
+
+void DSGConfigServer::onTryExit()
+{
+    const int count = resourceSize();
+    qCDebug(cfLog()) << "try exit application, resource size:" << count;
+
+    if (count <= 0) {
+        qCInfo(cfLog()) << "exit application because of not exist resource.";
+        exit();
+        qApp->quit();
     }
 }
 

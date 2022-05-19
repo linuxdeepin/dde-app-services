@@ -60,6 +60,7 @@ protected:
     virtual void SetUp() override {
         server.reset(new DSGConfigServer);
         server->setLocalPrefix(LocalPrefix);
+        server->setDelayReleaseTime(0);
     }
     virtual void TearDown() override;
     static QString configPath()
