@@ -41,6 +41,9 @@ int main(int argc, char *argv[])
     QCommandLineOption localPrefixOption("p", QCoreApplication::translate("main", "working prefix directory."), "prefix", QString());
     parser.addOption(localPrefixOption);
 
+    QCommandLineOption exitOption("e", QCoreApplication::translate("main", "exit application when all resource released."), "exit", QString(true));
+    parser.addOption(exitOption);
+
     parser.process(a);
 
     DSGConfigServer dsgConfig;
@@ -51,6 +54,10 @@ int main(int argc, char *argv[])
 
     if (parser.isSet(localPrefixOption)) {
         dsgConfig.setLocalPrefix(parser.value(localPrefixOption));
+    }
+
+    if (parser.isSet(exitOption)) {
+        dsgConfig.setEnableExit(QVariant(parser.value(exitOption)).toBool());
     }
 
     if (dsgConfig.registerService()) {
