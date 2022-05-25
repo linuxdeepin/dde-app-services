@@ -204,6 +204,7 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
         if (resource->isEmptyConn()) {
             qCInfo(cfLog, "remove resource:%s", qPrintable(resourceKey));
             m_resources.remove(resourceKey);
+            resource->save();
             resource->deleteLater();
         }
     }
@@ -218,9 +219,8 @@ ConfigureId DSGConfigServer::getConfigureIdByPath(const QString &path)
 
     const auto &absolutePath = fileInfo.absoluteFilePath();
 
-    auto res = getAppConfigureId(absolutePath);
+    auto res = getMetaConfigureId(absolutePath);
     if (res.isInValid()) {
-        res = getGenericConfigureId(absolutePath);
         if (res.isInValid()) {
             res = getOverrideConfigureId(absolutePath);
         }
@@ -270,14 +270,14 @@ void DSGConfigServer::update(const QString &path)
         return;
     }
 
+    qInfo(cfLog()) << QString("update the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
     for (auto resource : m_resources) {
         if (filterRequestPath(resource, configureInfo))
             continue;
 
         const QString &resourceKey = resource->path();
-        if (resource->reparse()) {
-            qInfo() << QString("updated the object path[%1]").arg(resourceKey);
-        } else {
+        qInfo() << QString("updated the object path[%1]").arg(resourceKey);
+        if (!resource->reparse()) {
             QString errorMsg = QString("reparse the object path[%1] error.").arg(resourceKey);
             if (calledFromDBus()) {
                 sendErrorReply(QDBusError::Failed, errorMsg);
@@ -301,12 +301,12 @@ void DSGConfigServer::sync(const QString &path)
         return;
     }
 
-
-    const QString innerName = validDBusObjectPath(path);
+    qInfo(cfLog()) << QString("sync the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
     for (auto resource : m_resources) {
         if (filterRequestPath(resource, configureInfo))
             continue;
 
+        qInfo(cfLog()) << QString("sync the object path[%1]").arg(resource->path());
         resource->save();
     }
 }
