@@ -54,37 +54,29 @@ struct ConfigureId {
     }
 };
 
-inline ConfigureId getAppConfigureId(const QString &path)
+// remove slash if back is slash.
+static QString removeBackSlash(const QString &target)
+{
+    if (target.isEmpty() || target.back() != '/')
+        return target;
+
+    return target.left(target.count() - 1);
+}
+
+inline ConfigureId getMetaConfigureId(const QString &path)
 {
     ConfigureId info;
-    // /usr/share/dsg/configs/$appid/[$subpath]/$resource.json
-    static QRegularExpression usrReg(R"(^/usr/share/dsg/configs/(?<appid>[a-z0-9\s\-_\@\-\^!#$%&]+)/(?<subpath>(/[a-z0-9\s\-_\@\-\^!#$%&])*)/(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)");
+    // /usr/share/dsg/configs/[$appid]/[$subpath]/$resource.json
+    static QRegularExpression usrReg(R"(^/usr/share/dsg/configs/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&]+\/)?)(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&]+\/)*)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)");
 
     QRegularExpressionMatch match;
     match = usrReg.match(path);
     if (!match.hasMatch()) {
         return info;
     }
-    info.appid = match.captured("appid");
-    info.subpath = match.captured("subpath");
+    info.appid = removeBackSlash(match.captured("appid"));
+    info.subpath = removeBackSlash(match.captured("subpath"));
     info.resource = match.captured("resource");
-
-    return info;
-}
-
-inline ConfigureId getGenericConfigureId(const QString &path)
-{
-    ConfigureId info;
-    DCORE_USE_NAMESPACE;
-
-    // /usr/share/dsg/configs/[$subpath]/$resource.json
-    static QRegularExpression genericReg(QString(R"(/usr/share/dsg/configs/^(?<subpath>(/[a-z0-9\s\-_\@\-\^!#$%&])*)/(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)"));
-
-    QRegularExpressionMatch match = genericReg.match(path);
-    if (match.hasMatch()) {
-        info.subpath = match.captured("subpath");
-        info.resource = match.captured("resource");
-    }
 
     return info;
 }
@@ -92,11 +84,11 @@ inline ConfigureId getGenericConfigureId(const QString &path)
 inline ConfigureId getOverrideConfigureId(const QString &path)
 {
     ConfigureId info;
-    // /usr/share/dsg/configs/overrides/[$appid]/${resource}/[$subpath]/$override_id.json
-    static QRegularExpression usrReg(R"(^/usr/share/dsg/configs/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&]+)?)/(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+)/(?<subpath>(/[a-z0-9\s\-_\@\-\^!#$%&])*)/(?<override_id>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)");
+    // /usr/share/dsg/configs/overrides/[$appid]/$resource/[$subpath]/$override_id.json
+    static QRegularExpression usrReg(R"(^/usr/share/dsg/configs/overrides/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&]+\/)?)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+)/(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&]+\/)*)(?<configurationid>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)");
 
     // /etc/dsg/configs/overrides/[$appid]/$resource/[$subpath]/$override_id.json
-    static QRegularExpression etcReg(R"(^/etc/dsg/configs/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&]+)?)/(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+)/(?<subpath>(/[a-z0-9\s\-_\@\-\^!#$%&])*)/(?<override_id>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)");
+    static QRegularExpression etcReg(R"(^/etc/dsg/configs/overrides/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&]+\/)?)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&]+)/(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&]+\/)*)(?<configurationid>[a-z0-9\s\-_\@\-\^!#$%&]+).json$)");
 
     QRegularExpressionMatch match;
     match = usrReg.match(path);
@@ -105,8 +97,8 @@ inline ConfigureId getOverrideConfigureId(const QString &path)
         if (!match.hasMatch())
             return info;
     }
-    info.appid = match.captured("appid");
-    info.subpath = match.captured("subpath");
+    info.appid = removeBackSlash(match.captured("appid"));
+    info.subpath = removeBackSlash(match.captured("subpath"));
     info.resource = match.captured("resource");
 
     return info;

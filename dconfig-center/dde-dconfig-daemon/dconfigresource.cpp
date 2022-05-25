@@ -193,9 +193,8 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
     const auto &newKeyList = newMeta->keyList().toSet();
     const auto &oldKeyList = oldMeta->keyList().toSet();
 
-    auto subtractKeys = newKeyList;
-    subtractKeys = subtractKeys.subtract(oldKeyList);
-    // 配置项已经被移除，newMeta - oldMeta，移除cache值
+    // 配置项已经被移除，oldMeta - newMeta，移除cache值
+    const auto subtractKeys = oldKeyList - (newKeyList);
     for (const auto &key :subtractKeys) {
         cache->remove(key);
         qDebug() << QString("Cache removed because of meta item removed. "

@@ -53,10 +53,10 @@ dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.Confi
 # dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.release
 
 #update
-dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.update string:'/usr/share/dsg/apps/dconfig-example/configs/example.json'
+dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.update string:'/usr/share/dsg/configs/dconfig-example/example.json'
 
 #sync
-dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.sync string:'/usr/share/dsg/apps/dconfig-example/configs/example.json'
+dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.sync string:'/usr/share/dsg/configs/dconfig-example/example.json'
 
 
 # killall dbus-monitor
