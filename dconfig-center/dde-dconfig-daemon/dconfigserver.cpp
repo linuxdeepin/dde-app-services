@@ -75,11 +75,15 @@ void DSGConfigServer::exit()
 */
 bool DSGConfigServer::registerService()
 {
-    (void) new DSGConfig(this);
+    (void) new DSGConfigAdaptor(this);
 
     QDBusConnection bus = QDBusConnection::systemBus();
     if (!bus.registerService(DSG_CONFIG)) {
-        qWarning() << QString("Can't register the %1 service, error:%2.").arg(DSG_CONFIG).arg(bus.lastError().message());
+        QString errorMsg = bus.lastError().message();
+        if (errorMsg.isEmpty())
+            errorMsg = "maybe it's running";
+
+        qWarning() << QString("Can't register the %1 service, %2.").arg(DSG_CONFIG).arg(errorMsg);
         return false;
     }
     if (!bus.registerObject("/", this)) {

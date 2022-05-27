@@ -25,6 +25,7 @@
 
 #include <csignal>
 #include <DConfig>
+#include <DLog>
 DCORE_USE_NAMESPACE
 
 class DConfigExample {
@@ -131,6 +132,8 @@ private:
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+
+    Dtk::Core::DLogManager::registerConsoleAppender();
 
     DConfigExample example("example");
 

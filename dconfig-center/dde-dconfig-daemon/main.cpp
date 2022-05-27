@@ -32,15 +32,6 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     a.setOrganizationName("deepin");
 
-    Dtk::Core::DLogManager::registerConsoleAppender();
-    Dtk::Core::DLogManager::setlogFilePath(QString("/var/log/%1/%2/%2.log").arg(a.organizationName(), a.applicationName()));
-    const QDir &logDir = QFileInfo((Dtk::Core::DLogManager::getlogFilePath())).dir();
-    if (!logDir.exists())
-        QDir().mkpath(logDir.path());
-
-    Dtk::Core::DLogManager::registerFileAppender();
-    qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
-
     QCommandLineParser parser;
     parser.addHelpOption();
 
@@ -68,6 +59,16 @@ int main(int argc, char *argv[])
         qInfo() << "start dconfig daemon failed.";
         return 1;
     }
+
+    // Initialization of DtkCore needs to be later than `registerService` avoid earlier request itself.
+    Dtk::Core::DLogManager::registerConsoleAppender();
+    Dtk::Core::DLogManager::setlogFilePath(QString("/var/log/%1/%2/%2.log").arg(a.organizationName(), a.applicationName()));
+    const QDir &logDir = QFileInfo((Dtk::Core::DLogManager::getlogFilePath())).dir();
+    if (!logDir.exists())
+        QDir().mkpath(logDir.path());
+
+    Dtk::Core::DLogManager::registerFileAppender();
+    qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
 
     // 异常处理，调用QCoreApplication::exit，使DSGConfigServer正常析构。
     std::signal(SIGINT, &QCoreApplication::exit);

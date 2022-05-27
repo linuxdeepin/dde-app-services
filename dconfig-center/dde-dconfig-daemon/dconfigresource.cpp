@@ -82,7 +82,7 @@ DSGConfigConn *DSGConfigResource::createConn(const uint uid)
         return nullptr;
     }
     if (qgetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS").isEmpty()) {
-        (void) new DSGConfigManager(connPointer.get());
+        (void) new DSGConfigManagerAdaptor(connPointer.get());
         QDBusConnection bus = QDBusConnection::systemBus();
         bus.unregisterObject(key);
         if (!bus.registerObject(key, connPointer.get())) {
