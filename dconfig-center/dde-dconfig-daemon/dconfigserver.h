@@ -50,12 +50,16 @@ public:
 
     void setLocalPrefix(const QString &localPrefix);
 
+    void setEnableExit(const bool enable);
+
     int resourceSize() const;
 
     static QString validDBusObjectPath(const QString &path);
 
 Q_SIGNALS:
     void releaseResource(const ConnKey& resource);
+
+    void tryExit();
 
 public Q_SLOTS:
     QDBusObjectPath acquireManager(const QString &appid, const QString &name, const QString &subpath);
@@ -74,6 +78,8 @@ private Q_SLOTS:
 
     void onReleaseResource(const ConnKey &connKey);
 
+    void onTryExit();
+
 private:
 
     ConfigureId getConfigureIdByPath(const QString &path);
@@ -90,4 +96,5 @@ private:
     RefManager* m_refManager;
 
     QString m_localPrefix;
+    bool m_enableExit = false;
 };

@@ -38,6 +38,7 @@ protected:
     }
     virtual void SetUp() override {
         server.reset(new RefManager);
+        server->setDelayReleaseTime(0);
     }
     virtual void TearDown() override {
 

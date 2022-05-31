@@ -25,6 +25,7 @@
 
 #include <csignal>
 #include <DConfig>
+#include <DLog>
 DCORE_USE_NAMESPACE
 
 class DConfigExample {
@@ -35,6 +36,7 @@ public:
         baseAPI();
         watchValueChanged();
         subpath();
+        mutilFetchConfig();
     }
 
     void watchValueChanged()
@@ -102,6 +104,26 @@ public:
         qDebug() << "no subpath's key item's value:" << DConfig(fileName).value("key3").toString();
     }
 
+    void mutilFetchConfig()
+    {
+        QVariantMap map;
+        for (int i = 0; i < 1; i++) {
+            QVariantMap nestItem;
+            for (int j = 0; j < 1; j++) {
+                nestItem[QString::number(j)] = QString::number(j);
+            }
+            map[QString::number(i)] = nestItem;
+        }
+        {
+            DConfig config(fileName);
+            config.setValue("map", map);
+        }
+        {
+            DConfig config(fileName);
+            qDebug() << config.value("map", map);
+        }
+    }
+
 private:
     QScopedPointer<DConfig> heapConfig;
     QString fileName;
@@ -110,6 +132,8 @@ private:
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+
+    Dtk::Core::DLogManager::registerConsoleAppender();
 
     DConfigExample example("example");
 
