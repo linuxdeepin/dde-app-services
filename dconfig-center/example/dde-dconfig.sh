@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# configure file is in the position. e.g: /usr/share/dsg/apps/dconfig-example/configs/example.json
-# global cache is in the position. e.g: /var/dsg/appdata/dconfig-example/configs/example.json
-# user cache is in the position. e.g: /home/userhome/.config/dconfig-example/example.json
+# configure file is in the position. e.g: /usr/share/dsg/configs/dconfig-example/example.json
+# global cache is in the position. e.g: /var/dsg/appdata/configs/dconfig-example/configs/example.json
+# user cache is in the position. e.g: /home/userhome/.config/dsg/configs/dconfig-example/example.json
 
 # list all appid.
 dde-dconfig --list

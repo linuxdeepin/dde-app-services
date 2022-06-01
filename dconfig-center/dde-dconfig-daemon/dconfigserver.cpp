@@ -54,6 +54,7 @@ DSGConfigServer::DSGConfigServer(QObject *parent)
 {
     connect(this, &DSGConfigServer::releaseResource, this, &DSGConfigServer::onReleaseResource);
     connect(m_refManager, &RefManager::releaseResource, this, &DSGConfigServer::releaseResource);
+    connect(this, &DSGConfigServer::tryExit, this, &DSGConfigServer::onTryExit);
 }
 
 DSGConfigServer::~DSGConfigServer()
@@ -75,11 +76,15 @@ void DSGConfigServer::exit()
 */
 bool DSGConfigServer::registerService()
 {
-    (void) new DSGConfig(this);
+    (void) new DSGConfigAdaptor(this);
 
     QDBusConnection bus = QDBusConnection::systemBus();
     if (!bus.registerService(DSG_CONFIG)) {
-        qWarning() << QString("Can't register the %1 service, error:%2.").arg(DSG_CONFIG).arg(bus.lastError().message());
+        QString errorMsg = bus.lastError().message();
+        if (errorMsg.isEmpty())
+            errorMsg = "maybe it's running";
+
+        qWarning() << QString("Can't register the %1 service, %2.").arg(DSG_CONFIG).arg(errorMsg);
         return false;
     }
     if (!bus.registerObject("/", this)) {
@@ -116,6 +121,11 @@ int DSGConfigServer::delayReleaseTime() const
 void DSGConfigServer::setLocalPrefix(const QString &localPrefix)
 {
     m_localPrefix = localPrefix;
+}
+
+void DSGConfigServer::setEnableExit(const bool enable)
+{
+    m_enableExit = enable;
 }
 
 int DSGConfigServer::resourceSize() const
@@ -204,8 +214,25 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
         if (resource->isEmptyConn()) {
             qCInfo(cfLog, "remove resource:%s", qPrintable(resourceKey));
             m_resources.remove(resourceKey);
+            resource->save();
             resource->deleteLater();
+
+            if (m_enableExit) {
+                Q_EMIT tryExit();
+            }
         }
+    }
+}
+
+void DSGConfigServer::onTryExit()
+{
+    const int count = resourceSize();
+    qCDebug(cfLog()) << "try exit application, resource size:" << count;
+
+    if (count <= 0) {
+        qCInfo(cfLog()) << "exit application because of not exist resource.";
+        exit();
+        qApp->quit();
     }
 }
 
@@ -218,9 +245,8 @@ ConfigureId DSGConfigServer::getConfigureIdByPath(const QString &path)
 
     const auto &absolutePath = fileInfo.absoluteFilePath();
 
-    auto res = getAppConfigureId(absolutePath);
+    auto res = getMetaConfigureId(absolutePath);
     if (res.isInValid()) {
-        res = getGenericConfigureId(absolutePath);
         if (res.isInValid()) {
             res = getOverrideConfigureId(absolutePath);
         }
@@ -270,14 +296,14 @@ void DSGConfigServer::update(const QString &path)
         return;
     }
 
+    qInfo(cfLog()) << QString("update the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
     for (auto resource : m_resources) {
         if (filterRequestPath(resource, configureInfo))
             continue;
 
         const QString &resourceKey = resource->path();
-        if (resource->reparse()) {
-            qInfo() << QString("updated the object path[%1]").arg(resourceKey);
-        } else {
+        qInfo() << QString("updated the object path[%1]").arg(resourceKey);
+        if (!resource->reparse()) {
             QString errorMsg = QString("reparse the object path[%1] error.").arg(resourceKey);
             if (calledFromDBus()) {
                 sendErrorReply(QDBusError::Failed, errorMsg);
@@ -301,12 +327,12 @@ void DSGConfigServer::sync(const QString &path)
         return;
     }
 
-
-    const QString innerName = validDBusObjectPath(path);
+    qInfo(cfLog()) << QString("sync the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
     for (auto resource : m_resources) {
         if (filterRequestPath(resource, configureInfo))
             continue;
 
+        qInfo(cfLog()) << QString("sync the object path[%1]").arg(resource->path());
         resource->save();
     }
 }

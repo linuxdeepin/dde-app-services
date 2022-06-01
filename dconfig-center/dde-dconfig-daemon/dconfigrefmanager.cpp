@@ -117,7 +117,7 @@ bool ServiceRef::release()
  */
 RefManager::RefManager(QObject *parent)
     : QObject(parent),
-      m_delayReleaseTime(0)
+      m_delayReleaseTime(30000) // 30s
 {
     m_timerPool.setInitFunc([](QTimer* timer){
         timer->setSingleShot(true);

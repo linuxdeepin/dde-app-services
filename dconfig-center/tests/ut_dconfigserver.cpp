@@ -60,6 +60,7 @@ protected:
     virtual void SetUp() override {
         server.reset(new DSGConfigServer);
         server->setLocalPrefix(LocalPrefix);
+        server->setDelayReleaseTime(0);
     }
     virtual void TearDown() override;
     static QString configPath()
@@ -146,4 +147,33 @@ TEST_F(ut_DConfigServer, setDelayReleaseTime) {
     spy.wait(server->delayReleaseTime());
 
     ASSERT_EQ(spy.count(), 1);
+}
+
+TEST_F(ut_DConfigServer, metaPathToConfigureId) {
+    QStringList appPaths {
+        "/usr/share/dsg/configs/example.json",
+        "/usr/share/dsg/configs/dconfig-example/example.json",
+        "/usr/share/dsg/configs/dconfig-example/a/b/example.json"
+    };
+
+    for (auto path : appPaths) {
+        const auto configureId = getMetaConfigureId(path);
+        ASSERT_FALSE(configureId.isInValid());
+    }
+}
+
+TEST_F(ut_DConfigServer, overridePathToConfigureId) {
+    QStringList paths {
+        "/usr/share/dsg/configs/overrides/example/a.json",
+        "/usr/share/dsg/configs/overrides/dconfig-example/example/a.json",
+        "/usr/share/dsg/configs/overrides/dconfig-example/example/a/b/a.json",
+        "/etc/dsg/configs/overrides/example/a.json",
+        "/etc/dsg/configs/overrides/dconfig-example/example/a.json",
+        "/etc/dsg/configs/overrides/dconfig-example/example/a/b/a.json"
+    };
+
+    for (auto path : paths) {
+        const auto configureId = getOverrideConfigureId(path);
+        ASSERT_FALSE(configureId.isInValid());
+    }
 }
