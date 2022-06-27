@@ -56,8 +56,14 @@ public:
 
     QVariant value(const QString &key) const override
     {
-        const auto &v = manager->value(key).value().variant();
-        return decodeQDBusArgument(v);
+        auto reply = manager->value(key);
+        reply.waitForFinished();
+        if (reply.isError()) {
+            qWarning() << "value error key:" << key << ", error message:" << reply.error().message();
+            return QVariant();
+        } else {
+            return decodeQDBusArgument(reply.value().variant());
+        }
     }
 
     void reset(const QString &key) override
