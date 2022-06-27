@@ -182,8 +182,18 @@ QDBusVariant DSGConfigConn::value(const QString &key)
     if (!contains(key))
         return QDBusVariant();
 
-    qCDebug(cfLog) << "get value key:" << key << ", value:" << m_config->value(key, m_cache);
-    return QDBusVariant{m_config->value(key, m_cache)};
+    const auto &value = m_config->value(key, m_cache);
+    if (value.isNull()) {
+        QString errorMsg = QString("[%1] requires the value in [%2].").arg(key).arg(getAppid());
+        qWarning() << errorMsg;
+        if (calledFromDBus()) {
+            sendErrorReply(QDBusError::Failed, errorMsg);
+        }
+        return QDBusVariant();
+    }
+
+    qCDebug(cfLog) << "get value key:" << key << ", value:" << value;
+    return QDBusVariant{value};
 }
 
 /*!
