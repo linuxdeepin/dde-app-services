@@ -34,6 +34,8 @@ class ExportDialog;
 class OEMDialog;
 DWIDGET_USE_NAMESPACE
 
+#define APP_ICON "://appicon/dde-dconfig-editor.svg"
+
 class LevelDelegate : public DStyledItemDelegate {
     Q_OBJECT
 public:

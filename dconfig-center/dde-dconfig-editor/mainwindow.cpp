@@ -166,6 +166,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // set history
     DTitlebar *titlebar = this->titlebar();
+    titlebar->setIcon(QIcon(APP_ICON));
     connect(titlebar->menu()->addAction("setting history"), &QAction::triggered, [this](){
         qInfo() << "show history view";
         historyView->show();

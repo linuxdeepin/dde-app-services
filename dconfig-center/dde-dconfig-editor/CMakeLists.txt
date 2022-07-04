@@ -41,7 +41,9 @@ set(SOURCES
     oemdialog.cpp
 )
 
-ADD_EXECUTABLE(dde-dconfig-editor ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
+set(QRC dde-dconfig-editor.qrc)
+
+ADD_EXECUTABLE(dde-dconfig-editor ${HEADERS} ${SOURCES} ${QRC} ${DCONFIG_DBUS_XML})
 
 set(COMMON_LIBS
     Qt5::Core
