@@ -13,12 +13,11 @@ DWIDGET_USE_NAMESPACE
 int main(int argc, char *argv[])
 {
     DApplication a(argc, argv);
-    a.setApplicationVersion("1.0.0");
+    a.setApplicationVersion(VERSION);
     a.setApplicationName("dde-dconfig-editor");
     a.setOrganizationName("deepin");
     a.setProductIcon(QIcon::fromTheme(APP_ICON));
     a.setWindowIcon(QIcon::fromTheme(APP_ICON));
-
     MainWindow window;
     window.show();
 
