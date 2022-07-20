@@ -1,6 +1,8 @@
 PROJECT(dde-dconfig-editor)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
+add_compile_definitions(CVERSION="${CVERSION}")
+
 set(REQUIRED_QT_VERSION 5.11.3)
 find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus)
 find_package(DtkCore REQUIRED)
