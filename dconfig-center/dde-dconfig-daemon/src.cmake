@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
+#
+# SPDX-License-Identifier: LGPL-3.0-only
+
 find_package(Qt5DBus REQUIRED)
 
 qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml
