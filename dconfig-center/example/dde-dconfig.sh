@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
+#
+# SPDX-License-Identifier: LGPL-3.0-only
+
 # configure file is in the position. e.g: /usr/share/dsg/configs/dconfig-example/example.json
 # global cache is in the position. e.g: /var/dsg/appdata/configs/dconfig-example/configs/example.json
 # user cache is in the position. e.g: /home/userhome/.config/dsg/configs/dconfig-example/example.json

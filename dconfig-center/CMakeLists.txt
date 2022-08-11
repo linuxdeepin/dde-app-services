@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+#
+# SPDX-License-Identifier: LGPL-3.0-only
+
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 project(dconfig-center)
