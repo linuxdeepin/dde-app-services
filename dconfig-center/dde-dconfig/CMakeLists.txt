@@ -52,7 +52,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ../common
 )
 
-install(TARGETS dde-dconfig DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS dde-dconfig DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-set(BASH_COMPLETION_COMPLETIONSDIR "/usr/share/bash-completion/completions/")
+set(BASH_COMPLETION_COMPLETIONSDIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions/)
 install(DIRECTORY bash_completion.d/ DESTINATION ${BASH_COMPLETION_COMPLETIONSDIR})

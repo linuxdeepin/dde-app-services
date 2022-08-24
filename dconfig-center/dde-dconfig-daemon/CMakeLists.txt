@@ -39,13 +39,13 @@ set(DCONFIG_XMLS_FILES
     services/org.desktopspec.ConfigManager.xml
     services/org.desktopspec.ConfigManager.Manager.xml
 )
-install (FILES ${DCONFIG_XMLS_FILES} DESTINATION share/dbus-1/interfaces)
+install (FILES ${DCONFIG_XMLS_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/interfaces)
 
 ## dbus config file
-install (FILES services/org.desktopspec.ConfigManager.conf DESTINATION /usr/share/dbus-1/system.d)
+install (FILES services/org.desktopspec.ConfigManager.conf DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/system.d)
 
 ## services files
-install(FILES services/org.desktopspec.ConfigManager.service DESTINATION /usr/share/dbus-1/system-services)
+install(FILES services/org.desktopspec.ConfigManager.service DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/system-services)
 
 ## bin
-install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})
