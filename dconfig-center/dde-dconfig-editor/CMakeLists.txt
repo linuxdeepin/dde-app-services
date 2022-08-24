@@ -66,4 +66,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ../common
 )
 
-install(TARGETS dde-dconfig-editor DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS dde-dconfig-editor DESTINATION ${CMAKE_INSTALL_BINDIR})
