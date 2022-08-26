@@ -52,4 +52,4 @@ sudo make install
 
 ## 协议
 
-qt5integration遵循协议 [LGPLv3](LICENSE).
+dde-app-services遵循协议 [LGPLv3](LICENSE).
