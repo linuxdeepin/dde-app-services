@@ -50,4 +50,4 @@ We encourage you to report issues and contribute changes
 
 ## License
 
-dde-app-services is licensed under [LGPLv3](LICENSE).
+dde-app-services is licensed under [LGPL-3.0-or-later](LICENSE).

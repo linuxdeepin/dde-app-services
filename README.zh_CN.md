@@ -52,4 +52,4 @@ sudo make install
 
 ## 协议
 
-dde-app-services遵循协议 [LGPLv3](LICENSE).
+dde-app-services遵循协议 [LGPL-3.0-or-later](LICENSE).
