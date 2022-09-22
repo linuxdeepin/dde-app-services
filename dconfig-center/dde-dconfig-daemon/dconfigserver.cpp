@@ -34,10 +34,12 @@ DSGConfigServer::DSGConfigServer(QObject *parent)
     :QObject (parent),
       m_watcher(nullptr),
       m_refManager(new RefManager(this))
+    , m_syncRequestCache(new ConfigSyncRequestCache(this))
 {
     connect(this, &DSGConfigServer::releaseResource, this, &DSGConfigServer::onReleaseResource);
     connect(m_refManager, &RefManager::releaseResource, this, &DSGConfigServer::releaseResource);
     connect(this, &DSGConfigServer::tryExit, this, &DSGConfigServer::onTryExit);
+    connect(m_syncRequestCache, &ConfigSyncRequestCache::syncConfigRequest, this, &DSGConfigServer::doSyncConfigCache);
 }
 
 DSGConfigServer::~DSGConfigServer()
@@ -134,6 +136,7 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
         resource = new DSGConfigResource(path, m_localPrefix);
         bool loadStatus = resource->load(appid, name, subpath);
         if (loadStatus) {
+            resource->setSyncRequestCache(m_syncRequestCache);
             m_resources.insert(path, resource);
             QObject::connect(resource, &DSGConfigResource::releaseConn, this, &DSGConfigServer::onReleaseChanged);
             qInfo() << "created resource:" << path;
@@ -217,6 +220,28 @@ void DSGConfigServer::onTryExit()
         exit();
         qApp->quit();
     }
+}
+
+void DSGConfigServer::doSyncConfigCache(const ConfigSyncBatchRequest &request)
+{
+    const QList<ConfigCacheKey> &keys = request.data;
+    qCInfo(cfLog()) << "do sync config cache, keys count:" << keys.size();
+    for (auto key: keys) {
+        auto resourceKey = getResourceKeyByConfigCache(key);
+        if (auto resource = m_resources.value(resourceKey)) {
+            resource->doSyncConfigCache(key);
+        }
+    }
+}
+
+ResourceKey DSGConfigServer::getResourceKeyByConfigCache(const ConfigCacheKey &key)
+{
+    if (ConfigSyncRequestCache::isUserKey(key)) {
+        return getResourceKey(ConfigSyncRequestCache::getUserKey(key));
+    } else if (ConfigSyncRequestCache::isGlobalKey(key)){
+        return ConfigSyncRequestCache::getGlobalKey(key);
+    }
+    return ResourceKey();
 }
 
 ConfigureId DSGConfigServer::getConfigureIdByPath(const QString &path)

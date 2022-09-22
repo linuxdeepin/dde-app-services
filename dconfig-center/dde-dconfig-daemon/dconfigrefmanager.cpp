@@ -4,6 +4,7 @@
 
 #include "dconfigrefmanager.h"
 #include <QDebug>
+#include <QEvent>
 
 // 管理服务
 class ServiceRef {
@@ -409,5 +410,121 @@ void RefManager::delayDeleteResource(const QList<ResourceRef *> &deleteResources
             m_delayReleaseingConns.insert(resource, timer);
         }
         timer->start(m_delayReleaseTime);
+    }
+}
+
+ConfigSyncRequestCache::ConfigSyncRequestCache(QObject *parent)
+    : QObject (parent)
+    , m_syncTimer(new QBasicTimer())
+    , m_delaySyncTime(30000)
+    , m_batchCount(10)
+{
+}
+
+ConfigSyncRequestCache::~ConfigSyncRequestCache()
+{
+    m_configCacheKeys.clear();
+
+    if (m_syncTimer->isActive())
+        m_syncTimer->stop();
+
+    delete m_syncTimer;
+    m_syncTimer = nullptr;
+}
+
+void ConfigSyncRequestCache::pushRequest(const ConfigCacheKey &key)
+{
+    if (m_configCacheKeys.contains(key))
+        return;
+
+    qCDebug(cfLog()) << "push syncConfigRequest key:" << key;
+    m_configCacheKeys.insert(key);
+    if (!m_syncTimer->isActive()) {
+        m_syncTimer->start(m_delaySyncTime, this);
+    }
+}
+
+static const QString ConfigSyncRequestCacheGlobalPrefix("g-");
+static const QString ConfigSyncRequestCacheUserPrefix("u-");
+ConfigCacheKey ConfigSyncRequestCache::globalKey(const ResourceKey &key)
+{
+    return QString("%1%2").arg(ConfigSyncRequestCacheGlobalPrefix).arg(key);
+}
+
+ConfigCacheKey ConfigSyncRequestCache::userKey(const ConnKey &key)
+{
+    return QString("%1%2").arg(ConfigSyncRequestCacheUserPrefix).arg(key);
+}
+
+bool ConfigSyncRequestCache::isGlobalKey(const ConfigCacheKey &key)
+{
+    return key.startsWith(ConfigSyncRequestCacheGlobalPrefix);
+}
+
+bool ConfigSyncRequestCache::isUserKey(const ConfigCacheKey &key)
+{
+    return key.startsWith(ConfigSyncRequestCacheUserPrefix);
+}
+
+ResourceKey ConfigSyncRequestCache::getGlobalKey(const ConfigCacheKey &key)
+{
+    return key.mid(ConfigSyncRequestCacheGlobalPrefix.size());
+}
+
+ConnKey ConfigSyncRequestCache::getUserKey(const ConfigCacheKey &key)
+{
+    return key.mid(ConfigSyncRequestCacheUserPrefix.size());
+}
+
+int ConfigSyncRequestCache::requestsCount() const
+{
+    return m_configCacheKeys.count();
+}
+
+int ConfigSyncRequestCache::delaySyncTime() const
+{
+    return m_delaySyncTime;
+}
+
+void ConfigSyncRequestCache::setDelaySyncTime(const int time)
+{
+    m_delaySyncTime = time;
+}
+
+int ConfigSyncRequestCache::batchCount() const
+{
+    return m_batchCount;
+}
+
+void ConfigSyncRequestCache::setBatchCount(const int count)
+{
+    m_batchCount = count;
+}
+
+void ConfigSyncRequestCache::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == m_syncTimer->timerId()) {
+        customRequest();
+
+        if (!m_configCacheKeys.isEmpty()) {
+            m_syncTimer->start(m_delaySyncTime, this);
+        }
+    }
+
+    return QObject::timerEvent(event);
+}
+
+void ConfigSyncRequestCache::customRequest()
+{
+    if (!m_configCacheKeys.isEmpty()) {
+        ConfigSyncBatchRequest request;
+        int i = 0;
+        for (auto iter = m_configCacheKeys.begin(); iter != m_configCacheKeys.end() && i < m_batchCount; i++) {
+            request.data << *iter;
+            iter = m_configCacheKeys.erase(iter);
+        }
+        qCDebug(cfLog()) << "start sync config cache, syncConfigRequest count:" << request.data.count()
+                 << " elapsed count:" << m_configCacheKeys.count();
+        Q_EMIT syncConfigRequest(request);
     }
 }

@@ -18,6 +18,7 @@ using ConnKey = QString;
 using ResourceKey = QString;
 using ConnServiceName = QString;
 using ConnRefCount = int;
+using ConfigCacheKey = QString;
 
 inline QString getResourceKey(const ConnKey &connKey)
 {
