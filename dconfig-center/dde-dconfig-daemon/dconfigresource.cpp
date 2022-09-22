@@ -4,6 +4,7 @@
 
 #include "dconfigresource.h"
 #include "dconfigconn.h"
+#include "dconfigrefmanager.h"
 #include "dconfigfile.h"
 #include <QDBusMessage>
 #include <QDBusConnection>
@@ -46,6 +47,11 @@ bool DSGConfigResource::load(const QString &appid, const QString &name, const QS
     return m_config->load(m_localPrefix);
 }
 
+void DSGConfigResource::setSyncRequestCache(ConfigSyncRequestCache *cache)
+{
+    m_syncRequestCache = cache;
+}
+
 DSGConfigConn *DSGConfigResource::connObject(const uint uid)
 {
     return m_conns.value(getConnKey(uid), nullptr);
@@ -83,6 +89,7 @@ DSGConfigConn *DSGConfigResource::createConn(const uint uid)
     QObject::connect(this, &DSGConfigResource::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
     QObject::connect(conn, &DSGConfigConn::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
     QObject::connect(this, &DSGConfigResource::updateValueChanged, conn, &DSGConfigConn::valueChanged);
+    QObject::connect(conn, &DSGConfigConn::valueChanged, this, &DSGConfigResource::onValueChanged);
     return conn;
 }
 
@@ -158,6 +165,38 @@ void DSGConfigResource::onReleaseChanged(const ConnServiceName &service)
     auto conn = qobject_cast<DSGConfigConn*>(sender());
     if (conn) {
         emit releaseConn(service, conn->key());
+    }
+}
+
+void DSGConfigResource::doSyncConfigCache(const ConfigCacheKey &key)
+{
+    if (ConfigSyncRequestCache::isUserKey(key)) {
+        if (auto conn = m_conns.value(ConfigSyncRequestCache::getUserKey(key))) {
+            qCDebug(cfLog()) << "do sync conn cache for user cache, key:" << key;
+            conn->cache()->save(m_localPrefix);
+        }
+    } else if (ConfigSyncRequestCache::isGlobalKey(key)) {
+        if (ConfigSyncRequestCache::getGlobalKey(key) == m_path && m_config) {
+            qCDebug(cfLog()) << "do sync conn cache for global cache, key:" << key;
+            m_config->save(m_localPrefix);
+        }
+    } else {
+        qCWarning(cfLog()) << "it's not exist config cache key" << key;
+    }
+}
+
+void DSGConfigResource::onValueChanged(const QString &key)
+{
+    if (auto conn = qobject_cast<DSGConfigConn*>(sender())) {
+        do {
+            // global field changed don't cause user field to save, bug `valueChanged` signal is emit.
+            if (m_config && Q_UNLIKELY(m_config->meta()->flags(key).testFlag(DConfigFile::Global)))
+                break;
+
+            if (Q_UNLIKELY(!m_syncRequestCache))
+                break;
+            m_syncRequestCache->pushRequest(ConfigSyncRequestCache::userKey(conn->key()));
+        } while (false);
     }
 }
 
@@ -240,6 +279,8 @@ void DSGConfigResource::save()
 
 void DSGConfigResource::onGlobalValueChanged(const QString &key)
 {
+    if (m_syncRequestCache)
+        m_syncRequestCache->pushRequest(ConfigSyncRequestCache::globalKey(m_path));
     for (auto conn : m_conns) {
         emit conn->valueChanged(key);
     }

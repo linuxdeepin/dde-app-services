@@ -12,6 +12,8 @@
 
 class DSGConfigResource;
 class RefManager;
+class ConfigSyncBatchRequest;
+class ConfigSyncRequestCache;
 /**
  * @brief The DSGConfigServer class
  * 管理配置策略服务
@@ -63,7 +65,10 @@ private Q_SLOTS:
 
     void onTryExit();
 
+    void doSyncConfigCache(const ConfigSyncBatchRequest &request);
+
 private:
+    ResourceKey getResourceKeyByConfigCache(const ConfigCacheKey &key);
 
     ConfigureId getConfigureIdByPath(const QString &path);
 
@@ -80,4 +85,5 @@ private:
 
     QString m_localPrefix;
     bool m_enableExit = false;
+    ConfigSyncRequestCache *m_syncRequestCache = nullptr;
 };

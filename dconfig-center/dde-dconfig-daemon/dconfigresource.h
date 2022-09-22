@@ -18,6 +18,7 @@ DCORE_END_NAMESPACE
 
 DCORE_USE_NAMESPACE
 class DSGConfigConn;
+class ConfigSyncRequestCache;
 /**
  * @brief The DSGConfigResource class
  * 管理单个链接
@@ -32,6 +33,8 @@ public:
     virtual ~DSGConfigResource() override;
 
     bool load(const QString &appid, const QString &name, const QString &subpath);
+
+    void setSyncRequestCache(ConfigSyncRequestCache *cache);
 
     DSGConfigConn* connObject(const uint uid);
 
@@ -49,6 +52,7 @@ public:
 
     void save();
 
+    void doSyncConfigCache(const ConfigCacheKey &key);
 Q_SIGNALS: // SIGNALS
     void updateValueChanged(const QString &key);
 
@@ -65,6 +69,9 @@ public Q_SLOTS: // METHODS
 
     void onReleaseChanged(const ConnServiceName &service);
 
+private Q_SLOTS:
+    void onValueChanged(const QString &key);
+
 private:
     QString getConnKey(const uint uid) const;
 
@@ -77,5 +84,6 @@ private:
     QString m_appid;
     QString m_fileName;
     QString m_subpath;
+    ConfigSyncRequestCache *m_syncRequestCache = nullptr;
 };
 

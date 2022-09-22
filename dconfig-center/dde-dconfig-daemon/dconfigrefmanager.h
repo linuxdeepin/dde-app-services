@@ -68,3 +68,47 @@ private:
     QMap<ConnKey, QTimer*> m_delayReleaseingConns;
     ObjectPool<QTimer> m_timerPool;
 };
+
+struct ConfigSyncBatchRequest
+{
+    QList<ConfigCacheKey> data;
+};
+
+class ConfigSyncRequestCache : public QObject
+{
+    Q_OBJECT
+public:
+    explicit ConfigSyncRequestCache(QObject *parent = nullptr);
+    virtual ~ConfigSyncRequestCache() override;
+
+    void pushRequest(const ConfigCacheKey& key);
+
+    static ConfigCacheKey globalKey(const ResourceKey &key);
+    static ConfigCacheKey userKey(const ConnKey &key);
+    static bool isGlobalKey(const ConfigCacheKey &key);
+    static bool isUserKey(const ConfigCacheKey &key);
+    static ResourceKey getGlobalKey(const ConfigCacheKey &key);
+    static ConnKey getUserKey(const ConfigCacheKey &key);
+
+    int requestsCount() const;
+    int delaySyncTime() const;
+    void setDelaySyncTime(const int time);
+    int batchCount() const;
+    void setBatchCount(const int count);
+
+Q_SIGNALS:
+    void syncConfigRequest(const ConfigSyncBatchRequest &request);
+
+protected:
+    virtual void timerEvent(QTimerEvent *event) override;
+
+private:
+    void customRequest();
+
+    QBasicTimer *m_syncTimer = nullptr;
+    QSet<ConfigCacheKey> m_configCacheKeys;
+    int m_delaySyncTime;
+    int m_batchCount;
+};
+
+Q_DECLARE_METATYPE(ConfigSyncBatchRequest)

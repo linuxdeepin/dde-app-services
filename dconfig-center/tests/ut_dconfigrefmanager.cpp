@@ -208,3 +208,53 @@ TEST_F(ut_DConfigRefServer, setDelayReleaseTime) {
     ASSERT_EQ(server->getRefResourceCountOnTheSR(Service1, Resource2), 0);
     ASSERT_EQ(server->getRefResourceCountOnTheSR(Service1, Resource3), 0);
 }
+
+class ut_ConfigSyncRequestCache : public testing::Test
+{
+protected:
+    static void SetUpTestCase() {
+    }
+    static void TearDownTestCase() {
+    }
+    virtual void SetUp() override {
+        cache.reset(new ConfigSyncRequestCache);
+    }
+    virtual void TearDown() override;
+    QScopedPointer<ConfigSyncRequestCache> cache;
+};
+
+void ut_ConfigSyncRequestCache::TearDown() { }
+
+TEST_F(ut_ConfigSyncRequestCache, base) {
+    cache->setDelaySyncTime(1);
+    ASSERT_EQ(cache->delaySyncTime(), 1);
+    cache->setBatchCount(1);
+    ASSERT_EQ(cache->batchCount(), 1);
+
+    QSignalSpy spy(cache.data(), &ConfigSyncRequestCache::syncConfigRequest);
+
+    const QString userKey("user-config");
+    const auto userConfigCacheKey = ConfigSyncRequestCache::userKey(userKey);
+    ASSERT_TRUE(ConfigSyncRequestCache::isUserKey(userConfigCacheKey));
+    ASSERT_EQ(ConfigSyncRequestCache::getUserKey(userConfigCacheKey), userKey);
+
+    const QString globalKey("global-config");
+    const auto globalConfigCacheKey = ConfigSyncRequestCache::globalKey(globalKey);
+    ASSERT_TRUE(ConfigSyncRequestCache::isGlobalKey(globalConfigCacheKey));
+    ASSERT_EQ(ConfigSyncRequestCache::getGlobalKey(globalConfigCacheKey), globalKey);
+
+    cache->pushRequest(userKey);
+    cache->pushRequest(globalKey);
+
+    ASSERT_EQ(cache->requestsCount(), 2);
+
+    spy.wait(cache->delaySyncTime());
+    ASSERT_EQ(spy.count(), 1);
+
+    ASSERT_EQ(cache->requestsCount(), 1);
+
+    spy.wait(cache->delaySyncTime());
+    ASSERT_EQ(spy.count(), 2);
+
+    ASSERT_EQ(cache->requestsCount(), 0);
+}
