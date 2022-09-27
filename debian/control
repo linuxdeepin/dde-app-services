@@ -32,5 +32,5 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends}
 Description: deepin desktop-environment - dde-dconfig-editor module
- dde-dconfig-editor is a GUI or Console tool, it's used to view and edit 
+ dde-dconfig-editor is a GUI or Console tool, it's used to view and edit
  DSG configuration for current user.
