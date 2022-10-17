@@ -647,9 +647,6 @@ QString KeyContent::key() const
 
 void KeyContent::onDoubleValueChanged(double value)
 {
-    if (auto widget = qobject_cast<QWidget*>(sender())) {
-        widget->clearFocus();
-    }
     emit valueChanged(value);
 }
 
