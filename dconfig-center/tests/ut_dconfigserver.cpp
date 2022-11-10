@@ -135,6 +135,7 @@ TEST_F(ut_DConfigServer, setDelayReleaseTime) {
 TEST_F(ut_DConfigServer, metaPathToConfigureId) {
     QStringList appPaths {
         "/usr/share/dsg/configs/example.json",
+        "/usr/share/dsg/configs/dconfig-example_abc.d/example.json",
         "/usr/share/dsg/configs/dconfig-example/example.json",
         "/usr/share/dsg/configs/dconfig-example/a/b/example.json"
     };
@@ -149,6 +150,7 @@ TEST_F(ut_DConfigServer, overridePathToConfigureId) {
     QStringList paths {
         "/usr/share/dsg/configs/overrides/example/a.json",
         "/usr/share/dsg/configs/overrides/dconfig-example/example/a.json",
+        "/usr/share/dsg/configs/overrides/dconfig-example_abc.d/example/a.json",
         "/usr/share/dsg/configs/overrides/dconfig-example/example/a/b/a.json",
         "/etc/dsg/configs/overrides/example/a.json",
         "/etc/dsg/configs/overrides/dconfig-example/example/a.json",
