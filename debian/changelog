@@ -1,3 +1,9 @@
+dde-app-services (0.0.20) unstable; urgency=medium
+
+  * Release 0.0.20
+
+ --  Deepin Package Builder <yeshanshan@uniontech.com>  Thu, 24 Nov 2022 13:39:03 +0800
+
 dde-app-services (0.0.1) unstable; urgency=medium
 
   * Initial release Tag 0.0.1
