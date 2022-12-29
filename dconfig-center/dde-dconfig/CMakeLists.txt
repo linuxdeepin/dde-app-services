@@ -6,7 +6,7 @@ PROJECT(dde-dconfig)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 set(REQUIRED_QT_VERSION 5.11.3)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
+find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui DBus)
 find_package(DtkWidget REQUIRED)
 
 # generate moc_predefs.h
@@ -39,6 +39,7 @@ ADD_EXECUTABLE(dde-dconfig ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
 
 set(COMMON_LIBS
     Qt5::Core
+    Qt5::Gui
     Qt5::DBus
     ${DtkWidget_LIBRARIES}
 )
