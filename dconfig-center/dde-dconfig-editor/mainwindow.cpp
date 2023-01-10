@@ -35,6 +35,7 @@
 MainWindow::MainWindow(QWidget *parent) :
     DMainWindow(parent)
 {
+    appIdToNameMaps[VirtualAppId] = VirtualAppName;
     resize(800, 600);
     centralwidget = new QWidget(this);
     centralwidget->setObjectName(QStringLiteral("centralwidget"));
@@ -136,7 +137,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 const auto &appid = model->data(index, ConfigUserRole + 2).toString();
                 const auto &resourceId = model->data(index, ConfigUserRole + 3).toString();
                 const auto &subpath = model->data(index, ConfigUserRole + 4).toString();
-                if (appid.isEmpty() || resourceId.isEmpty()) {
+                if (resourceId.isEmpty()) {
                     qWarning() << "error" << appid << resourceId;
                     return;
                 }
@@ -199,7 +200,7 @@ void MainWindow::refreshApps(const QString &matchAppid)
         }
 
         if (resourcesForApp(app).isEmpty()) {
-            continue;
+//            continue;
         }
 
         DStandardItem *item = new DStandardItem(app);
@@ -211,6 +212,7 @@ void MainWindow::refreshApps(const QString &matchAppid)
     }
     appListView->setModel(model);
     translateAppName();
+    refreshAppTranslate();
 }
 
 void MainWindow::refreshAppResources(const QString &appid, const QString &matchResource)
@@ -654,7 +656,7 @@ HistoryDialog::HistoryDialog(QWidget *parent)
     : DDialog( parent)
 {
     historyView = new DListView();
-    historyView->setModel(new QStandardItemModel());
+    historyView->setModel(new QStandardItemModel(this));
     historyView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     addContent(historyView);
     connect(historyView, &DListView::doubleClicked, this, [this](const QModelIndex &index){

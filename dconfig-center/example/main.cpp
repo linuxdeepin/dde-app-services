@@ -20,6 +20,7 @@ public:
         watchValueChanged();
         subpath();
         mutilFetchConfig();
+        generalConfig();
     }
 
     void watchValueChanged()
@@ -104,6 +105,31 @@ public:
         {
             DConfig config(fileName);
             qDebug() << config.value("map", map);
+        }
+    }
+
+    void generalConfig()
+    {
+        // 空appid，直接获取公共配置
+        {
+            auto config = DConfig::create("", fileName);
+            qDebug() << config->value("canExit");
+        }
+        // 空appid，设置公共配置
+        {
+            auto config = DConfig::create("", fileName);
+            config->setValue("canExit", true);
+            qDebug() << config->value("canExit");
+        }
+        // 默认使用本appid去获取，会fallback到公共配置
+        {
+            DConfig config(fileName);
+            qDebug() << config.value("canExit");
+        }
+        // 指定使用appid去获取，会fallback到公共配置
+        {
+            auto config = DConfig::create("dconfig-example", fileName);
+            qDebug() << config->value("canExit");
         }
     }
 

@@ -25,13 +25,9 @@ DSGConfigConn::DSGConfigConn(const ConnKey &key, QObject *parent)
 
 DSGConfigConn::~DSGConfigConn()
 {
-    if (m_cache) {
-        delete m_cache;
-        m_cache = nullptr;
-    }
 }
 
-QString DSGConfigConn::key() const
+ConnKey DSGConfigConn::key() const
 {
     return m_key;
 }
@@ -41,7 +37,7 @@ uint DSGConfigConn::uid() const
     return getConnectionKey(m_key);
 }
 
-DConfigCache *DSGConfigConn::cache() const
+QSharedPointer<DConfigCache> DSGConfigConn::cache() const
 {
     return m_cache;
 }
@@ -52,9 +48,19 @@ void DSGConfigConn::setConfigFile(DConfigFile *configFile)
     m_keys = m_config->meta()->keyList().toSet();
 }
 
-void DSGConfigConn::setConfigCache(DConfigCache *cache)
+void DSGConfigConn::setConfigCache(QSharedPointer<DConfigCache> cache)
 {
     m_cache = cache;
+}
+
+void DSGConfigConn::setGeneralConfigFile(DConfigFile *configFile)
+{
+    m_generalConfig = configFile;
+}
+
+void DSGConfigConn::setGeneralConfigCache(DConfigCache *cache)
+{
+    m_generalCache = cache;
 }
 
 /*!
@@ -127,8 +133,8 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
         return;
 
     const auto &v = decodeQDBusArgument(value.variant());
-    qCDebug(cfLog) << "set value key:" << key << ", now value:" << v << ", old value:" << m_config->value(key, m_cache);
-    if(!m_config->setValue(key, v, getAppid(), m_cache))
+    qCDebug(cfLog) << "set value key:" << key << ", now value:" << v << ", old value:" << m_config->value(key, m_cache.data());
+    if(!m_config->setValue(key, v, getAppid(), m_cache.data()))
         return;
 
     if (m_config->meta()->flags(key).testFlag(DConfigFile::Global)) {
@@ -144,8 +150,8 @@ void DSGConfigConn::reset(const QString &key)
         return;
 
     const auto &v = m_config->meta()->value(key);
-    qCDebug(cfLog) << "reset key:" << key << ", meta value:" << v << ", old value:" << m_config->value(key, m_cache);
-    if(!m_config->setValue(key, v, getAppid(), m_cache))
+    qCDebug(cfLog) << "reset key:" << key << ", meta value:" << v << ", old value:" << m_config->value(key, m_cache.data());
+    if(!m_config->setValue(key, v, getAppid(), m_cache.data()))
         return;
 
     if (m_config->meta()->flags(key).testFlag(DConfigFile::Global)) {
@@ -165,7 +171,8 @@ QDBusVariant DSGConfigConn::value(const QString &key)
     if (!contains(key))
         return QDBusVariant();
 
-    const auto &value = m_config->value(key, m_cache);
+    bool fromMeta = false;
+    auto value = m_config->value(key, m_cache.data(), &fromMeta);
     if (value.isNull()) {
         QString errorMsg = QString("[%1] requires the value in [%2].").arg(key).arg(getAppid());
         qWarning() << errorMsg;
@@ -173,6 +180,17 @@ QDBusVariant DSGConfigConn::value(const QString &key)
             sendErrorReply(QDBusError::Failed, errorMsg);
         }
         return QDBusVariant();
+    }
+
+    // fallback to general configuration.
+    if (fromMeta) {
+        if (m_generalConfig && m_generalCache) {
+            const auto &tmp = m_generalConfig->value(key, m_generalCache, &fromMeta);
+            if (!tmp.isNull() && !fromMeta) {
+                value = tmp;
+                qCDebug(cfLog) << "get [" << key << "]'s value from general configuration, and value is ." << value;
+            }
+        }
     }
 
     qCDebug(cfLog) << "get value key:" << key << ", value:" << value;

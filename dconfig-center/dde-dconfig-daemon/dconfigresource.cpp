@@ -6,6 +6,7 @@
 #include "dconfigconn.h"
 #include "dconfigrefmanager.h"
 #include "dconfigfile.h"
+#include "dgeneralconfigmanager.h"
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -38,13 +39,16 @@ DSGConfigResource::~DSGConfigResource()
 
 bool DSGConfigResource::load(const QString &appid, const QString &name, const QString &subpath)
 {
-    if (Q_UNLIKELY(!m_config)) {
-        m_config.reset(new DTK_CORE_NAMESPACE::DConfigFile(appid, name, subpath));
-        m_appid = appid;
-        m_fileName = name;
-        m_subpath = subpath;
-    }
-    return m_config->load(m_localPrefix);
+    m_appid = appid;
+    m_fileName = name;
+    m_subpath = subpath;
+
+    bool isCreate = false;
+    m_config = getOrCreateConfig(&isCreate);
+    if (isCreate)
+        return m_config->load(m_localPrefix);
+
+    return true;
 }
 
 void DSGConfigResource::setSyncRequestCache(ConfigSyncRequestCache *cache)
@@ -52,21 +56,28 @@ void DSGConfigResource::setSyncRequestCache(ConfigSyncRequestCache *cache)
     m_syncRequestCache = cache;
 }
 
-DSGConfigConn *DSGConfigResource::connObject(const uint uid)
+DSGConfigConn *DSGConfigResource::connObject(const uint uid) const
 {
     return m_conns.value(getConnKey(uid), nullptr);
+}
+
+DSGConfigConn *DSGConfigResource::connObject(const ConnKey key) const
+{
+    return m_conns.value(key);
 }
 
 DSGConfigConn *DSGConfigResource::createConn(const uint uid)
 {
     QString key = getConnKey(uid);
     QScopedPointer<DSGConfigConn> connPointer(new DSGConfigConn(key));
-    QScopedPointer<DConfigCache> cache(m_config->createUserCache(uid));
+    bool isCreate = false;
+    QSharedPointer<DConfigCache> cache(getOrCreateCache(uid, &isCreate));
+
     if (!cache) {
         qWarning() << QString("Create cache service error for [%1]'s [%2].").arg(uid).arg(m_path);
         return nullptr;
     }
-    if (!cache->load()) {
+    if (isCreate && !cache->load()) {
         qWarning() << QString("Load cache error for [%1]'s [%2].").arg(uid).arg(m_path);
         return nullptr;
     }
@@ -80,8 +91,11 @@ DSGConfigConn *DSGConfigResource::createConn(const uint uid)
             //error.
         }
     }
-    connPointer->setConfigCache(cache.take());
+    connPointer->setConfigCache(cache);
     connPointer->setConfigFile(m_config.get());
+
+    if (!setGeneralConfigForConn(connPointer.data()))
+        return nullptr;
 
     auto conn = connPointer.take();
     m_conns.insert(key, conn);
@@ -110,7 +124,7 @@ bool DSGConfigResource::reparse()
     DConfigMeta *oldMeta = m_config->meta();
     QList<DConfigCache*> caches;
     for (auto iter = m_conns.begin(); iter != m_conns.end(); iter++) {
-        caches.push_back(iter.value()->cache());
+        caches.push_back(iter.value()->cache().data());
     }
     caches.push_back(config->globalCache());
 
@@ -185,6 +199,105 @@ void DSGConfigResource::doSyncConfigCache(const ConfigCacheKey &key)
     }
 }
 
+bool DSGConfigResource::isGeneralResource() const
+{
+    return ::isGeneralResource(m_appid);
+}
+
+void DSGConfigResource::setGeneralConfigManager(DSGGeneralConfigManager *ma)
+{
+    m_generalConfigManager = ma;
+}
+
+bool DSGConfigResource::setGeneralConfigForConn(DSGConfigConn *conn)
+{
+    Q_ASSERT(conn);
+    const uint uid = conn->uid();
+
+    // 只有appResource才需要fallback到公共配置
+    if (isGeneralResource()) {
+        const auto generalKey = getGeneralConfigKey(m_path, true);
+        // 当为generalResource时，需要记录公共配置到generalManager，供其他appResource使用
+        auto config = m_generalConfigManager->config(generalKey);
+        if (!config) {
+            config = m_generalConfigManager->createConfig(generalKey);
+            config->setConfig(m_config);
+        }
+        if (!config->contains(uid))
+            config->addCache(uid, conn->cache());
+
+        return true;
+    }
+
+    // 判断是否需要fallback到公共配置
+    QSharedPointer<DConfigFile> file(new DConfigFile(EmptyAppId, m_fileName, m_subpath));
+    const bool canFallbackToGeneral = !file->meta()->metaPath(m_localPrefix).isEmpty();
+    if (!canFallbackToGeneral)
+        return true;
+
+    const auto generalKey = getGeneralConfigKey(m_path, false);
+    auto config = m_generalConfigManager->config(generalKey);
+    if (!config) {
+        if (!file->load(m_localPrefix)) {
+            qCWarning(cfLog()) << "Can't load general configuration:" << m_fileName;
+            return false;
+        }
+
+        // 创建空appid配置
+        config = m_generalConfigManager->createConfig(generalKey);
+        config->setConfig(file);
+    }
+
+    auto cache = config->cache(uid);
+    if (!cache) {
+        cache = QSharedPointer<DConfigCache>(config->config()->createUserCache(uid));
+        if (!cache->load(m_localPrefix)) {
+            qCWarning(cfLog()) << "Can't load general configuration's cache for the resource:" << m_fileName;
+            return false;
+        }
+        config->addCache(uid, cache);
+    }
+    // only appResource to set general config.
+    conn->setGeneralConfigFile(config->config().data());
+    conn->setGeneralConfigCache(cache.data());
+    qCInfo(cfLog()) << "Set general configuration as value's fallback for the connection:" << conn->key();
+    return true;
+}
+
+QSharedPointer<DConfigFile> DSGConfigResource::getOrCreateConfig(bool *isCreate) const
+{
+    if (isGeneralResource()) {
+        // 当资源为公共资源时，若generalManager已经存在配置，则直接共用
+        const auto generalKey = getGeneralConfigKey(m_path, true);
+        if (auto config = m_generalConfigManager->config(generalKey)) {
+            if (isCreate)
+                *isCreate = false;
+            return config->config();
+        }
+    }
+    if (isCreate)
+        *isCreate = true;
+    return QSharedPointer<DConfigFile>(new DConfigFile(m_appid, m_fileName, m_subpath));
+}
+
+QSharedPointer<DConfigCache> DSGConfigResource::getOrCreateCache(const uint uid, bool *isCreate) const
+{
+    if (isGeneralResource()) {
+        // 当资源为公共资源时，若generalManager已经存在缓存，则直接共用
+        const auto generalKey = getGeneralConfigKey(m_path, true);
+        if (auto config = m_generalConfigManager->config(generalKey)) {
+            if (auto cache = config->cache(uid)) {
+                if (isCreate)
+                    *isCreate = false;
+                return cache;
+            }
+        }
+    }
+    if (isCreate)
+        *isCreate = true;
+    return QSharedPointer<DConfigCache>(m_config->createUserCache(uid));
+}
+
 void DSGConfigResource::onValueChanged(const QString &key)
 {
     if (auto conn = qobject_cast<DSGConfigConn*>(sender())) {
@@ -197,12 +310,16 @@ void DSGConfigResource::onValueChanged(const QString &key)
                 break;
             m_syncRequestCache->pushRequest(ConfigSyncRequestCache::userKey(conn->key()));
         } while (false);
+
+        // to emit general's valueChanged if valueChanged is emited from general resource.
+        if (isGeneralResource())
+            Q_EMIT m_generalConfigManager->valueChanged(key, conn->key());
     }
 }
 
 QString DSGConfigResource::getConnKey(const uint uid) const
 {
-    return QString("%1/%2").arg(m_path).arg(uid);
+    return getConnectionKey(m_path, uid);
 }
 
 /*
@@ -235,7 +352,7 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
     }
 }
 
-QString DSGConfigResource::path() const
+ResourceKey DSGConfigResource::path() const
 {
     return m_path;
 }
@@ -256,6 +373,11 @@ void DSGConfigResource::removeConn(const ConnKey &connKey)
 {
     if (auto conn = m_conns.value(connKey, nullptr)) {
         conn->cache()->save(m_localPrefix);
+        const auto generalKey = getGeneralConfigKey(m_path, isGeneralResource());
+        if (auto config = m_generalConfigManager->config(generalKey)) {
+            const auto uid = getConnectionKey(connKey);
+            config->removeCache(uid);
+        }
         conn->deleteLater();
         m_conns.remove(connKey);
         qDebug() << QString("removed connection:%1, remaining %2 connection.").arg(connKey).arg(m_conns.count());
@@ -281,6 +403,7 @@ void DSGConfigResource::onGlobalValueChanged(const QString &key)
 {
     if (m_syncRequestCache)
         m_syncRequestCache->pushRequest(ConfigSyncRequestCache::globalKey(m_path));
+    // to emit general's valueChanged if valueChanged is emited from general resource.
     for (auto conn : m_conns) {
         emit conn->valueChanged(key);
     }

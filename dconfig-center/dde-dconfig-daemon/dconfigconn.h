@@ -28,15 +28,18 @@ public:
 
     virtual ~DSGConfigConn() override;
 
-    QString key() const;
+    ConnKey key() const;
 
     uint uid() const;
 
-    DTK_CORE_NAMESPACE::DConfigCache *cache() const;
+    QSharedPointer<DTK_CORE_NAMESPACE::DConfigCache> cache() const;
 
     void setConfigFile(DTK_CORE_NAMESPACE::DConfigFile *configFile);
 
-    void setConfigCache(DTK_CORE_NAMESPACE::DConfigCache *cache);
+    void setConfigCache(QSharedPointer<DTK_CORE_NAMESPACE::DConfigCache> cache);
+
+    void setGeneralConfigFile(DTK_CORE_NAMESPACE::DConfigFile *configFile);
+    void setGeneralConfigCache(DTK_CORE_NAMESPACE::DConfigCache *cache);
 
 Q_SIGNALS:
     void releaseChanged(const ConnServiceName &service);
@@ -68,9 +71,11 @@ private:
     bool contains(const QString &key);
 
 private:
-    DTK_CORE_NAMESPACE::DConfigFile *m_config;
-    DTK_CORE_NAMESPACE::DConfigCache *m_cache;
-    QString m_key;
+    DTK_CORE_NAMESPACE::DConfigFile *m_config = nullptr;
+    QSharedPointer<DTK_CORE_NAMESPACE::DConfigCache> m_cache = nullptr;
+    DTK_CORE_NAMESPACE::DConfigFile *m_generalConfig = nullptr;
+    DTK_CORE_NAMESPACE::DConfigCache *m_generalCache = nullptr;
+    ConnKey m_key;
     QSet<QString> m_keys;
 };
 

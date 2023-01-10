@@ -12,13 +12,11 @@
 #include <QDBusArgument>
 #include <QJsonDocument>
 
-#include <DStandardPaths>
-
 using ResourceId = QString;
 using AppId = QString;
 using SubpathKey = QString;
 using ResourceList = QList<ResourceId>;
-using AppList = QSet<AppId>;
+using AppList = QList<AppId>;
 using SubpathList = QList<SubpathKey>;
 
 static const QString &SUFFIX = QString(".json");
@@ -29,6 +27,8 @@ constexpr int SubpathRole = Qt::UserRole + 13;
 constexpr int KeyRole = Qt::UserRole + 14;
 constexpr int ValueRole = Qt::UserRole + 15;
 constexpr int DescriptionRole = Qt::UserRole + 16;
+const QString VirtualAppId("");
+const QString VirtualAppName("org.deepin.virtual-application");
 
 enum ConfigType {
     InvalidType = 0x00,
@@ -59,6 +59,8 @@ static QString resourcePath(const QString &appid, const QString &localPrefix = Q
 static AppList applications(const QString &localPrefix = QString())
 {
     AppList result;
+    result << VirtualAppId;
+
     result.reserve(50);
 
     // TODO calling service interface to get app list,
@@ -73,21 +75,17 @@ static AppList applications(const QString &localPrefix = QString())
             if (filterDirs.contains(appid))
                 continue;
 
-            result.insert(appid);
+            result.append(appid);
         }
     }
     return result;
 }
 
-static ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
+static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
 {
-    QSet<ResourceId> result;
-    const auto &resPath = resourcePath(appid, localPrefix);
-    if (resPath.isEmpty()) {
-        return result.toList();
-    }
-    QDir resourceDir(resPath);
+    QDir resourceDir(QString("%1/%2").arg(localPrefix, MetaFileInstalledDir));
     QDirIterator iterator(resourceDir);
+    QSet<ResourceId> result;
     result.reserve(50);
     while(iterator.hasNext()) {
         iterator.next();
@@ -105,12 +103,17 @@ static ResourceList resourcesForApp(const QString &appid, const QString &localPr
     return result.toList();
 }
 
-static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
+static ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
 {
-    DCORE_USE_NAMESPACE;
-    QDir resourceDir(QString("%1/%2").arg(localPrefix, MetaFileInstalledDir));
-    QDirIterator iterator(resourceDir);
+    if (appid == VirtualAppId)
+        return ResourceList();
     QSet<ResourceId> result;
+    const auto &resPath = resourcePath(appid, localPrefix);
+    if (resPath.isEmpty()) {
+        return result.toList();
+    }
+    QDir resourceDir(resPath);
+    QDirIterator iterator(resourceDir);
     result.reserve(50);
     while(iterator.hasNext()) {
         iterator.next();

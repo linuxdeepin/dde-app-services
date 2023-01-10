@@ -14,19 +14,47 @@
 
 Q_DECLARE_LOGGING_CATEGORY(cfLog);
 
+// /appid/filename/subpath/userid
 using ConnKey = QString;
+// /appid/filename/subpath
 using ResourceKey = QString;
 using ConnServiceName = QString;
 using ConnRefCount = int;
 using ConfigCacheKey = QString;
+// /filename/subpath/userid
+using GeneralConfigFileKey = QString;
 
-inline QString getResourceKey(const ConnKey &connKey)
+static const QString EmptyAppId("");
+
+inline ResourceKey getResourceKey(const ConnKey &connKey)
 {
     return connKey.left(connKey.lastIndexOf('/'));
 }
 inline uint getConnectionKey(const ConnKey &connKey)
 {
     return connKey.mid(connKey.lastIndexOf('/') + 1).toUInt();
+}
+inline ConnKey getConnectionKey(const ResourceKey key, const uint uid)
+{
+    return QString("%1/%2").arg(key).arg(uid);
+}
+inline GeneralConfigFileKey getGeneralConfigKeyByConn(const ConnKey &connKey)
+{
+    return getResourceKey(connKey);
+}
+inline GeneralConfigFileKey getGeneralConfigKey(const ResourceKey &resouceKey, bool isGeneral)
+{
+    if (isGeneral)
+        return resouceKey;
+    return resouceKey.mid(resouceKey.indexOf('/', 1));
+}
+inline bool isTheResouceKey(const ResourceKey &r1, const ResourceKey &r2)
+{
+    return r1 == r2;
+}
+inline bool isGeneralResource(const QString &appid)
+{
+    return appid == EmptyAppId;
 }
 
 struct ConfigureId {

@@ -6,6 +6,7 @@
 #include "dconfigresource.h"
 #include "dconfigconn.h"
 #include "dconfigrefmanager.h"
+#include "dgeneralconfigmanager.h"
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -35,11 +36,15 @@ DSGConfigServer::DSGConfigServer(QObject *parent)
       m_watcher(nullptr),
       m_refManager(new RefManager(this))
     , m_syncRequestCache(new ConfigSyncRequestCache(this))
+    , m_generalConfigManager(new DSGGeneralConfigManager(this))
 {
     connect(this, &DSGConfigServer::releaseResource, this, &DSGConfigServer::onReleaseResource);
     connect(m_refManager, &RefManager::releaseResource, this, &DSGConfigServer::releaseResource);
     connect(this, &DSGConfigServer::tryExit, this, &DSGConfigServer::onTryExit);
     connect(m_syncRequestCache, &ConfigSyncRequestCache::syncConfigRequest, this, &DSGConfigServer::doSyncConfigCache);
+
+    // update emit all app resource's valueChanged connected if general configuration is changed.
+    connect(m_generalConfigManager, &DSGGeneralConfigManager::valueChanged, this, &DSGConfigServer::doUpdateGeneralConfigValueChanged);
 }
 
 DSGConfigServer::~DSGConfigServer()
@@ -129,18 +134,14 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
 {
     const auto &service = calledFromDBus() ? message().service() : "test.service";
     const uint &uid = calledFromDBus() ? connection().interface()->serviceUid(service).value() : 0U;
-    qCDebug(cfLog, "acquireManager service:%s, uid:%d", qPrintable(service), uid);
-    QString path = validDBusObjectPath(QString("/%1/%2%3").arg(appid, name, subpath));
+    qCDebug(cfLog, "acquireManager service:%s, uid:%d, appid:%s", qPrintable(service), uid, qPrintable(appid));
+    QString path = validDBusObjectPath(QString("%1/%2%3").arg(appid.isEmpty() ? EmptyAppId : "/" + appid, name, subpath));
     auto resource = resourceObject(path);
     if (!resource) {
         resource = new DSGConfigResource(path, m_localPrefix);
+        resource->setGeneralConfigManager(m_generalConfigManager);
         bool loadStatus = resource->load(appid, name, subpath);
-        if (loadStatus) {
-            resource->setSyncRequestCache(m_syncRequestCache);
-            m_resources.insert(path, resource);
-            QObject::connect(resource, &DSGConfigResource::releaseConn, this, &DSGConfigServer::onReleaseChanged);
-            qInfo() << "created resource:" << path;
-        } else {
+        if (!loadStatus) {
             //error
             QString errorMsg = QString("Can't load resource. expecting path:%1.").arg(path);
             if (calledFromDBus())
@@ -150,6 +151,11 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
             resource->deleteLater();
             return QDBusObjectPath();
         }
+
+        resource->setSyncRequestCache(m_syncRequestCache);
+        m_resources.insert(path, resource);
+        QObject::connect(resource, &DSGConfigResource::releaseConn, this, &DSGConfigServer::onReleaseChanged);
+        qInfo() << "created resource:" << path;
     }
 
     auto conn = resource->connObject(uid);
@@ -199,6 +205,26 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
         resource->removeConn(connKey);
         if (resource->isEmptyConn()) {
             qCInfo(cfLog, "remove resource:%s", qPrintable(resourceKey));
+
+            const auto generalKey = getGeneralConfigKey(resource->path(), resource->isGeneralResource());
+            if (auto config = m_generalConfigManager->config(generalKey)) {
+                config->config()->save(m_localPrefix);
+
+                bool existRef = false;
+                for (auto item : m_resources) {
+                    if (!isTheResouceKey(resourceKey, item->path()))
+                        continue;
+                    if (item->isGeneralResource())
+                        continue;
+                    if (item->connObject(connKey)) {
+                        existRef = true;
+                        break;
+                    }
+                }
+                if (!existRef)
+                    m_generalConfigManager->removeConfig(generalKey);
+            }
+
             m_resources.remove(resourceKey);
             resource->save();
             resource->deleteLater();
@@ -230,6 +256,28 @@ void DSGConfigServer::doSyncConfigCache(const ConfigSyncBatchRequest &request)
         auto resourceKey = getResourceKeyByConfigCache(key);
         if (auto resource = m_resources.value(resourceKey)) {
             resource->doSyncConfigCache(key);
+        }
+    }
+}
+
+void DSGConfigServer::doUpdateGeneralConfigValueChanged(const QString &key, const ConnKey &connKey)
+{
+    // only general resource to emit generalConfig's valueChanged.
+    auto generalKey = getGeneralConfigKeyByConn(connKey);
+    auto config = m_generalConfigManager->config(generalKey);
+    const bool isGlobal = config->config()->meta()->flags(key).testFlag(DConfigFile::Global);
+    const auto resourceKey = getResourceKey(connKey);
+    for (auto item : m_resources) {
+        if (!isTheResouceKey(resourceKey, item->path()))
+            continue;
+        if (item->isGeneralResource())
+            continue;
+        if (auto conn = item->connObject(connKey)) {
+            if (isGlobal) {
+                Q_EMIT conn->globalValueChanged(key);
+            } else {
+                Q_EMIT conn->valueChanged(key);
+            }
         }
     }
 }

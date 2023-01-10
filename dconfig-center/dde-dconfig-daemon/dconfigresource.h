@@ -19,6 +19,7 @@ DCORE_END_NAMESPACE
 DCORE_USE_NAMESPACE
 class DSGConfigConn;
 class ConfigSyncRequestCache;
+class DSGGeneralConfigManager;
 /**
  * @brief The DSGConfigResource class
  * 管理单个链接
@@ -36,11 +37,12 @@ public:
 
     void setSyncRequestCache(ConfigSyncRequestCache *cache);
 
-    DSGConfigConn* connObject(const uint uid);
+    DSGConfigConn* connObject(const uint uid) const;
+    DSGConfigConn* connObject(const ConnKey key) const;
 
     DSGConfigConn* createConn(const uint uid);
 
-    QString path() const;
+    ResourceKey path() const;
 
     QString getName() const;
 
@@ -53,6 +55,10 @@ public:
     void save();
 
     void doSyncConfigCache(const ConfigCacheKey &key);
+
+    bool isGeneralResource() const;
+    void setGeneralConfigManager(DSGGeneralConfigManager *ma);
+
 Q_SIGNALS: // SIGNALS
     void updateValueChanged(const QString &key);
 
@@ -61,6 +67,9 @@ Q_SIGNALS: // SIGNALS
     void releaseConn(const ConnServiceName &service, const ConnKey &connKey);
 
     void globalValueChanged(const QString &key);
+
+Q_SIGNALS:
+    void generalConfigValueChanged(const uint uid, const QString &key);
 
 public Q_SLOTS: // METHODS
     void onGlobalValueChanged(const QString &key);
@@ -76,14 +85,20 @@ private:
     QString getConnKey(const uint uid) const;
 
     void repareCache(DConfigCache* cache, DConfigMeta *oldMeta, DConfigMeta *newMeta);
+    bool setGeneralConfigForConn(DSGConfigConn *conn);
+    QSharedPointer<DConfigFile> getOrCreateConfig(bool *isCreate = nullptr) const;
+    QSharedPointer<DConfigCache> getOrCreateCache(const uint uid, bool *isCreate = nullptr) const;
+
 private:
-    QString m_path;
+    ResourceKey m_path;
     QString m_localPrefix;
-    QScopedPointer<DConfigFile> m_config;
+    QSharedPointer<DConfigFile> m_config;
     QMap<ConnKey, DSGConfigConn*> m_conns;
+    ResourceConfig *m_configs = nullptr;
     QString m_appid;
     QString m_fileName;
     QString m_subpath;
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
+    DSGGeneralConfigManager *m_generalConfigManager = nullptr;
 };
 
