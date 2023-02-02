@@ -654,7 +654,7 @@ HistoryDialog::HistoryDialog(QWidget *parent)
     : DDialog( parent)
 {
     historyView = new DListView();
-    historyView->setModel(new QStandardItemModel());
+    historyView->setModel(new QStandardItemModel(this));
     historyView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     addContent(historyView);
     connect(historyView, &DListView::doubleClicked, this, [this](const QModelIndex &index){
