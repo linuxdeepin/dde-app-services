@@ -13,6 +13,7 @@
 DCORE_BEGIN_NAMESPACE
 class DConfigFile;
 class DConfigCache;
+class DConfigMeta;
 DCORE_END_NAMESPACE
 
 /**
@@ -20,6 +21,7 @@ DCORE_END_NAMESPACE
  * 管理单个链接
  * 配置文件的解析及方法调用
  */
+class DSGConfigResource;
 class DSGConfigConn : public QObject, protected QDBusContext
 {
     Q_OBJECT
@@ -28,16 +30,11 @@ public:
 
     virtual ~DSGConfigConn() override;
 
-    QString key() const;
+    ConnKey key() const;
+    QString path() const;
+    bool containsWithoutProp(const QString &key) const;
 
-    uint uid() const;
-
-    DTK_CORE_NAMESPACE::DConfigCache *cache() const;
-
-    void setConfigFile(DTK_CORE_NAMESPACE::DConfigFile *configFile);
-
-    void setConfigCache(DTK_CORE_NAMESPACE::DConfigCache *cache);
-
+    void setResource(DSGConfigResource *resource);
 Q_SIGNALS:
     void releaseChanged(const ConnServiceName &service);
 
@@ -63,14 +60,14 @@ Q_SIGNALS: // SIGNALS
     void globalValueChanged(const QString &key);
 
 private:
-    uint getUid();
     QString getAppid();
     bool contains(const QString &key);
+    DTK_CORE_NAMESPACE::DConfigMeta *meta() const;
+    DTK_CORE_NAMESPACE::DConfigFile *file() const;
+    DTK_CORE_NAMESPACE::DConfigCache *cache() const;
 
 private:
-    DTK_CORE_NAMESPACE::DConfigFile *m_config;
-    DTK_CORE_NAMESPACE::DConfigCache *m_cache;
-    QString m_key;
-    QSet<QString> m_keys;
+    ConnKey m_key;
+    DSGConfigResource *m_resource = nullptr;
 };
 

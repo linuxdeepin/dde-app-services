@@ -58,11 +58,8 @@ void ut_DConfigServer::TearDown() {
 }
 
 TEST_F(ut_DConfigServer, acquireManager) {
-
-    auto abc = server->acquireManager(APP_ID, FILE_NAME, QString(""));
-
     ASSERT_EQ(server->acquireManager(APP_ID, FILE_NAME, QString("")).path(),
-              DSGConfigServer::validDBusObjectPath(QString("/%1/%2/%3").arg(APP_ID, FILE_NAME, QString::number(0))));
+              formatDBusObjectPath(QString("/%1/%2/%3").arg(APP_ID, FILE_NAME, QString::number(TestUid))));
 
     ASSERT_EQ(server->resourceSize(), 1);
 
@@ -79,7 +76,7 @@ TEST_F(ut_DConfigServer, resourceSize) {
 
     ASSERT_EQ(path1, path2);
     ASSERT_EQ(server->resourceSize(), 1);
-    ASSERT_EQ(server->resourceObject(path1), server->resourceObject(path2));
+    ASSERT_EQ(server->resourceObject(getInterappResourceKey(path1)), server->resourceObject(getInterappResourceKey(path2)));
     ASSERT_EQ(server->resourceSize(), 1);
 }
 
@@ -92,18 +89,18 @@ TEST_F(ut_DConfigServer, releaseResource) {
     QSignalSpy spy(server.data(), &DSGConfigServer::releaseResource);
 
     {
-        auto resource = server->resourceObject(getResourceKey(path1));
+        auto resource = server->resourceObject(getInterappResourceKey(path1));
         ASSERT_TRUE(resource);
-        auto conn = resource->connObject(getConnectionKey(path1));
+        auto conn = resource->getConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
         conn->release();
     }
     ASSERT_EQ(spy.count(), 0);
 
     {
-        auto resource = server->resourceObject(getResourceKey(path2));
+        auto resource = server->resourceObject(getInterappResourceKey(path2));
         ASSERT_TRUE(resource);
-        auto conn = resource->connObject(getConnectionKey(path2));
+        auto conn = resource->getConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
         conn->release();
     }
@@ -120,9 +117,9 @@ TEST_F(ut_DConfigServer, setDelayReleaseTime) {
     QSignalSpy spy(server.data(), &DSGConfigServer::releaseResource);
 
     {
-        auto resource = server->resourceObject(getResourceKey(path1));
+        auto resource = server->resourceObject(getInterappResourceKey(path1));
         ASSERT_TRUE(resource);
-        auto conn = resource->connObject(getConnectionKey(path1));
+        auto conn = resource->getConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
         conn->release();
     }

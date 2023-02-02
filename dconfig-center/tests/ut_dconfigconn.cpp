@@ -64,7 +64,7 @@ TEST_F(ut_DConfigResource, load_fail) {
 TEST_F(ut_DConfigResource, createConn) {
 
     resource->load(APP_ID, FILE_NAME, "");
-    ASSERT_TRUE(resource->createConn(0));
+    ASSERT_TRUE(resource->createConn(APP_ID, TestUid));
 }
 
 
@@ -90,7 +90,7 @@ protected:
     virtual void SetUp() override {
         resource.reset(new DSGConfigResource("/example", LocalPrefix));
         resource->load(APP_ID, FILE_NAME, "");
-        conn = resource->createConn(0);
+        conn = resource->createConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
     }
     virtual void TearDown() override {

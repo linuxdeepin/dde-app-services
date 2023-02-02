@@ -16,7 +16,7 @@ class ServiceRef;
 class RefManager : public QObject{
     Q_OBJECT
 public:
-    explicit RefManager(QObject* parent = nullptr);
+    explicit RefManager(QObject *parent = nullptr);
 
     ~RefManager();
 
@@ -46,9 +46,9 @@ Q_SIGNALS:
     void releaseResource(const ConnKey &resource);
 
 private:
-    ResourceRef* getOrCreateResource(const ConnKey &resource);
+    ResourceRef *getOrCreateResource(const ConnKey &resource);
 
-    ServiceRef* getOrCreateService(const ConnServiceName &service);
+    ServiceRef *getOrCreateService(const ConnServiceName &service);
 
     void deleteResource(const QList<ResourceRef *>& deleteResources);
 
@@ -65,7 +65,7 @@ private:
 
     // 延迟释放
     int m_delayReleaseTime;
-    QMap<ConnKey, QTimer*> m_delayReleaseingConns;
+    QMap<ConnKey, QTimer *> m_delayReleaseingConns;
     ObjectPool<QTimer> m_timerPool;
 };
 
