@@ -16,7 +16,7 @@ using ResourceId = QString;
 using AppId = QString;
 using SubpathKey = QString;
 using ResourceList = QList<ResourceId>;
-using AppList = QSet<AppId>;
+using AppList = QList<AppId>;
 using SubpathList = QList<SubpathKey>;
 
 static const QString &SUFFIX = QString(".json");
@@ -71,7 +71,7 @@ static AppList applications(const QString &localPrefix = QString())
             if (filterDirs.contains(appid))
                 continue;
 
-            result.insert(appid);
+            result.append(appid);
         }
     }
     return result;
