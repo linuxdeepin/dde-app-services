@@ -31,15 +31,13 @@ public:
 
     bool registerService();
 
-    DSGConfigResource* resourceObject(const ResourceKey &key);
+    DSGConfigResource* resourceObject(const InterappResourceKey &key) const;
 
     void setLocalPrefix(const QString &localPrefix);
 
     void setEnableExit(const bool enable);
 
     int resourceSize() const;
-
-    static QString validDBusObjectPath(const QString &path);
 
 Q_SIGNALS:
     void releaseResource(const ConnKey& resource);
@@ -71,13 +69,10 @@ private:
     ResourceKey getResourceKeyByConfigCache(const ConfigCacheKey &key);
 
     ConfigureId getConfigureIdByPath(const QString &path);
-
-    bool filterRequestPath(DSGConfigResource *resource, const ConfigureId &configureInfo) const;
-
 private:
 
     // 所有链接，一个资源对应一个链接
-    QMap<ResourceKey, DSGConfigResource*> m_resources;
+    QMap<InterappResourceKey, DSGConfigResource *> m_resources;
 
     QDBusServiceWatcher* m_watcher;
 

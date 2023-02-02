@@ -3,9 +3,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "dconfigconn.h"
-#include "dconfigresource.h"
-#include "dconfigfile.h"
 #include "helper.hpp"
+#include "dconfigresource.h"
+
+#include <DConfigFile>
 
 #include <QDBusMessage>
 #include <QDBusConnection>
@@ -17,44 +18,32 @@ DCORE_USE_NAMESPACE
 
 DSGConfigConn::DSGConfigConn(const ConnKey &key, QObject *parent)
     : QObject (parent),
-      m_config(nullptr),
-      m_cache(nullptr),
       m_key(key)
 {
 }
 
 DSGConfigConn::~DSGConfigConn()
 {
-    if (m_cache) {
-        delete m_cache;
-        m_cache = nullptr;
-    }
 }
 
-QString DSGConfigConn::key() const
+ConnKey DSGConfigConn::key() const
 {
     return m_key;
 }
 
-uint DSGConfigConn::uid() const
+QString DSGConfigConn::path() const
 {
-    return getConnectionKey(m_key);
+    return formatDBusObjectPath(m_key);
 }
 
-DConfigCache *DSGConfigConn::cache() const
+bool DSGConfigConn::containsWithoutProp(const QString &key) const
 {
-    return m_cache;
+    return keyList().contains(key);
 }
 
-void DSGConfigConn::setConfigFile(DConfigFile *configFile)
+void DSGConfigConn::setResource(DSGConfigResource *resource)
 {
-    m_config = configFile;
-    m_keys = m_config->meta()->keyList().toSet();
-}
-
-void DSGConfigConn::setConfigCache(DConfigCache *cache)
-{
-    m_cache = cache;
+    m_resource = resource;
 }
 
 /*!
@@ -63,7 +52,7 @@ void DSGConfigConn::setConfigCache(DConfigCache *cache)
  */
 QStringList DSGConfigConn::keyList() const
 {
-    return m_config->meta()->keyList();
+    return meta()->keyList();
 }
 
 /*!
@@ -72,7 +61,7 @@ QStringList DSGConfigConn::keyList() const
  */
 QString DSGConfigConn::version() const
 {
-    const auto ver = m_config->meta()->version();
+    const auto ver = meta()->version();
     return QString("%1.%2").arg(ver.major).arg(ver.minor);
 }
 
@@ -87,7 +76,7 @@ QString DSGConfigConn::description(const QString &key, const QString &locale)
     if (!contains(key))
         return QString();
 
-    return m_config->meta()->description(key, locale.isEmpty() ? QLocale::AnyLanguage :  QLocale(locale));
+    return meta()->description(key, locale.isEmpty() ? QLocale::AnyLanguage :  QLocale(locale));
 }
 
 /*!
@@ -101,7 +90,7 @@ QString DSGConfigConn::name(const QString &key, const QString &locale)
     if (!contains(key))
         return QString();
 
-    return m_config->meta()->displayName(key, locale.isEmpty() ? QLocale::AnyLanguage :  QLocale(locale));
+    return meta()->displayName(key, locale.isEmpty() ? QLocale::AnyLanguage :  QLocale(locale));
 }
 
 /*!
@@ -111,7 +100,7 @@ QString DSGConfigConn::name(const QString &key, const QString &locale)
 void DSGConfigConn::release()
 {
     const QString &service = calledFromDBus() ? message().service() : "test.service";
-    qCDebug(cfLog, "received release request, service:%s, path:%s.", qPrintable(service), qPrintable(m_key));
+    qCDebug(cfLog, "Received release request, service:%s, path:%s.", qPrintable(service), qPrintable(m_key));
 
     emit releaseChanged(service);
 }
@@ -127,11 +116,11 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
         return;
 
     const auto &v = decodeQDBusArgument(value.variant());
-    qCDebug(cfLog) << "set value key:" << key << ", now value:" << v << ", old value:" << m_config->value(key, m_cache);
-    if(!m_config->setValue(key, v, getAppid(), m_cache))
+    qCDebug(cfLog) << "Set value, key:" << key << ", now value:" << v << ", old value:" << file()->value(key, cache());
+    if(!file()->setValue(key, v, getAppid(), cache()))
         return;
 
-    if (m_config->meta()->flags(key).testFlag(DConfigFile::Global)) {
+    if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {
         emit valueChanged(key);
@@ -143,12 +132,12 @@ void DSGConfigConn::reset(const QString &key)
     if (!contains(key))
         return;
 
-    const auto &v = m_config->meta()->value(key);
-    qCDebug(cfLog) << "reset key:" << key << ", meta value:" << v << ", old value:" << m_config->value(key, m_cache);
-    if(!m_config->setValue(key, v, getAppid(), m_cache))
+    const auto &v = meta()->value(key);
+    qCDebug(cfLog) << "Reset value, key:" << key << ", meta value:" << v << ", old value:" << file()->value(key, cache());
+    if(!file()->setValue(key, v, getAppid(), cache()))
         return;
 
-    if (m_config->meta()->flags(key).testFlag(DConfigFile::Global)) {
+    if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {
         emit valueChanged(key);
@@ -165,9 +154,9 @@ QDBusVariant DSGConfigConn::value(const QString &key)
     if (!contains(key))
         return QDBusVariant();
 
-    const auto &value = m_config->value(key, m_cache);
+    const auto &value = file()->value(key, cache());
     if (value.isNull()) {
-        QString errorMsg = QString("[%1] requires the value in [%2].").arg(key).arg(getAppid());
+        QString errorMsg = QString("[%1] Requires the value in [%2].").arg(key).arg(getAppid());
         qWarning() << errorMsg;
         if (calledFromDBus()) {
             sendErrorReply(QDBusError::Failed, errorMsg);
@@ -175,7 +164,7 @@ QDBusVariant DSGConfigConn::value(const QString &key)
         return QDBusVariant();
     }
 
-    qCDebug(cfLog) << "get value key:" << key << ", value:" << value;
+    qCDebug(cfLog) << "Get value key:" << key << ", value:" << value;
     return QDBusVariant{value};
 }
 
@@ -189,7 +178,7 @@ QString DSGConfigConn::visibility(const QString &key)
     if (!contains(key))
         return QString();
 
-    return m_config->meta()->visibility(key) == DTK_CORE_NAMESPACE::DConfigFile::Private ? QString("private") : QString("public");
+    return meta()->visibility(key) == DTK_CORE_NAMESPACE::DConfigFile::Private ? QString("private") : QString("public");
 }
 
 QString DSGConfigConn::permissions(const QString &key)
@@ -197,21 +186,12 @@ QString DSGConfigConn::permissions(const QString &key)
     if (!contains(key))
         return QString();
 
-    return m_config->meta()->permissions(key) == DTK_CORE_NAMESPACE::DConfigFile::ReadWrite ? QString("readwrite") : QString("readonly");
+    return meta()->permissions(key) == DTK_CORE_NAMESPACE::DConfigFile::ReadWrite ? QString("readwrite") : QString("readonly");
 }
 
 int DSGConfigConn::flags(const QString &key)
 {
-    return static_cast<int>(m_config->meta()->flags(key));
-}
-
-uint DSGConfigConn::getUid()
-{
-    if (calledFromDBus()) {
-        const QString &service = message().service();
-        return connection().interface()->serviceUid(service);
-    }
-    return 0;
+    return static_cast<int>(meta()->flags(key));
 }
 
 QString DSGConfigConn::getAppid()
@@ -225,13 +205,29 @@ QString DSGConfigConn::getAppid()
 
 bool DSGConfigConn::contains(const QString &key)
 {
-    if (m_keys.contains(key))
+    if (containsWithoutProp(key))
         return true;
 
-    QString errorMsg = QString("[%1] requires Non-existent configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
+    QString errorMsg = QString("[%1] Requires Non-existent configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
     if (calledFromDBus())
         sendErrorReply(QDBusError::Failed, errorMsg);
     qWarning() << errorMsg;
 
     return false;
+}
+
+DConfigMeta *DSGConfigConn::meta() const
+{
+    return file()->meta();
+}
+
+DConfigFile *DSGConfigConn::file() const
+{
+    const auto &resourceKey = getResourceKey(m_key);
+    return m_resource->getFile(resourceKey);
+}
+
+DConfigCache *DSGConfigConn::cache() const
+{
+    return m_resource->getCache(m_key);
 }

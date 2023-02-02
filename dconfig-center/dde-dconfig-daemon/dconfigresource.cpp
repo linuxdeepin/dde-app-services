@@ -16,35 +16,33 @@
 
 DCORE_USE_NAMESPACE
 
-DSGConfigResource::DSGConfigResource(const ResourceKey &path, const ResourceKey &localPrefix, QObject *parent)
+DSGConfigResource::DSGConfigResource(const InterappResourceKey &key, const QString &localPrefix, QObject *parent)
     : QObject (parent),
-      m_path(path),
-      m_localPrefix(localPrefix),
-      m_config(nullptr)
+      m_key(key),
+      m_localPrefix(localPrefix)
 {
 }
 
 DSGConfigResource::~DSGConfigResource()
 {
-    for (auto item : m_conns) {
-        item->cache()->save(m_localPrefix);
-    }
     qDeleteAll(m_conns);
-    if (m_config) {
-        m_config->save(m_localPrefix);
-        m_config.reset();
-    }
+    m_conns.clear();
+
+    save();
+
+    qDeleteAll(m_files);
+    m_files.clear();
+
+    qDeleteAll(m_caches);
+    m_caches.clear();
 }
 
 bool DSGConfigResource::load(const QString &appid, const QString &name, const QString &subpath)
 {
-    if (Q_UNLIKELY(!m_config)) {
-        m_config.reset(new DTK_CORE_NAMESPACE::DConfigFile(appid, name, subpath));
-        m_appid = appid;
-        m_fileName = name;
-        m_subpath = subpath;
-    }
-    return m_config->load(m_localPrefix);
+    m_fileName = name;
+    m_subpath = subpath;
+
+    return getOrCreateFile(appid);
 }
 
 void DSGConfigResource::setSyncRequestCache(ConfigSyncRequestCache *cache)
@@ -52,67 +50,90 @@ void DSGConfigResource::setSyncRequestCache(ConfigSyncRequestCache *cache)
     m_syncRequestCache = cache;
 }
 
-DSGConfigConn *DSGConfigResource::connObject(const uint uid)
+DSGConfigConn *DSGConfigResource::getConn(const QString &appid, const uint uid) const
 {
-    return m_conns.value(getConnKey(uid), nullptr);
+    const ConnKey &connKey = getConnKey(appid, uid);
+    return m_conns.value(connKey);
 }
 
-DSGConfigConn *DSGConfigResource::createConn(const uint uid)
+DSGConfigConn *DSGConfigResource::getConn(const ConnKey &key) const
 {
-    QString key = getConnKey(uid);
-    QScopedPointer<DSGConfigConn> connPointer(new DSGConfigConn(key));
-    QScopedPointer<DConfigCache> cache(m_config->createUserCache(uid));
+    return m_conns.value(key);
+}
+
+DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint uid)
+{
+    const ConnKey &connKey = getConnKey(appid, uid);
+
+    DConfigCache *cache = m_caches.value(connKey);
+    QScopedPointer<DConfigCache> cacheHolder;
     if (!cache) {
-        qWarning() << QString("Create cache service error for [%1]'s [%2].").arg(uid).arg(m_path);
-        return nullptr;
+        cache = createCache(appid, uid);
+        if (!cache) {
+            qWarning() << QString("Create cache error for [%1]'s [%2].").arg(uid).arg(connKey);
+            return nullptr;
+        }
+
+        cacheHolder.reset(cache);
     }
-    if (!cache->load()) {
-        qWarning() << QString("Load cache error for [%1]'s [%2].").arg(uid).arg(m_path);
-        return nullptr;
-    }
+
+    QScopedPointer<DSGConfigConn> connPointer(new DSGConfigConn(connKey, this));
     if (qgetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS").isEmpty()) {
         (void) new DSGConfigManagerAdaptor(connPointer.get());
         QDBusConnection bus = QDBusConnection::systemBus();
-        bus.unregisterObject(key);
-        if (!bus.registerObject(key, connPointer.get())) {
-            qWarning() << QString("Can't register the object %1.").arg(key);
+        const auto path = connPointer->path();
+        bus.unregisterObject(path);
+        if (!bus.registerObject(path, connPointer.get())) {
+            qWarning() << QString("Can't register the object %1.").arg(path);
             return nullptr;
-            //error.
         }
     }
-    connPointer->setConfigCache(cache.take());
-    connPointer->setConfigFile(m_config.get());
+
+    // Add cache to `m_caches` only initialized successful, otherwise it should be deleted.
+    if (cacheHolder)
+        m_caches.insert(connKey, cacheHolder.take());
 
     auto conn = connPointer.take();
-    m_conns.insert(key, conn);
+    m_conns.insert(connKey, conn);
+    conn->setResource(this);
+
     QObject::connect(conn, &DSGConfigConn::releaseChanged, this, &DSGConfigResource::onReleaseChanged);
-    QObject::connect(this, &DSGConfigResource::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
     QObject::connect(conn, &DSGConfigConn::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
-    QObject::connect(this, &DSGConfigResource::updateValueChanged, conn, &DSGConfigConn::valueChanged);
     QObject::connect(conn, &DSGConfigConn::valueChanged, this, &DSGConfigResource::onValueChanged);
     return conn;
+}
+
+ConnKey DSGConfigResource::getConnKey(const QString &appid, const uint uid) const
+{
+    return getConnectionKey(getResourceKey(appid, m_key), uid);
 }
 
 /*!
  \brief 重新解析文件
  \return 返回重新解析状态
  */
-bool DSGConfigResource::reparse()
+bool DSGConfigResource::reparse(const QString &appid)
 {
-    QScopedPointer<DConfigFile> config(new DConfigFile(*m_config));
+    const auto &resouceKey = getResourceKey(appid, m_key);
+    auto file = getFile(resouceKey);
+    if (!file)
+        return true;
+
+    QScopedPointer<DConfigFile> config(new DConfigFile(*file));
     auto newMeta = config->meta();
     if (!newMeta->load()) {
-        qWarning() << QString("Reparse resource error for [%1].").arg(m_path);
+        qWarning() << QString("Reparse resource error for [%1].").arg(m_key);
         return false;
     }
 
     QMap<DConfigCache*, QList<QString>> cacheChangedValues;
-    DConfigMeta *oldMeta = m_config->meta();
+    DConfigMeta *oldMeta = file->meta();
     QList<DConfigCache*> caches;
-    for (auto iter = m_conns.begin(); iter != m_conns.end(); iter++) {
-        caches.push_back(iter.value()->cache());
-    }
-    caches.push_back(config->globalCache());
+
+    for (auto  item : cachesOfTheResource(resouceKey))
+        caches.push_back(item);
+
+    caches.push_back(file->globalCache());
 
     // cache and valuechanged.
     for (auto cache : caches) {
@@ -121,9 +142,8 @@ bool DSGConfigResource::reparse()
             if (oldMeta->flags(key).testFlag(DConfigFile::Global) ^ cache->isGlobal())
                 continue;
 
-            if (m_config->value(key, cache) == config->value(key, cache)) {
+            if (file->value(key, cache) == config->value(key, cache))
                 continue;
-            }
 
             changedValues.push_back(key);
         }
@@ -134,28 +154,27 @@ bool DSGConfigResource::reparse()
     }
 
     // config refresh.
-    m_config.reset(config.take());
-    for (auto conn : m_conns) {
-        conn->setConfigFile(m_config.get());
-    }
+    delete file;
+    file = nullptr;
+    m_files[resouceKey] = config.take();
 
     // emit valuechanged.
     for (auto iter = cacheChangedValues.begin(); iter != cacheChangedValues.end(); ++iter) {
         if (iter.key()->isGlobal()) {
             for (const QString &key : iter.value()) {
-                emit globalValueChanged(key);
+                doGlobalValueChanged(key, resouceKey);
             }
         } else {
-            if (auto conn = m_conns.value(getConnKey(iter.key()->uid()))) {
+            if (auto conn = getConn(appid, iter.key()->uid())) {
                 for (const QString &key : iter.value()) {
                     emit conn->valueChanged(key);
                 }
             } else {
-                qWarning() << "Invalid connection:" << getConnKey(iter.key()->uid());
+                qWarning() << "Invalid connection:" << getConnKey(appid, iter.key()->uid());
             }
         }
     }
-    qDebug() << "Those key's value changed:" << cacheChangedValues;
+    qDebug(cfLog()) << "Those key's value changed:" << cacheChangedValues;
 
     return true;
 }
@@ -171,38 +190,125 @@ void DSGConfigResource::onReleaseChanged(const ConnServiceName &service)
 void DSGConfigResource::doSyncConfigCache(const ConfigCacheKey &key)
 {
     if (ConfigSyncRequestCache::isUserKey(key)) {
-        if (auto conn = m_conns.value(ConfigSyncRequestCache::getUserKey(key))) {
-            qCDebug(cfLog()) << "do sync conn cache for user cache, key:" << key;
-            conn->cache()->save(m_localPrefix);
+        const auto connKey = ConfigSyncRequestCache::getUserKey(key);
+        if (auto cache = getCache(connKey)) {
+            qCDebug(cfLog()) << "Sync conn cache for user cache, key:" << key;
+            cache->save(m_localPrefix);
         }
     } else if (ConfigSyncRequestCache::isGlobalKey(key)) {
-        if (ConfigSyncRequestCache::getGlobalKey(key) == m_path && m_config) {
-            qCDebug(cfLog()) << "do sync conn cache for global cache, key:" << key;
-            m_config->save(m_localPrefix);
+        const auto resourceKey = ConfigSyncRequestCache::getGlobalKey(key);
+        if (auto file = getFile(resourceKey)) {
+            qCDebug(cfLog()) << "Sync conn cache for global cache, key:" << key;
+            file->save(m_localPrefix);
         }
     } else {
-        qCWarning(cfLog()) << "it's not exist config cache key" << key;
+        qCWarning(cfLog()) << "It's not exist config cache key" << key;
     }
+}
+
+DConfigFile *DSGConfigResource::getOrCreateFile(const QString &appid)
+{
+    const auto resourceKey = getResourceKey(appid, m_key);
+    if (auto file = m_files.value(resourceKey))
+        return file;
+
+    QScopedPointer<DConfigFile> file(new DConfigFile(innerAppidToOuter(appid), m_fileName, m_subpath));
+    if (!file->load(m_localPrefix))
+        return nullptr;
+
+    m_files.insert(resourceKey, file.data());
+    return file.take();
+}
+
+DConfigCache *DSGConfigResource::getOrCreateCache(const QString &appid, const uint uid)
+{
+    const auto connKey = getConnectionKey(getResourceKey(appid, m_key), uid);
+    if (auto cache = m_caches.value(connKey))
+        return cache;
+
+    if (auto cache = createCache(appid, uid)) {
+        m_caches.insert(connKey, cache);
+        return cache;
+    }
+    return nullptr;
+}
+
+DConfigCache *DSGConfigResource::createCache(const QString &appid, const uint uid)
+{
+    const auto resourceKey = getResourceKey(appid, m_key);
+    if (auto file = getFile(resourceKey)) {
+        QScopedPointer<DConfigCache> cache(file->createUserCache(uid));
+        if (cache->load(m_localPrefix))
+            return cache.take();
+    }
+    return nullptr;
+}
+
+DConfigFile *DSGConfigResource::getFile(const ResourceKey &key) const
+{
+    return m_files.value(key);
+}
+
+DConfigCache *DSGConfigResource::getCache(const ConnKey &key) const
+{
+    return m_caches.value(key);
+}
+
+bool DSGConfigResource::cacheExist(const ResourceKey &key) const
+{
+    for (const auto &item : m_caches.keys()) {
+        if (getResourceKey(item) == key)
+            return true;
+    }
+    return false;
+}
+
+QList<DConfigCache *> DSGConfigResource::cachesOfTheResource(const ResourceKey &resourceKey) const
+{
+    QList<DConfigCache *> result;
+    for (auto iter = m_caches.begin(); iter != m_caches.end(); ++iter) {
+        if (getResourceKey(iter.key()) != resourceKey)
+            continue;
+        result << iter.value();
+    }
+    return result;
+}
+
+QList<DSGConfigConn *> DSGConfigResource::connsOfTheResource(const ResourceKey &resourceKey) const
+{
+    QList<DSGConfigConn *> result;
+    for (auto iter = m_conns.begin(); iter != m_conns.end(); ++iter) {
+        if (getResourceKey(iter.key()) != resourceKey)
+            continue;
+        result << iter.value();
+    }
+    return result;
 }
 
 void DSGConfigResource::onValueChanged(const QString &key)
 {
     if (auto conn = qobject_cast<DSGConfigConn*>(sender())) {
         do {
-            // global field changed don't cause user field to save, bug `valueChanged` signal is emit.
-            if (m_config && Q_UNLIKELY(m_config->meta()->flags(key).testFlag(DConfigFile::Global)))
+            const auto &resouceKey = getResourceKey(conn->key());
+            auto file = getFile(resouceKey);
+            // global field changed don't cause user field to save, but `valueChanged` signal is emit.
+            if (file && Q_UNLIKELY(file->meta()->flags(key).testFlag(DConfigFile::Global)))
                 break;
 
-            if (Q_UNLIKELY(!m_syncRequestCache))
-                break;
-            m_syncRequestCache->pushRequest(ConfigSyncRequestCache::userKey(conn->key()));
+            if (Q_LIKELY(m_syncRequestCache))
+                m_syncRequestCache->pushRequest(ConfigSyncRequestCache::userKey(conn->key()));
         } while (false);
     }
 }
 
-QString DSGConfigResource::getConnKey(const uint uid) const
+void DSGConfigResource::doGlobalValueChanged(const QString &key, const ResourceKey &resourceKey)
 {
-    return QString("%1/%2").arg(m_path).arg(uid);
+    if (Q_LIKELY(m_syncRequestCache))
+        m_syncRequestCache->pushRequest(ConfigSyncRequestCache::globalKey(resourceKey));
+    // emit valueChanged of all conns for the resource.
+    for (auto conn : connsOfTheResource(resourceKey)) {
+        emit conn->valueChanged(key);
+    }
 }
 
 /*
@@ -219,8 +325,8 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
     const auto subtractKeys = oldKeyList - (newKeyList);
     for (const auto &key :subtractKeys) {
         cache->remove(key);
-        qDebug() << QString("Cache removed because of meta item removed. "
-                            "path:%1,uid:%2,key:%3.").arg(m_path).arg(cache->uid()).arg(key);
+        qDebug(cfLog()) << QString("Cache removed because of meta item removed. "
+                            "resource:%1,uid:%2,key:%3.").arg(m_key).arg(cache->uid()).arg(key);
     }
     // 权限变化，ReadWrite -> ReadOnly，移除cache值
     auto intersectKeys = newKeyList;
@@ -229,37 +335,40 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
         if (newMeta->permissions(key) == DConfigFile::ReadOnly &&
                 oldMeta->permissions(key) == DConfigFile::ReadWrite) {
             cache->remove(key);
-            qDebug() << QString("Cache removed because of permissions changed from readwrite to readonly. "
-                                "path:%1,uid:%2,key:%3.").arg(m_path).arg(cache->uid()).arg(key);
+            qDebug(cfLog()) << QString("Cache removed because of permissions changed from readwrite to readonly. "
+                                "resource:%1,uid:%2,key:%3.").arg(m_key).arg(cache->uid()).arg(key);
         }
     }
 }
 
-QString DSGConfigResource::path() const
+InterappResourceKey DSGConfigResource::key() const
 {
-    return m_path;
-}
-
-QString DSGConfigResource::getName() const
-{
-    const QStringList &sps = m_path.split('/');
-    return sps[2];
-}
-
-QString DSGConfigResource::getAppid() const
-{
-    const QStringList &sps = m_path.split('/');
-    return sps[1];
+    return m_key;
 }
 
 void DSGConfigResource::removeConn(const ConnKey &connKey)
 {
-    if (auto conn = m_conns.value(connKey, nullptr)) {
-        conn->cache()->save(m_localPrefix);
-        conn->deleteLater();
+    if (auto conn = getConn(connKey)) {
         m_conns.remove(connKey);
-        qDebug() << QString("removed connection:%1, remaining %2 connection.").arg(connKey).arg(m_conns.count());
+        conn->deleteLater();
     }
+
+    if (auto cache = getCache(connKey)) {
+        cache->save(m_localPrefix);
+        m_caches.remove(connKey);
+        delete cache;
+    }
+
+    const auto resourceKey = getResourceKey(connKey);
+    if (auto file = getFile(resourceKey)) {
+        if (!cacheExist(resourceKey)) {
+            file->save(m_localPrefix);
+            m_files.remove(resourceKey);
+            delete file;
+        }
+    }
+
+    qDebug(cfLog()) << QString("Removed connection:%1, remaining %2 connection.").arg(connKey).arg(m_conns.count());
 }
 
 bool DSGConfigResource::isEmptyConn() const
@@ -269,19 +378,28 @@ bool DSGConfigResource::isEmptyConn() const
 
 void DSGConfigResource::save()
 {
-    if (m_config) {
-        m_config->save(m_localPrefix);
-        for (auto conn : m_conns) {
-            conn->cache()->save(m_localPrefix);
-        }
+    for (auto item : m_files)
+        item->save(m_localPrefix);
+
+    for (auto item : m_caches)
+        item->save(m_localPrefix);
+}
+
+void DSGConfigResource::save(const QString &appid)
+{
+    const auto &resourceKey = getResourceKey(appid, m_key);
+    if (auto file = getFile(resourceKey))
+        file->save(m_localPrefix);
+
+    for (auto item : cachesOfTheResource(resourceKey)) {
+        item->save(m_localPrefix);
     }
 }
 
 void DSGConfigResource::onGlobalValueChanged(const QString &key)
 {
-    if (m_syncRequestCache)
-        m_syncRequestCache->pushRequest(ConfigSyncRequestCache::globalKey(m_path));
-    for (auto conn : m_conns) {
-        emit conn->valueChanged(key);
+    if (auto conn = qobject_cast<DSGConfigConn*>(sender())) {
+        const auto &resourceKey = getResourceKey(conn->key());
+        doGlobalValueChanged(key, resourceKey);
     }
 }

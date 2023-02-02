@@ -14,19 +14,52 @@
 
 Q_DECLARE_LOGGING_CATEGORY(cfLog);
 
+// /appid/filename/subpath/userid
 using ConnKey = QString;
+// /appid/filename/subpath
 using ResourceKey = QString;
+// /filename/subpath
+using InterappResourceKey = QString;
 using ConnServiceName = QString;
 using ConnRefCount = int;
+// user: u-${ConnKey}, global: g-${ResourceKey}
 using ConfigCacheKey = QString;
-
-inline QString getResourceKey(const ConnKey &connKey)
+static constexpr int TestUid = 0U;
+inline QString formatDBusObjectPath(QString path)
+{
+    return path.replace('.', '_').replace('-', '_');
+}
+inline QString outerAppidToInner(const QString &appid)
+{
+    return appid;
+}
+inline QString innerAppidToOuter(const QString &appid)
+{
+    return appid;
+}
+inline ResourceKey getResourceKey(const QString &appid, const InterappResourceKey &key)
+{
+    return QString("/%1%2").arg(appid).arg(key);
+}
+inline ResourceKey getResourceKey(const ConnKey &connKey)
 {
     return connKey.left(connKey.lastIndexOf('/'));
+}
+inline InterappResourceKey getInterappResourceKey(const QString &name, const QString &subpath)
+{
+    return QString("/%1%2").arg(name, subpath);
+}
+inline InterappResourceKey getInterappResourceKey(const ConnKey &connKey)
+{
+    return getResourceKey(connKey).mid(connKey.indexOf('/', 1));
 }
 inline uint getConnectionKey(const ConnKey &connKey)
 {
     return connKey.mid(connKey.lastIndexOf('/') + 1).toUInt();
+}
+inline ConnKey getConnectionKey(const ResourceKey &key, const uint uid)
+{
+    return QString("%1/%2").arg(key).arg(uid);
 }
 
 struct ConfigureId {
@@ -51,7 +84,7 @@ inline ConfigureId getMetaConfigureId(const QString &path)
 {
     ConfigureId info;
     // /usr/share/dsg/configs/[$appid]/[$subpath]/$resource.json
-    static QRegularExpression usrReg(R"(^/usr/share/dsg/configs/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
+    static QRegularExpression usrReg(R"(/configs/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
 
     QRegularExpressionMatch match;
     match = usrReg.match(path);
@@ -69,7 +102,7 @@ inline ConfigureId getOverrideConfigureId(const QString &path)
 {
     ConfigureId info;
     // /usr/share/dsg/configs/overrides/[$appid]/$resource/[$subpath]/$override_id.json
-    static QRegularExpression usrReg(R"(^/usr/share/dsg/configs/overrides/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+)/(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<configurationid>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
+    static QRegularExpression usrReg(R"(/configs/overrides/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+)/(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<configurationid>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
 
     // /etc/dsg/configs/overrides/[$appid]/$resource/[$subpath]/$override_id.json
     static QRegularExpression etcReg(R"(^/etc/dsg/configs/overrides/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+)/(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<configurationid>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
