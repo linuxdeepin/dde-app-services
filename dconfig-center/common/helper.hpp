@@ -12,8 +12,6 @@
 #include <QDBusArgument>
 #include <QJsonDocument>
 
-#include <DStandardPaths>
-
 using ResourceId = QString;
 using AppId = QString;
 using SubpathKey = QString;
@@ -107,7 +105,6 @@ static ResourceList resourcesForApp(const QString &appid, const QString &localPr
 
 static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
 {
-    DCORE_USE_NAMESPACE;
     QDir resourceDir(QString("%1/%2").arg(localPrefix, MetaFileInstalledDir));
     QDirIterator iterator(resourceDir);
     QSet<ResourceId> result;
