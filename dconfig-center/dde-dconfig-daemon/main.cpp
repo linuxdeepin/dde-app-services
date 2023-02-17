@@ -52,11 +52,6 @@ int main(int argc, char *argv[])
 
     // Initialization of DtkCore needs to be later than `registerService` avoid earlier request itself.
     Dtk::Core::DLogManager::registerConsoleAppender();
-    Dtk::Core::DLogManager::setlogFilePath(QString("/var/log/%1/%2/%2.log").arg(a.organizationName(), a.applicationName()));
-    const QDir &logDir = QFileInfo((Dtk::Core::DLogManager::getlogFilePath())).dir();
-    if (!logDir.exists())
-        QDir().mkpath(logDir.path());
-
     Dtk::Core::DLogManager::registerFileAppender();
     qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&dsgConfig]() {
