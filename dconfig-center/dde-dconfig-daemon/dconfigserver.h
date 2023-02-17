@@ -31,7 +31,7 @@ public:
 
     bool registerService();
 
-    DSGConfigResource* resourceObject(const InterappResourceKey &key) const;
+    DSGConfigResource* resourceObject(const GenericResourceKey &key) const;
 
     void setLocalPrefix(const QString &localPrefix);
 
@@ -72,7 +72,7 @@ private:
 private:
 
     // 所有链接，一个资源对应一个链接
-    QMap<InterappResourceKey, DSGConfigResource *> m_resources;
+    QMap<GenericResourceKey, DSGConfigResource *> m_resources;
 
     QDBusServiceWatcher* m_watcher;
 

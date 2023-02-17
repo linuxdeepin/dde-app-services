@@ -76,7 +76,7 @@ TEST_F(ut_DConfigServer, resourceSize) {
 
     ASSERT_EQ(path1, path2);
     ASSERT_EQ(server->resourceSize(), 1);
-    ASSERT_EQ(server->resourceObject(getInterappResourceKey(path1)), server->resourceObject(getInterappResourceKey(path2)));
+    ASSERT_EQ(server->resourceObject(getGenericResourceKey(path1)), server->resourceObject(getGenericResourceKey(path2)));
     ASSERT_EQ(server->resourceSize(), 1);
 }
 
@@ -89,7 +89,7 @@ TEST_F(ut_DConfigServer, releaseResource) {
     QSignalSpy spy(server.data(), &DSGConfigServer::releaseResource);
 
     {
-        auto resource = server->resourceObject(getInterappResourceKey(path1));
+        auto resource = server->resourceObject(getGenericResourceKey(path1));
         ASSERT_TRUE(resource);
         auto conn = resource->getConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
@@ -98,7 +98,7 @@ TEST_F(ut_DConfigServer, releaseResource) {
     ASSERT_EQ(spy.count(), 0);
 
     {
-        auto resource = server->resourceObject(getInterappResourceKey(path2));
+        auto resource = server->resourceObject(getGenericResourceKey(path2));
         ASSERT_TRUE(resource);
         auto conn = resource->getConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
@@ -117,7 +117,7 @@ TEST_F(ut_DConfigServer, setDelayReleaseTime) {
     QSignalSpy spy(server.data(), &DSGConfigServer::releaseResource);
 
     {
-        auto resource = server->resourceObject(getInterappResourceKey(path1));
+        auto resource = server->resourceObject(getGenericResourceKey(path1));
         ASSERT_TRUE(resource);
         auto conn = resource->getConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);

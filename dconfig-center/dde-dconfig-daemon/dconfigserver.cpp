@@ -84,7 +84,7 @@ bool DSGConfigServer::registerService()
  \a key 连接对象的唯一ID
  \return
  */
-DSGConfigResource *DSGConfigServer::resourceObject(const InterappResourceKey &key) const
+DSGConfigResource *DSGConfigServer::resourceObject(const GenericResourceKey &key) const
 {
     return m_resources.value(key);
 }
@@ -131,18 +131,18 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
     const uint &uid = calledFromDBus() ? connection().interface()->serviceUid(service).value() : TestUid;
     qCDebug(cfLog, "AcquireManager service:%s, uid:%d, appid:%s", qPrintable(service), uid, qPrintable(appid));
     const QString &innerAppid = outerAppidToInner(appid);
-    const InterappResourceKey &interappResourceKey = getInterappResourceKey(name, subpath);
-    DSGConfigResource *resource = resourceObject(interappResourceKey);
+    const GenericResourceKey &genericResourceKey = getGenericResourceKey(name, subpath);
+    DSGConfigResource *resource = resourceObject(genericResourceKey);
     QScopedPointer<DSGConfigResource> resourceHolder;
     if (!resource) {
-        resource = new DSGConfigResource(interappResourceKey, m_localPrefix);
+        resource = new DSGConfigResource(genericResourceKey, m_localPrefix);
         resource->setSyncRequestCache(m_syncRequestCache);
         resourceHolder.reset(resource);
     }
     bool loadStatus = resource->load(innerAppid, name, subpath);
     if (!loadStatus) {
         //error
-        QString errorMsg = QString("Can't load resource: %1, for the appid:[%2].").arg(interappResourceKey).arg(appid);
+        QString errorMsg = QString("Can't load resource: %1, for the appid:[%2].").arg(genericResourceKey).arg(appid);
         if (calledFromDBus())
             sendErrorReply(QDBusError::Failed, errorMsg);
 
@@ -154,7 +154,7 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
     if (!conn) {
         conn = resource->createConn(innerAppid, uid);
         if (!conn) {
-            QString errorMsg = QString("Can't register Connection object:[%1], for the appid:[%2].").arg(interappResourceKey).arg(appid);
+            QString errorMsg = QString("Can't register Connection object:[%1], for the appid:[%2].").arg(genericResourceKey).arg(appid);
             if (calledFromDBus())
                 sendErrorReply(QDBusError::Failed, errorMsg);
 
@@ -167,7 +167,7 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
     }
 
     if (resourceHolder) {
-        m_resources.insert(interappResourceKey, resourceHolder.take());
+        m_resources.insert(genericResourceKey, resourceHolder.take());
         QObject::connect(resource, &DSGConfigResource::releaseConn, this, &DSGConfigServer::onReleaseChanged);
     }
 
@@ -196,7 +196,7 @@ void DSGConfigServer::onReleaseChanged(const ConnServiceName &service, const Con
  */
 void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
 {
-    const InterappResourceKey &resourceKey = getInterappResourceKey(connKey);
+    const GenericResourceKey &resourceKey = getGenericResourceKey(connKey);
     auto resource = m_resources.value(resourceKey);
     if (!resource)
         return;
@@ -289,7 +289,7 @@ void DSGConfigServer::update(const QString &path)
     }
 
 
-    const InterappResourceKey resourceKey = getInterappResourceKey(configureInfo.resource, configureInfo.subpath);
+    const GenericResourceKey resourceKey = getGenericResourceKey(configureInfo.resource, configureInfo.subpath);
     if (auto resource = resourceObject(resourceKey)) {
         qCInfo(cfLog()) << QString("Updated the resouce:[%1], for the appid:[%2].").arg(resourceKey).arg(configureInfo.appid);
         const auto &innerAppid = outerAppidToInner(configureInfo.appid);
@@ -318,7 +318,7 @@ void DSGConfigServer::sync(const QString &path)
     }
 
     qInfo(cfLog()) << QString("Sync the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
-    const InterappResourceKey resourceKey = getInterappResourceKey(configureInfo.resource, configureInfo.subpath);
+    const GenericResourceKey resourceKey = getGenericResourceKey(configureInfo.resource, configureInfo.subpath);
     if (auto resource = resourceObject(resourceKey)) {
         qInfo(cfLog()) << QString("Sync the resouce:[%1], for the appid:[%2].").arg(resourceKey).arg(configureInfo.appid);
         const auto &innerAppid = outerAppidToInner(configureInfo.appid);

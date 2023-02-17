@@ -19,7 +19,7 @@ using ConnKey = QString;
 // /appid/filename/subpath
 using ResourceKey = QString;
 // /filename/subpath
-using InterappResourceKey = QString;
+using GenericResourceKey = QString;
 using ConnServiceName = QString;
 using ConnRefCount = int;
 // user: u-${ConnKey}, global: g-${ResourceKey}
@@ -37,7 +37,7 @@ inline QString innerAppidToOuter(const QString &appid)
 {
     return appid;
 }
-inline ResourceKey getResourceKey(const QString &appid, const InterappResourceKey &key)
+inline ResourceKey getResourceKey(const QString &appid, const GenericResourceKey &key)
 {
     return QString("/%1%2").arg(appid).arg(key);
 }
@@ -45,11 +45,11 @@ inline ResourceKey getResourceKey(const ConnKey &connKey)
 {
     return connKey.left(connKey.lastIndexOf('/'));
 }
-inline InterappResourceKey getInterappResourceKey(const QString &name, const QString &subpath)
+inline GenericResourceKey getGenericResourceKey(const QString &name, const QString &subpath)
 {
     return QString("/%1%2").arg(name, subpath);
 }
-inline InterappResourceKey getInterappResourceKey(const ConnKey &connKey)
+inline GenericResourceKey getGenericResourceKey(const ConnKey &connKey)
 {
     return getResourceKey(connKey).mid(connKey.indexOf('/', 1));
 }

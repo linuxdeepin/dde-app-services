@@ -27,12 +27,12 @@ class DSGConfigResource : public QObject
 {
     Q_OBJECT
 public:
-    explicit DSGConfigResource(const InterappResourceKey &key, const QString &localPrefix = QString(), QObject *parent = nullptr);
+    explicit DSGConfigResource(const GenericResourceKey &key, const QString &localPrefix = QString(), QObject *parent = nullptr);
     virtual ~DSGConfigResource() override;
 
     bool load(const QString &appid, const QString &name, const QString &subpath);
 
-    InterappResourceKey key() const;
+    GenericResourceKey key() const;
     DConfigFile *getFile(const ResourceKey &key) const;
     DConfigCache *getCache(const ConnKey &key) const;
 
@@ -73,8 +73,8 @@ private:
     QList<DSGConfigConn *> connsOfTheResource(const ResourceKey &resourceKey) const;
 
 private:
-    InterappResourceKey m_key;
     QString m_localPrefix;
+    GenericResourceKey m_key;
     QString m_fileName;
     QString m_subpath;
 
