@@ -235,6 +235,7 @@ DConfigFile *DSGConfigResource::getOrCreateFile(const QString &appid)
         return file;
 
     QScopedPointer<DConfigFile> file(new DConfigFile(innerAppidToOuter(appid), m_fileName, m_subpath));
+    file->globalCache()->setCachePathPrefix(DStandardPaths::path(DStandardPaths::XDG::ConfigHome) + "/global");
     if (!file->load(m_localPrefix))
         return nullptr;
 
@@ -260,6 +261,7 @@ DConfigCache *DSGConfigResource::createCache(const QString &appid, const uint ui
     const auto resourceKey = getResourceKey(appid, m_key);
     if (auto file = getFile(resourceKey)) {
         QScopedPointer<DConfigCache> cache(file->createUserCache(uid));
+        cache->setCachePathPrefix(DStandardPaths::path(DStandardPaths::XDG::ConfigHome) + QString("/%1").arg(uid));
         if (cache->load(m_localPrefix))
             return cache.take();
     }
