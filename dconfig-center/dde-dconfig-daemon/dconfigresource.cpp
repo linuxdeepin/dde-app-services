@@ -16,7 +16,7 @@
 
 DCORE_USE_NAMESPACE
 
-DSGConfigResource::DSGConfigResource(const InterappResourceKey &key, const QString &localPrefix, QObject *parent)
+DSGConfigResource::DSGConfigResource(const GenericResourceKey &key, const QString &localPrefix, QObject *parent)
     : QObject (parent),
       m_key(key),
       m_localPrefix(localPrefix)
@@ -341,7 +341,7 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
     }
 }
 
-InterappResourceKey DSGConfigResource::key() const
+GenericResourceKey DSGConfigResource::key() const
 {
     return m_key;
 }
