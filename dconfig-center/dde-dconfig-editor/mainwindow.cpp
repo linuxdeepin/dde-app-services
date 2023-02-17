@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -35,6 +35,7 @@
 MainWindow::MainWindow(QWidget *parent) :
     DMainWindow(parent)
 {
+    appIdToNameMaps[NoAppId] = VirtualAppName;
     resize(800, 600);
     centralwidget = new QWidget(this);
     centralwidget->setObjectName(QStringLiteral("centralwidget"));
@@ -136,7 +137,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 const auto &appid = model->data(index, ConfigUserRole + 2).toString();
                 const auto &resourceId = model->data(index, ConfigUserRole + 3).toString();
                 const auto &subpath = model->data(index, ConfigUserRole + 4).toString();
-                if (appid.isEmpty() || resourceId.isEmpty()) {
+                if (resourceId.isEmpty()) {
                     qWarning() << "error" << appid << resourceId;
                     return;
                 }
@@ -211,6 +212,7 @@ void MainWindow::refreshApps(const QString &matchAppid)
     }
     appListView->setModel(model);
     translateAppName();
+    refreshAppTranslate();
 }
 
 void MainWindow::refreshAppResources(const QString &appid, const QString &matchResource)
@@ -218,7 +220,7 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
     auto model = new QStandardItemModel(resourceListView);
     resourceListView->reset();
 
-    const auto &resources = resourcesForApp(appid);
+    const auto &resources = appid == NoAppId ? ResourceList() : resourcesForApp(appid);
 
     for (auto resource : resources) {
         if (!matchResource.isEmpty() && !resource.contains(matchResource, Qt::CaseInsensitive)) {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -16,9 +16,11 @@
 
 DCORE_USE_NAMESPACE
 
-DSGConfigResource::DSGConfigResource(const GenericResourceKey &key, const QString &localPrefix, QObject *parent)
+DSGConfigResource::DSGConfigResource(const QString &name, const QString &subpath, const QString &localPrefix, QObject *parent)
     : QObject (parent),
-      m_key(key),
+      m_key(getGenericResourceKey(name, subpath)),
+      m_fileName(name),
+      m_subpath(subpath),
       m_localPrefix(localPrefix)
 {
 }
@@ -37,11 +39,8 @@ DSGConfigResource::~DSGConfigResource()
     m_caches.clear();
 }
 
-bool DSGConfigResource::load(const QString &appid, const QString &name, const QString &subpath)
+bool DSGConfigResource::load(const QString &appid)
 {
-    m_fileName = name;
-    m_subpath = subpath;
-
     return getOrCreateFile(appid);
 }
 
@@ -106,6 +105,11 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
 ConnKey DSGConfigResource::getConnKey(const QString &appid, const uint uid) const
 {
     return getConnectionKey(getResourceKey(appid, m_key), uid);
+}
+
+int DSGConfigResource::connSize() const
+{
+    return m_conns.size();
 }
 
 /*!
@@ -206,6 +210,24 @@ void DSGConfigResource::doSyncConfigCache(const ConfigCacheKey &key)
     }
 }
 
+bool DSGConfigResource::fallbackToGenericConfig() const
+{
+    // 判断是否需要fallback到公共配置
+    DConfigFile file(NoAppId, m_fileName, m_subpath);
+    const bool canFallbackToGeneric = !file.meta()->metaPath(m_localPrefix).isEmpty();
+    return canFallbackToGeneric;
+}
+
+DConfigCache *DSGConfigResource::noAppidCache(const uint uid) const
+{
+    return const_cast<DSGConfigResource *>(this)->getOrCreateCache(VirtualInterAppId, uid);
+}
+
+DConfigFile *DSGConfigResource::noAppidFile() const
+{
+    return const_cast<DSGConfigResource *>(this)->getOrCreateFile(VirtualInterAppId);
+}
+
 DConfigFile *DSGConfigResource::getOrCreateFile(const QString &appid)
 {
     const auto resourceKey = getResourceKey(appid, m_key);
@@ -254,6 +276,20 @@ DConfigCache *DSGConfigResource::getCache(const ConnKey &key) const
     return m_caches.value(key);
 }
 
+/*
+    @breaf Get all Connectons expect application independent Connection.
+*/
+QList<DSGConfigConn *> DSGConfigResource::specificAppConns() const
+{
+    QList<DSGConfigConn *> result;
+    for (auto iter = m_conns.begin(); iter != m_conns.end(); ++iter) {
+        if (isGenericResourceConn(iter.key()))
+            continue;
+        result << iter.value();
+    }
+    return result;
+}
+
 bool DSGConfigResource::cacheExist(const ResourceKey &key) const
 {
     for (const auto &item : m_caches.keys()) {
@@ -298,6 +334,36 @@ void DSGConfigResource::onValueChanged(const QString &key)
             if (Q_LIKELY(m_syncRequestCache))
                 m_syncRequestCache->pushRequest(ConfigSyncRequestCache::userKey(conn->key()));
         } while (false);
+
+        // to emit generic configuration's valueChanged if valueChanged is emited from generic configuration resource.
+        if (isGenericResourceConn(conn->key()))
+            doUpdateGenericConfigValueChanged(key, conn->key());
+    }
+}
+
+/*
+  \internal
+
+    \breaf update emit all app resource's valueChanged connected if noAppid configuration is changed.
+*/
+void DSGConfigResource::doUpdateGenericConfigValueChanged(const QString &key, const ConnKey &connKey)
+{
+//    only generic configuration resource to emit generic configuration's valueChanged.
+    auto file = getFile(getResourceKey(connKey));
+    if (!file)
+        return;
+
+    const bool isGlobal = file->meta()->flags(key).testFlag(DConfigFile::Global);
+    const auto uid = getConnectionKey(connKey);
+    for (auto conn : specificAppConns()) {
+        if (!conn->containsWithoutProp(key))
+            continue;
+
+        if (isGlobal && uid == getConnectionKey(conn->key())) {
+            doGlobalValueChanged(key, getResourceKey(conn->key()));
+        } else {
+            Q_EMIT conn->valueChanged(key);
+        }
     }
 }
 

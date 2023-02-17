@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -135,11 +135,11 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
     DSGConfigResource *resource = resourceObject(genericResourceKey);
     QScopedPointer<DSGConfigResource> resourceHolder;
     if (!resource) {
-        resource = new DSGConfigResource(genericResourceKey, m_localPrefix);
+        resource = new DSGConfigResource(name, subpath, m_localPrefix);
         resource->setSyncRequestCache(m_syncRequestCache);
         resourceHolder.reset(resource);
     }
-    bool loadStatus = resource->load(innerAppid, name, subpath);
+    bool loadStatus = resource->load(innerAppid);
     if (!loadStatus) {
         //error
         QString errorMsg = QString("Can't load resource: %1, for the appid:[%2].").arg(genericResourceKey).arg(appid);

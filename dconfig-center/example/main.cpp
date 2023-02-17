@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -20,6 +20,7 @@ public:
         watchValueChanged();
         subpath();
         mutilFetchConfig();
+        generalConfig();
     }
 
     void watchValueChanged()
@@ -37,7 +38,9 @@ public:
             qDebug() << "value changed, oldValue:" << oldValue << ", newValue:" << heapConfig->value(key).toBool();
         });
 
+        // reset
         heapConfig->setValue("canExit", !oldValue);
+        heapConfig->reset("canExit");
     }
 
     void baseAPI()
@@ -66,7 +69,7 @@ public:
         config.setValue("canExit", false);
 
         // 重置指定配置项的值
-//        config.reset("canExit");
+        config.reset("canExit");
     }
 
     void subpath()
@@ -104,6 +107,40 @@ public:
         {
             DConfig config(fileName);
             qDebug() << config.value("map", map);
+        }
+        // reset
+        {
+            DConfig config(fileName);
+            config.reset("map");
+        }
+    }
+    void generalConfig()
+    {
+        // 空appid，直接获取公共配置
+        {
+            QScopedPointer<DConfig> config(DConfig::createGeneric(fileName));
+            qDebug() << config->value("canExit");
+        }
+        // 空appid，设置公共配置
+        {
+            QScopedPointer<DConfig> config(DConfig::createGeneric(fileName));
+            config->setValue("canExit", true);
+            qDebug() << config->value("canExit");
+        }
+        // 默认使用本appid去获取，会fallback到公共配置
+        {
+            DConfig config(fileName);
+            qDebug() << config.value("canExit");
+        }
+        // 指定使用appid去获取，会fallback到公共配置
+        {
+            QScopedPointer<DConfig> config(DConfig::create("noexist-appid", fileName));
+            qDebug() << config->value("canExit");
+        }
+        // reset
+        {
+            QScopedPointer<DConfig> config(DConfig::createGeneric(fileName));
+            config->reset("canExit");
         }
     }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -23,6 +23,12 @@ static QString configPath()
     const QString metaPath = QString("%1/usr/share/dsg/configs/%2").arg(LocalPrefix, APP_ID);
     return QString("%1/%2.json").arg(metaPath, FILE_NAME);
 }
+static QString noAppIdConfigPath()
+{
+    const QString metaPath = QString("%1/usr/share/dsg/configs/").arg(LocalPrefix);
+
+    return QString("%1/%2.json").arg(metaPath, FILE_NAME);
+}
 
 static EnvGuard dsgDataDir;
 class ut_DConfigResource : public testing::Test
@@ -35,16 +41,18 @@ protected:
         }
 
         ASSERT_TRUE(QFile::copy(":/config/example.json", path));
+        ASSERT_TRUE(QFile::copy(":/config/example.json", noAppIdConfigPath()));
         qputenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS", "true");
         dsgDataDir.set("DSG_DATA_DIRS", "/usr/share/dsg");
     }
     static void TearDownTestCase() {
         QFile::remove(configPath());
+        QFile::remove(noAppIdConfigPath());
         qunsetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS");
         dsgDataDir.restore();
     }
     virtual void SetUp() override {
-        resource.reset(new DSGConfigResource("/example", LocalPrefix));
+        resource.reset(new DSGConfigResource(FILE_NAME, "", LocalPrefix));
     }
     virtual void TearDown() override {
 
@@ -55,18 +63,39 @@ protected:
 
 TEST_F(ut_DConfigResource, load) {
 
-    ASSERT_TRUE(resource->load(APP_ID, FILE_NAME, ""));
+    ASSERT_TRUE(resource->load(APP_ID));
+    ASSERT_TRUE(resource->load(VirtualInterAppId));
 }
 TEST_F(ut_DConfigResource, load_fail) {
 
-    ASSERT_FALSE(resource->load(APP_ID, "example_notexist", ""));
+    DSGConfigResource resource2("example_notexist", "");
+    ASSERT_FALSE(resource2.load(APP_ID));
 }
 TEST_F(ut_DConfigResource, createConn) {
 
-    resource->load(APP_ID, FILE_NAME, "");
+    resource->load(APP_ID);
     ASSERT_TRUE(resource->createConn(APP_ID, TestUid));
-}
 
+    resource->load(VirtualInterAppId);
+    ASSERT_TRUE(resource->createConn(VirtualInterAppId, TestUid));
+}
+TEST_F(ut_DConfigResource, getConn) {
+
+    resource->load(APP_ID);
+    resource->createConn(APP_ID, TestUid);
+    ASSERT_TRUE(resource->getConn(APP_ID, TestUid));
+
+    resource->load(VirtualInterAppId);
+    resource->createConn(VirtualInterAppId, TestUid);
+    ASSERT_TRUE(resource->getConn(VirtualInterAppId, TestUid));
+
+    ASSERT_EQ(resource->connSize(), 2);
+}
+TEST_F(ut_DConfigResource, fallbackToGenericConfig) {
+
+    resource->load(APP_ID);
+    ASSERT_TRUE(resource->fallbackToGenericConfig());
+}
 
 class ut_DConfigConn : public testing::Test
 {
@@ -78,18 +107,20 @@ protected:
         }
 
         ASSERT_TRUE(QFile::copy(":/config/example.json", path));
+        ASSERT_TRUE(QFile::copy(":/config/example.json", noAppIdConfigPath()));
         qputenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS", "true");
         dsgDataDir.set("DSG_DATA_DIRS", "/usr/share/dsg");
     }
     static void TearDownTestCase() {
         QFile::remove(configPath());
+        QFile::remove(noAppIdConfigPath());
         QDir(LocalPrefix).removeRecursively();
         qunsetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS");
         dsgDataDir.restore();
     }
     virtual void SetUp() override {
-        resource.reset(new DSGConfigResource("/example", LocalPrefix));
-        resource->load(APP_ID, FILE_NAME, "");
+        resource.reset(new DSGConfigResource("example", "", LocalPrefix));
+        resource->load(APP_ID);
         conn = resource->createConn(APP_ID, TestUid);
         ASSERT_TRUE(conn);
     }
@@ -99,7 +130,6 @@ protected:
     DSGConfigConn* conn;
     QScopedPointer<DSGConfigResource> resource;
 };
-
 
 TEST_F(ut_DConfigConn, description_name) {
     ASSERT_EQ(conn->description("canExit", ""), "我是描述");
@@ -160,4 +190,37 @@ TEST_F(ut_DConfigConn, release) {
 
     ASSERT_EQ(spy.count(), 1);
     conn->release();
+}
+
+TEST_F(ut_DConfigConn, fallbackToGenericValue) {
+    conn->reset("canExit");
+    ASSERT_EQ(conn->value("canExit").variant(), true);
+
+    // change generic value.
+    ASSERT_TRUE(resource->load(VirtualInterAppId));
+    auto genericConn = resource->createConn(VirtualInterAppId, TestUid);
+    ASSERT_TRUE(genericConn);
+    genericConn->setValue("canExit", QDBusVariant{false});
+    resource->removeConn(genericConn->path());
+    ASSERT_EQ(resource->connSize(), 1);
+
+    // fallback to generic value
+    ASSERT_EQ(conn->value("canExit").variant(), false);
+}
+
+TEST_F(ut_DConfigConn, appValue) {
+    // change app value
+    conn->setValue("canExit", QDBusVariant{false});
+    ASSERT_EQ(conn->value("canExit").variant(), false);
+
+    // change generic value.
+    ASSERT_TRUE(resource->load(VirtualInterAppId));
+    auto genericConn = resource->createConn(VirtualInterAppId, TestUid);
+    ASSERT_TRUE(genericConn);
+    genericConn->setValue("canExit", QDBusVariant{true});
+    resource->removeConn(genericConn->path());
+    ASSERT_EQ(resource->connSize(), 1);
+
+    // can't fallback to generic value
+    ASSERT_EQ(conn->value("canExit").variant(), false);
 }

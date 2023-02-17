@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -27,6 +27,8 @@ constexpr int SubpathRole = Qt::UserRole + 13;
 constexpr int KeyRole = Qt::UserRole + 14;
 constexpr int ValueRole = Qt::UserRole + 15;
 constexpr int DescriptionRole = Qt::UserRole + 16;
+static const QString NoAppId;
+static const QString VirtualAppName("virtual-generic-applicaiton");
 
 enum ConfigType {
     InvalidType = 0x00,
@@ -57,6 +59,8 @@ static QString resourcePath(const QString &appid, const QString &localPrefix = Q
 static AppList applications(const QString &localPrefix = QString())
 {
     AppList result;
+    result << NoAppId;
+
     result.reserve(50);
 
     // TODO calling service interface to get app list,
