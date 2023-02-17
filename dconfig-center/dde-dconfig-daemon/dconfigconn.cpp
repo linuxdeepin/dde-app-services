@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -132,9 +132,8 @@ void DSGConfigConn::reset(const QString &key)
     if (!contains(key))
         return;
 
-    const auto &v = meta()->value(key);
-    qCDebug(cfLog) << "Reset value, key:" << key << ", meta value:" << v << ", old value:" << file()->value(key, cache());
-    if(!file()->setValue(key, v, getAppid(), cache()))
+    qCDebug(cfLog) << "Reset value, key:" << key << ", old value:" << file()->value(key, cache());
+    if(!file()->setValue(key, QVariant(), getAppid(), cache()))
         return;
 
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
@@ -154,7 +153,33 @@ QDBusVariant DSGConfigConn::value(const QString &key)
     if (!contains(key))
         return QDBusVariant();
 
-    const auto &value = file()->value(key, cache());
+    // Try to get value from cache.
+    auto value = file()->cacheValue(cache(), key);
+    if (value.isNull()) {
+        const bool canFallback = m_resource->fallbackToGenericConfig();
+        // Fallback to generic configuration.
+        if (canFallback) {
+            const auto uid = getConnectionKey(m_key);
+            const auto &tmp = m_resource->noAppidFile()->cacheValue(m_resource->noAppidCache(uid), key);
+            if (!tmp.isNull()) {
+                value = tmp;
+                qCDebug(cfLog) << "Get [" << key << "]'s cache value from generic configuration.";
+            }
+        }
+        // Fallback to meta or global configuration.
+        if (value.isNull())
+            value = file()->value(key);
+
+        // Fallback to generic meta configuration.
+        if (value.isNull() && canFallback) {
+            const auto &tmp = m_resource->noAppidFile()->value(key);
+            if (!tmp.isNull()) {
+                value = tmp;
+                qCDebug(cfLog) << "Get [" << key << "]'s meta value from generic configuration.";
+            }
+        }
+    }
+
     if (value.isNull()) {
         QString errorMsg = QString("[%1] Requires the value in [%2].").arg(key).arg(getAppid());
         qWarning() << errorMsg;

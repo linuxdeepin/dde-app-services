@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -27,10 +27,10 @@ class DSGConfigResource : public QObject
 {
     Q_OBJECT
 public:
-    explicit DSGConfigResource(const GenericResourceKey &key, const QString &localPrefix = QString(), QObject *parent = nullptr);
+    explicit DSGConfigResource(const QString &name, const QString &subpath, const QString &localPrefix = QString(), QObject *parent = nullptr);
     virtual ~DSGConfigResource() override;
 
-    bool load(const QString &appid, const QString &name, const QString &subpath);
+    bool load(const QString &appid);
 
     GenericResourceKey key() const;
     DConfigFile *getFile(const ResourceKey &key) const;
@@ -42,6 +42,11 @@ public:
     void removeConn(const ConnKey &connKey);
     bool isEmptyConn() const;
     ConnKey getConnKey(const QString &appid, const uint uid) const;
+    int connSize() const;
+
+    bool fallbackToGenericConfig() const;
+    DConfigCache *noAppidCache(const uint uid) const;
+    DConfigFile *noAppidFile() const;
 
     void save();
     void save(const QString &appid);
@@ -63,20 +68,24 @@ private Q_SLOTS:
 
 private:
     void repareCache(DConfigCache *cache, DConfigMeta *oldMeta, DConfigMeta *newMeta);
+
+    void doUpdateGenericConfigValueChanged(const QString &key, const ConnKey &connKey);
+
     void doGlobalValueChanged(const QString &key, const ResourceKey &resourceKey);
 
     DConfigFile *getOrCreateFile(const QString &appid);
     DConfigCache *createCache(const QString &appid, const uint uid);
     DConfigCache *getOrCreateCache(const QString &appid, const uint uid);
+    QList<DSGConfigConn *> specificAppConns() const;
     bool cacheExist(const ResourceKey &key) const;
     QList<DConfigCache *> cachesOfTheResource(const ResourceKey &resourceKey) const;
     QList<DSGConfigConn *> connsOfTheResource(const ResourceKey &resourceKey) const;
 
 private:
-    QString m_localPrefix;
     GenericResourceKey m_key;
     QString m_fileName;
     QString m_subpath;
+    QString m_localPrefix;
 
     QMap<ResourceKey, DConfigFile *> m_files;
     QMap<ConnKey, DConfigCache *> m_caches;

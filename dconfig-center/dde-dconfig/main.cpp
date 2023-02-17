@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -56,7 +56,8 @@ int main(int argc, char *argv[])
     QCommandLineOption listOption("list", QCoreApplication::translate("main", "list configure information with appid, resource or subpath."));
     parser.addOption(listOption);
 
-    QCommandLineOption appidOption("a", QCoreApplication::translate("main", "appid for the configure owner application."), "appid", QString());
+    QCommandLineOption appidOption("a", QCoreApplication::translate("main", "appid for a specific application.\n"
+                                                                            "it is empty string if we need to manage application independent configuration."), "appid", QString());
     parser.addOption(appidOption);
 
     QCommandLineOption resourceOption("r", QCoreApplication::translate("main", "resource id for configure name."), "resource", QString());

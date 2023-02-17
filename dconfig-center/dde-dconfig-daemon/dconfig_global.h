@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -11,6 +11,7 @@
 #include <QRegularExpression>
 #include <DStandardPaths>
 #include <QLoggingCategory>
+#include "helper.hpp"
 
 Q_DECLARE_LOGGING_CATEGORY(cfLog);
 
@@ -25,17 +26,23 @@ using ConnRefCount = int;
 // user: u-${ConnKey}, global: g-${ResourceKey}
 using ConfigCacheKey = QString;
 static constexpr int TestUid = 0U;
+static const QString VirtualInterAppId = "_";
+
 inline QString formatDBusObjectPath(QString path)
 {
     return path.replace('.', '_').replace('-', '_');
 }
 inline QString outerAppidToInner(const QString &appid)
 {
-    return appid;
+    return appid == NoAppId ? VirtualInterAppId : appid;
 }
 inline QString innerAppidToOuter(const QString &appid)
 {
-    return appid;
+    return appid == VirtualInterAppId ? NoAppId : appid;
+}
+inline bool isGenericResourceConn(const ConnKey &connKey)
+{
+    return connKey.startsWith("/" + VirtualInterAppId);
 }
 inline ResourceKey getResourceKey(const QString &appid, const GenericResourceKey &key)
 {
