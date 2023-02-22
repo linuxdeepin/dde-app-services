@@ -1,3 +1,9 @@
+dde-app-services (0.0.21) unstable; urgency=medium
+
+  * Support generic configuration
+
+ --  Deepin Package Builder <yeshanshan@uniontech.com>  Wed, 22 Feb 2023 14:43:34 +0800
+
 dde-app-services (0.0.20) unstable; urgency=medium
 
   * Release 0.0.20
