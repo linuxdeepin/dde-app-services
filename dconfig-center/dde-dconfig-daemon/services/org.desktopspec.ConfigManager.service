@@ -1,4 +1,4 @@
 [D-BUS Service]
 Name=org.desktopspec.ConfigManager
 Exec=/usr/bin/dde-dconfig-daemon
-User=root
+User=dde-dconfig-daemon
