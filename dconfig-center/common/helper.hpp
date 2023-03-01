@@ -41,9 +41,7 @@ enum ConfigType {
 };
 
 #ifdef DSG_DATA_DIR
-#define D_GET_NAMESPACE_STR_IMPL(M) #M
-#define D_GET_NAMESPACE_STR(M) D_GET_NAMESPACE_STR_IMPL(M)
-const QString MetaFileInstalledDir = QString("%1/configs").arg(D_GET_NAMESPACE_STR(DSG_DATA_DIR));
+const QString MetaFileInstalledDir = QString("%1/configs").arg(DSG_DATA_DIR);
 #else
 const QString MetaFileInstalledDir = QString("/usr/share/dsg/configs");
 #endif

@@ -5,6 +5,10 @@
 PROJECT(dde-dconfig-daemon)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX /usr)
+endif ()
+
 set(REQUIRED_QT_VERSION 5.11.3)
 find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
 find_package(DtkCore REQUIRED)
@@ -12,10 +16,6 @@ find_package(DtkCore REQUIRED)
 # generate moc_predefs.h
 set(CMAKE_AUTOMOC ON)
 set(AUTOMOC_COMPILER_PREDEFINES ON)
-
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX /usr)
-endif ()
 
 include(src.cmake)
 
