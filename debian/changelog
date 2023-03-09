@@ -1,3 +1,9 @@
+dde-app-services (0.0.22) unstable; urgency=medium
+
+  * master 0.0.22
+
+ --  Deepin Package Builder <packages@deepin.com>  Wed, 01 Mar 2023 10:06:35 +0800
+
 dde-app-services (0.0.21) unstable; urgency=medium
 
   * Support generic configuration
