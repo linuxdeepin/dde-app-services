@@ -52,13 +52,17 @@ inline ResourceKey getResourceKey(const ConnKey &connKey)
 {
     return connKey.left(connKey.lastIndexOf('/'));
 }
+inline GenericResourceKey getGenericResourceKeyByResourceKey(const ResourceKey &resourceKey)
+{
+    return resourceKey.mid(resourceKey.indexOf('/', 1));
+}
 inline GenericResourceKey getGenericResourceKey(const QString &name, const QString &subpath)
 {
     return QString("/%1%2").arg(name, subpath);
 }
 inline GenericResourceKey getGenericResourceKey(const ConnKey &connKey)
 {
-    return getResourceKey(connKey).mid(connKey.indexOf('/', 1));
+    return getGenericResourceKeyByResourceKey(getResourceKey(connKey));
 }
 inline uint getConnectionKey(const ConnKey &connKey)
 {
