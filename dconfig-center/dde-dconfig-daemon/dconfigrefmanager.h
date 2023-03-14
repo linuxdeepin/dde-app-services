@@ -82,6 +82,7 @@ public:
     virtual ~ConfigSyncRequestCache() override;
 
     void pushRequest(const ConfigCacheKey& key);
+    void clear();
 
     static ConfigCacheKey globalKey(const ResourceKey &key);
     static ConfigCacheKey userKey(const ConnKey &key);

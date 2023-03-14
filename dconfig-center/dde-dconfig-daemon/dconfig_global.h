@@ -135,8 +135,7 @@ public:
     typedef T* DataType;
     ~ObjectPool()
     {
-        qDeleteAll(m_pool);
-        m_pool.clear();
+        clear();
     }
     using InitFunc = std::function<void(DataType)>;
     void setInitFunc(InitFunc func) { m_initFunc = func;}
@@ -153,6 +152,12 @@ public:
         return m_pool.dequeue();
     }
     void push(DataType item) { m_pool.enqueue(item);}
+
+    void clear()
+    {
+        qDeleteAll(m_pool);
+        m_pool.clear();
+    }
 
 private:
     QQueue<DataType> m_pool;

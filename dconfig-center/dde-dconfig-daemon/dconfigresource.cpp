@@ -391,8 +391,8 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
     const auto subtractKeys = oldKeyList - (newKeyList);
     for (const auto &key :subtractKeys) {
         cache->remove(key);
-        qDebug(cfLog()) << QString("Cache removed because of meta item removed. "
-                            "resource:%1,uid:%2,key:%3.").arg(m_key).arg(cache->uid()).arg(key);
+        qDebug(cfLog, "Cache removed because of meta item removed, resource:%s, uid:%d, key:%s.",
+               qPrintable(m_key), cache->uid(), qPrintable(key));
     }
     // 权限变化，ReadWrite -> ReadOnly，移除cache值
     auto intersectKeys = newKeyList;
@@ -401,8 +401,8 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
         if (newMeta->permissions(key) == DConfigFile::ReadOnly &&
                 oldMeta->permissions(key) == DConfigFile::ReadWrite) {
             cache->remove(key);
-            qDebug(cfLog()) << QString("Cache removed because of permissions changed from readwrite to readonly. "
-                                "resource:%1,uid:%2,key:%3.").arg(m_key).arg(cache->uid()).arg(key);
+            qDebug(cfLog, "Cache removed because of permissions changed from readwrite to readonly, resource:%s,uid:%d,key:%s.",
+                   qPrintable(m_key), cache->uid(), qPrintable(key));
         }
     }
 }
@@ -434,7 +434,7 @@ void DSGConfigResource::removeConn(const ConnKey &connKey)
         }
     }
 
-    qDebug(cfLog()) << QString("Removed connection:%1, remaining %2 connection.").arg(connKey).arg(m_conns.count());
+    qDebug(cfLog, "Removed connection:%s, remaining %d connection.", qPrintable(connKey), m_conns.count());
 }
 
 bool DSGConfigResource::isEmptyConn() const
@@ -444,6 +444,7 @@ bool DSGConfigResource::isEmptyConn() const
 
 void DSGConfigResource::save()
 {
+    qDebug(cfLog, "Save resource's cache for [%s], and cache count:%d", qPrintable(m_key), m_caches.count());
     for (auto item : m_files)
         item->save(m_localPrefix);
 
