@@ -234,7 +234,8 @@ void DSGConfigServer::doSyncConfigCache(const ConfigSyncBatchRequest &request)
     qCInfo(cfLog()) << "do sync config cache, keys count:" << keys.size();
     for (auto key: keys) {
         auto resourceKey = getResourceKeyByConfigCache(key);
-        if (auto resource = m_resources.value(resourceKey)) {
+        const auto genericResourceKey = getGenericResourceKeyByResourceKey(resourceKey);
+        if (auto resource = m_resources.value(genericResourceKey)) {
             resource->doSyncConfigCache(key);
         }
     }
