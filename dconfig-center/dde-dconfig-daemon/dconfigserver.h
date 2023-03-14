@@ -74,9 +74,9 @@ private:
     // 所有链接，一个资源对应一个链接
     QMap<GenericResourceKey, DSGConfigResource *> m_resources;
 
-    QDBusServiceWatcher* m_watcher;
+    QDBusServiceWatcher *m_watcher = nullptr;
 
-    RefManager* m_refManager;
+    RefManager *m_refManager = nullptr;
 
     QString m_localPrefix;
     bool m_enableExit = false;

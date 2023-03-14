@@ -44,15 +44,16 @@ DSGConfigServer::DSGConfigServer(QObject *parent)
 
 DSGConfigServer::~DSGConfigServer()
 {
+    qInfo() << "Destory DSGConfigServer and try to release resources.";
     exit();
 }
 
 void DSGConfigServer::exit()
 {
-    qInfo() << "dconfig server exit and release resources.";
+    m_refManager->destroy();
     qDeleteAll(m_resources);
     m_resources.clear();
-    m_refManager->destroy();
+    m_syncRequestCache->clear();
 }
 
 /*
@@ -146,7 +147,7 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
         if (calledFromDBus())
             sendErrorReply(QDBusError::Failed, errorMsg);
 
-        qInfo() << errorMsg;
+        qWarning() << qPrintable(errorMsg);
         return QDBusObjectPath();
     }
 
@@ -158,7 +159,7 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
             if (calledFromDBus())
                 sendErrorReply(QDBusError::Failed, errorMsg);
 
-            qWarning() << errorMsg;
+            qWarning() << qPrintable(errorMsg);
             return QDBusObjectPath();
         }
         qCInfo(cfLog, "Created connection:%s", qPrintable(conn->path()));
@@ -207,7 +208,6 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
         qCInfo(cfLog, "Remove resource:%s", qPrintable(resourceKey));
 
         m_resources.remove(resourceKey);
-        resource->save();
         resource->deleteLater();
 
         if (m_enableExit) {
@@ -219,7 +219,7 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
 void DSGConfigServer::onTryExit()
 {
     const int count = resourceSize();
-    qCDebug(cfLog()) << "Try exit application, resource size:" << count;
+    qCDebug(cfLog, "Try exit application, resource size:%d", count);
 
     if (count <= 0) {
         qCInfo(cfLog()) << "Exit application because of not exist resource.";
@@ -231,7 +231,7 @@ void DSGConfigServer::onTryExit()
 void DSGConfigServer::doSyncConfigCache(const ConfigSyncBatchRequest &request)
 {
     const QList<ConfigCacheKey> &keys = request.data;
-    qCInfo(cfLog()) << "do sync config cache, keys count:" << keys.size();
+    qCInfo(cfLog, "Do sync config cache, keys count:%d", keys.size());
     for (auto key: keys) {
         auto resourceKey = getResourceKeyByConfigCache(key);
         if (auto resource = m_resources.value(resourceKey)) {
@@ -278,7 +278,10 @@ void DSGConfigServer::update(const QString &path)
     qCInfo(cfLog()) << "Update resource:" << path;
 
     const auto &configureInfo = getConfigureIdByPath(path);
-    qCInfo(cfLog()) << QString("Update the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
+    qCInfo(cfLog, "Update the configuration: appid:[%s], subpath:[%s], configurationid:[%s].",
+           qPrintable(configureInfo.appid),
+           qPrintable(configureInfo.subpath),
+           qPrintable(configureInfo.resource));
     if (configureInfo.isInValid()) {
         QString errorMsg = QString("It's illegal resource [%1].").arg(path);
         if (calledFromDBus()) {
@@ -291,14 +294,16 @@ void DSGConfigServer::update(const QString &path)
 
     const GenericResourceKey resourceKey = getGenericResourceKey(configureInfo.resource, configureInfo.subpath);
     if (auto resource = resourceObject(resourceKey)) {
-        qCInfo(cfLog()) << QString("Updated the resouce:[%1], for the appid:[%2].").arg(resourceKey).arg(configureInfo.appid);
+        qCInfo(cfLog, "Updated the resouce:[%s], for the appid:[%s].",
+               qPrintable(resourceKey),
+               qPrintable(configureInfo.appid));
         const auto &innerAppid = outerAppidToInner(configureInfo.appid);
         if (!resource->reparse(innerAppid)) {
             QString errorMsg = QString("Update the resource path[%1] error.").arg(path);
             if (calledFromDBus()) {
                 sendErrorReply(QDBusError::Failed, errorMsg);
             }
-            qWarning() << errorMsg;
+            qWarning() << qPrintable(errorMsg);
         }
     }
 }
@@ -313,14 +318,17 @@ void DSGConfigServer::sync(const QString &path)
         if (calledFromDBus()) {
             sendErrorReply(QDBusError::Failed, errorMsg);
         }
-        qWarning() << errorMsg;
+        qWarning() << qPrintable(errorMsg);
         return;
     }
 
-    qInfo(cfLog()) << QString("Sync the configuration: appid:[%1], subpath:[%2], configurationid:[%3].").arg(configureInfo.appid).arg(configureInfo.subpath).arg(configureInfo.resource);
+    qCInfo(cfLog, "Sync the configuration: appid:[%s], subpath:[%s], configurationid:[%s].",
+           qPrintable(configureInfo.appid),
+           qPrintable(configureInfo.subpath),
+           qPrintable(configureInfo.resource));
     const GenericResourceKey resourceKey = getGenericResourceKey(configureInfo.resource, configureInfo.subpath);
     if (auto resource = resourceObject(resourceKey)) {
-        qInfo(cfLog()) << QString("Sync the resouce:[%1], for the appid:[%2].").arg(resourceKey).arg(configureInfo.appid);
+        qCInfo(cfLog, "Sync the resouce:[%s], for the appid:[%s].", qPrintable(resourceKey), qPrintable(configureInfo.appid));
         const auto &innerAppid = outerAppidToInner(configureInfo.appid);
         resource->save(innerAppid);
     }

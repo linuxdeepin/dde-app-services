@@ -182,7 +182,7 @@ QDBusVariant DSGConfigConn::value(const QString &key)
 
     if (value.isNull()) {
         QString errorMsg = QString("[%1] Requires the value in [%2].").arg(key).arg(getAppid());
-        qWarning() << errorMsg;
+        qWarning() << qPrintable(errorMsg);
         if (calledFromDBus()) {
             sendErrorReply(QDBusError::Failed, errorMsg);
         }
@@ -236,7 +236,7 @@ bool DSGConfigConn::contains(const QString &key)
     QString errorMsg = QString("[%1] Requires Non-existent configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
     if (calledFromDBus())
         sendErrorReply(QDBusError::Failed, errorMsg);
-    qWarning() << errorMsg;
+    qWarning() << qPrintable(errorMsg);
 
     return false;
 }
