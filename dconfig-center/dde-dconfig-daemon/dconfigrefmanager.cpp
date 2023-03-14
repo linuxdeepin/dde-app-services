@@ -416,8 +416,8 @@ void RefManager::delayDeleteResource(const QList<ResourceRef *> &deleteResources
 ConfigSyncRequestCache::ConfigSyncRequestCache(QObject *parent)
     : QObject (parent)
     , m_syncTimer(new QBasicTimer())
-    , m_delaySyncTime(30000)
-    , m_batchCount(10)
+    , m_delaySyncTime(3000)
+    , m_batchCount(20)
 {
 }
 
