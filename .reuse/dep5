@@ -8,8 +8,8 @@ Files: debian/*
 Copyright: None
 License: CC0-1.0
 
-# github
-Files: .github/* .gitignore
+# github and OBS yaml files
+Files: .github/* .gitignore .obs/* 
 Copyright: None
 License: CC0-1.0
 
