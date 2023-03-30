@@ -1,3 +1,12 @@
+dde-app-services (0.0.23) unstable; urgency=medium
+
+  * feat: Remove root user for dde-dconfig-daemon
+  * fix: Save cache invalided
+  * fix: Manual clean resource When exit
+  * fix: Reduce delay sync time
+
+ --  Deepin Package Builder <packages@deepin.com>  Thu, 30 Mar 2023 15:37:02 +0800
+
 dde-app-services (0.0.22) unstable; urgency=medium
 
   * master 0.0.22
