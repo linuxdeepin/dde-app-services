@@ -45,7 +45,7 @@ int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, c
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    a.setApplicationVersion("1.0.0");
+    a.setApplicationVersion(VERSION);
 
     QCommandLineParser parser;
     parser.addHelpOption();

@@ -9,9 +9,6 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX /usr)
 endif ()
 
-set(DVERSION "1.0.0" CACHE STRING "define project version")
-add_definitions(-DVERSION="${DVERSION}")
-
 set(REQUIRED_QT_VERSION 5.11.3)
 find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus)
 find_package(DtkCore REQUIRED)
