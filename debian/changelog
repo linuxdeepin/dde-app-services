@@ -1,3 +1,9 @@
+dde-app-services (1.0.20) unstable; urgency=medium
+
+  * 1.0.20
+
+ --  Deepin Package Builder <packages@deepin.com>  Mon, 10 Apr 2023 14:13:40 +0800
+
 dde-app-services (0.0.23) unstable; urgency=medium
 
   * feat: Remove root user for dde-dconfig-daemon
