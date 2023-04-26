@@ -46,6 +46,7 @@ install (FILES services/org.desktopspec.ConfigManager.conf DESTINATION ${CMAKE_I
 
 ## services files
 install(FILES services/org.desktopspec.ConfigManager.service DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/system-services)
+install(FILES services/dde-dconfig-daemon.service DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
 
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})
