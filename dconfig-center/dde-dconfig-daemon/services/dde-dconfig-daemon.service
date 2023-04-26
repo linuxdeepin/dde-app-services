@@ -1,0 +1,9 @@
+[Unit]
+Description=dde-dconfig-daemon service
+
+[Service]
+Type=dbus
+User=dde-dconfig-daemon
+BusName=org.desktopspec.ConfigManager
+ExecStart=/usr/bin/dde-dconfig-daemon
+Environment=DSG_DATA_DIRS=/usr/share/dsg:/persistent/linglong/entries/share/dsg
