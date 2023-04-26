@@ -10,6 +10,11 @@
 
 #include <csignal>
 
+static void exitApp(int signal)
+{
+    Q_UNUSED(signal);
+    QCoreApplication::exit();
+}
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
@@ -60,10 +65,10 @@ int main(int argc, char *argv[])
     });
 
     // 异常处理，调用QCoreApplication::exit，使DSGConfigServer正常析构。
-    std::signal(SIGINT, &QCoreApplication::exit);
-    std::signal(SIGABRT, &QCoreApplication::exit);
-    std::signal(SIGTERM, &QCoreApplication::exit);
-    std::signal(SIGKILL, &QCoreApplication::exit);
+    std::signal(SIGINT, exitApp);
+    std::signal(SIGABRT, exitApp);
+    std::signal(SIGTERM, exitApp);
+    std::signal(SIGKILL, exitApp);
 
     return a.exec();
 }
