@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
     }
 
     // Initialization of DtkCore needs to be later than `registerService` avoid earlier request itself.
+    Dtk::Core::DLogManager::registerJournalAppender();
     Dtk::Core::DLogManager::registerConsoleAppender();
     Dtk::Core::DLogManager::registerFileAppender();
     qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
