@@ -10,7 +10,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif ()
 
 set(REQUIRED_QT_VERSION 5.11.3)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
+find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus Gui)
 find_package(DtkCore REQUIRED)
 
 # generate moc_predefs.h
@@ -40,6 +40,7 @@ ADD_EXECUTABLE(dde-dconfig ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
 set(COMMON_LIBS
     Qt5::Core
     Qt5::DBus
+    Qt5::Gui
     ${DtkCore_LIBRARIES}
 )
 
