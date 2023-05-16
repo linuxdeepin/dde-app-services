@@ -69,5 +69,6 @@ private:
 private:
     ConnKey m_key;
     DSGConfigResource *m_resource = nullptr;
+    QString m_appName;
 };
 

@@ -221,11 +221,15 @@ int DSGConfigConn::flags(const QString &key)
 
 QString DSGConfigConn::getAppid()
 {
-    if (calledFromDBus()) {
-        const QString &service = message().service();
-        return getProcessNameByPid(connection().interface()->servicePid(service));
+    if (m_appName.isEmpty()) {
+        if (calledFromDBus()) {
+            const QString &service = message().service();
+            m_appName = getProcessNameByPid(connection().interface()->servicePid(service));
+        } else {
+            m_appName = QString("testappid");
+        }
     }
-    return QString("testappid");
+    return m_appName;
 }
 
 bool DSGConfigConn::contains(const QString &key)

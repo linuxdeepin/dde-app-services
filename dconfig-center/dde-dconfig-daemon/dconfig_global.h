@@ -171,11 +171,12 @@ private:
 inline QString getProcessNameByPid(const uint pid)
 {
 #ifdef Q_OS_LINUX
-    const QString desc = QString("/proc/%1/status").arg(pid);
+    const QString desc = QString("/proc/%1/cmdline").arg(pid);
+
     QFile file(desc);
     if(file.open(QIODevice::ReadOnly)) {
-        const QString &name = file.readLine();
-        return name.mid(name.indexOf(':') + 1).trimmed();
+        const QByteArray &name = file.readLine();
+        return name.split('\0').join(" ").trimmed();
     }
 #endif // Q_OS_LINUX
     return QString::number(pid);
