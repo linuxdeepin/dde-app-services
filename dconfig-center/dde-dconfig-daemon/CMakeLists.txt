@@ -48,5 +48,9 @@ install (FILES services/org.desktopspec.ConfigManager.conf DESTINATION ${CMAKE_I
 install(FILES services/org.desktopspec.ConfigManager.service DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/system-services)
 install(FILES services/dde-dconfig-daemon.service DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
 
+## sysusers file
+install (FILES services/dde-dconfig-daemon.conf DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/sysusers.d)
+install (FILES services/dde-dconfig-daemon-tmpfiles.conf DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/tmpfiles.d)
+
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})

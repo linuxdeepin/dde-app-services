@@ -1,6 +1,0 @@
-#!/bin/sh -e
-
-getent group dde-dconfig-daemon >/dev/null || /usr/sbin/groupadd --system dde-dconfig-daemon
-getent passwd dde-dconfig-daemon >/dev/null || /usr/sbin/useradd --system -c "dde-dconfig-daemon User" \
-        -d /var/lib/dde-dconfig-daemon -m -g dde-dconfig-daemon -s /usr/sbin/nologin \
-        -G dde-dconfig-daemon dde-dconfig-daemon
