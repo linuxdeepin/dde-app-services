@@ -11,6 +11,7 @@
 #include <QDirIterator>
 #include <QDBusArgument>
 #include <QJsonDocument>
+#include <DConfigFile>
 
 using ResourceId = QString;
 using AppId = QString;
@@ -40,20 +41,6 @@ enum ConfigType {
     KeyType = 0x40,
 };
 
-#ifdef DSG_DATA_DIR
-const QString MetaFileInstalledDir = QString("%1/configs").arg(DSG_DATA_DIR);
-#else
-const QString MetaFileInstalledDir = QString("/usr/share/dsg/configs");
-#endif
-static QString resourcePath(const QString &appid, const QString &localPrefix = QString())
-{
-    const auto &usrDir = QString("%1/%2/%3").arg(localPrefix, MetaFileInstalledDir, appid);
-    if (QDir(usrDir).exists())
-        return usrDir;
-
-    return QString();
-}
-
 static AppList applications(const QString &localPrefix = QString())
 {
     AppList result;
@@ -63,7 +50,8 @@ static AppList applications(const QString &localPrefix = QString())
 
     // TODO calling service interface to get app list,
     // and now we can't distingush between `subpath` or `appid` for common configuration.
-    QStringList appDirs = {QString("%1/%2").arg(localPrefix, MetaFileInstalledDir)};
+    using namespace Dtk::Core;
+    QStringList appDirs = DConfigMeta::genericMetaDirs(localPrefix);
     const QStringList filterDirs {"overrides"};
     for (auto item : appDirs)
     {
@@ -79,22 +67,13 @@ static AppList applications(const QString &localPrefix = QString())
     return result;
 }
 
-static ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
+static QSet<ResourceId> resourcesForDirectory(const QString &dir)
 {
     QSet<ResourceId> result;
-    const auto &resPath = resourcePath(appid, localPrefix);
-    if (resPath.isEmpty()) {
-        return result.toList();
-    }
-    QDir resourceDir(resPath);
-    QDirIterator iterator(resourceDir);
-    result.reserve(50);
+    QDirIterator iterator(dir, QDir::Files);
     while(iterator.hasNext()) {
         iterator.next();
         const QFileInfo &file(iterator.fileInfo());
-        if (file.isDir()) {
-            continue;
-        }
 
         if (!file.fileName().endsWith(SUFFIX))
             continue;
@@ -102,50 +81,47 @@ static ResourceList resourcesForApp(const QString &appid, const QString &localPr
         ResourceId resourceName = file.fileName().chopped(SUFFIX.size());
         result.insert(resourceName);
     }
-    return result.toList();
+    return result;
+}
+
+static ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
+{
+    QSet<ResourceId> result;
+    result.reserve(50);
+    using namespace Dtk::Core;
+    for (auto item : DConfigMeta::applicationMetaDirs(localPrefix, appid)) {
+        result += resourcesForDirectory(item);
+    }
+    return result.values();
 }
 
 static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
 {
-    QDir resourceDir(QString("%1/%2").arg(localPrefix, MetaFileInstalledDir));
-    QDirIterator iterator(resourceDir);
     QSet<ResourceId> result;
     result.reserve(50);
-    while(iterator.hasNext()) {
-        iterator.next();
-        const QFileInfo &file(iterator.fileInfo());
-        if (file.isDir()) {
-            continue;
-        }
-
-        if (!file.fileName().endsWith(SUFFIX))
-            continue;
-
-        ResourceId resourceName = file.fileName().chopped(SUFFIX.size());
-        result.insert(resourceName);
+    using namespace Dtk::Core;
+    for (auto item : DConfigMeta::genericMetaDirs(localPrefix)) {
+        result += resourcesForDirectory(item);
     }
-    return result.toList();
+    return result.values();
 }
-
 
 static ResourceList subpathsForResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
     SubpathList result;
-    const auto &resPath = resourcePath(appid, localPrefix);
-    if (resPath.isEmpty()) {
-        return result;
-    }
-    QDir resourceDir(resPath);
-    auto filters = QDir::Dirs | QDir::NoDotAndDotDot;
-    resourceDir.setFilter(filters);
-    QDirIterator iterator(resourceDir, QDirIterator::Subdirectories);
+    for (auto item : resourcesForApp(appid, localPrefix)) {
+        QDir resourceDir(item);
+        auto filters = QDir::Dirs | QDir::NoDotAndDotDot;
+        resourceDir.setFilter(filters);
+        QDirIterator iterator(resourceDir, QDirIterator::Subdirectories);
 
-    while(iterator.hasNext()) {
-        iterator.next();
-        const QFileInfo &file(iterator.fileInfo());
-        if (QDir(file.absoluteFilePath()).exists(resourceId + SUFFIX)) {
-            auto subpath = file.absoluteFilePath().replace(resourceDir.absolutePath(), "");
-            result.append(subpath);
+        while(iterator.hasNext()) {
+            iterator.next();
+            const QFileInfo &file(iterator.fileInfo());
+            if (QDir(file.absoluteFilePath()).exists(resourceId + SUFFIX)) {
+                auto subpath = file.absoluteFilePath().replace(resourceDir.absolutePath(), "");
+                result.append(subpath);
+            }
         }
     }
     return result;
@@ -153,7 +129,7 @@ static ResourceList subpathsForResource(const AppId &appid, const ResourceId &re
 
 static bool existAppid(const QString &appid, const QString &localPrefix = QString())
 {
-    return !resourcePath(appid, localPrefix).isEmpty();
+    return !resourcesForApp(appid, localPrefix).isEmpty();
 }
 
 static bool existResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
