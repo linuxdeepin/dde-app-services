@@ -4,6 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-only
 
+# enableVerboseLogging, Enable verbose logging information output
+dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.enableVerboseLogging
+
 dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.setDelayReleaseTime int32:1000
 
 echo delayReleaseTime: $(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.delayReleaseTime)
@@ -62,6 +65,8 @@ dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.Confi
 #sync
 dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.sync string:'/usr/share/dsg/configs/dconfig-example/example.json'
 
+# disableVerboseLogging, Disable verbose logging information output
+dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.disableVerboseLogging
 
 # killall dbus-monitor
 # kill $DBUS_MONITOR_PID

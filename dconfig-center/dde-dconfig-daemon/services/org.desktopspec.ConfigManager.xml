@@ -17,4 +17,11 @@
     <method name='delayReleaseTime'>
       <arg type='i' name='time' direction='out'/>
     </method>
+    <method name='enableVerboseLogging'>
+    </method>
+    <method name='disableVerboseLogging'>
+    </method>
+    <method name='setLogRules'>
+      <arg type='s' name='rules' direction='in'/>
+    </method>
 </interface>
