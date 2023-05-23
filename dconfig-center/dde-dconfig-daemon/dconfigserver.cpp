@@ -104,6 +104,28 @@ int DSGConfigServer::delayReleaseTime() const
     return m_refManager->delayReleaseTime();
 }
 
+void DSGConfigServer::enableVerboseLogging()
+{
+    QByteArrayList rules{QString("%1.debug=true").arg(cfLog().categoryName()).toLocal8Bit()};
+    rules << "dtk.dsg.config.debug=true";
+    setLogRules(rules.join(';'));
+}
+
+void DSGConfigServer::disableVerboseLogging()
+{
+    setLogRules("");
+}
+
+void DSGConfigServer::setLogRules(const QString &rules)
+{
+    QByteArrayList result;
+    for (auto item : rules.split(";")) {
+        result << item.toLocal8Bit();
+    }
+    QLoggingCategory::setFilterRules(result.join('\n'));
+    qCInfo(cfLog(), "Set log filter rules to:\"%s\"", qPrintable(rules));
+}
+
 void DSGConfigServer::setLocalPrefix(const QString &localPrefix)
 {
     m_localPrefix = localPrefix;

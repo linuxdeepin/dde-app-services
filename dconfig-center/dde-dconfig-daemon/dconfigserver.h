@@ -54,6 +54,10 @@ public Q_SLOTS:
     void setDelayReleaseTime(const int ms);
     int delayReleaseTime() const;
 
+    void enableVerboseLogging();
+    void disableVerboseLogging();
+    void setLogRules(const QString &rules);
+
 private Q_SLOTS:
     void onReleaseChanged(const ConnServiceName &service, const ConnKey &connKey);
 
