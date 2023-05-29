@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     QCommandLineOption localPrefixOption("p", QCoreApplication::translate("main", "working prefix directory."), "prefix", QString());
     parser.addOption(localPrefixOption);
 
-    QCommandLineOption exitOption("e", QCoreApplication::translate("main", "exit application when all resource released."), "exit", QString(true));
+    QCommandLineOption exitOption("e", QCoreApplication::translate("main", "exit application when all resource released."), "exit", QString::number(true));
     parser.addOption(exitOption);
 
     parser.process(a);
