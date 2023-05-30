@@ -4,7 +4,23 @@
 
 cmake_minimum_required(VERSION 3.7)
 
-set(VERSION 4.0)
+set(DVERSION "1.0.0" CACHE STRING "define project version")
+add_definitions(-DVERSION="${DVERSION}")
+
+set(DTK_VERSION "5" CACHE STRING "Dtk Version")
+
+if (DTK_VERSION STREQUAL "5")
+    set(QT_VERSION_MAJOR "5")
+    set(EnableDtk5 on)
+    set(EnableDtk6 off)
+elseif(DTK_VERSION STREQUAL "6")
+    set(QT_VERSION_MAJOR "6")
+    set(DTK_VERSION_MAJOR "6")
+    set(EnableDtk5 off)
+    set(EnableDtk6 on)
+else()
+    message(FATAL_ERROR "Only support DTK_VERSION is 5 or 6")
+endif()
 
 project(dde-app-services)
 

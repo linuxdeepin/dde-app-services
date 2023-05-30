@@ -6,9 +6,8 @@ PROJECT(tests)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
 
 set(REQUIRED_QT_VERSION 5.11.3)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
-find_package(DtkCore REQUIRED)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Test)
+find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus Test)
+find_package(Dtk${DTK_VERSION_MAJOR}Core REQUIRED)
 
 # generate moc_predefs.h
 set(CMAKE_AUTOMOC ON)
@@ -35,14 +34,13 @@ ADD_EXECUTABLE(dconfigtest main.cpp ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML} da
 target_include_directories(dconfigtest PUBLIC
     ../dde-dconfig-daemon
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_SOURCE_DIR}
 )
 
 set(COMMON_LIBS
-    Qt5::Core
-    Qt5::DBus
-    Qt5::Test
-    ${DtkCore_LIBRARIES}
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::DBus
+    Qt${QT_VERSION_MAJOR}::Test
+    Dtk${DTK_VERSION_MAJOR}::Core
 )
 
 target_link_libraries(dconfigtest PUBLIC ${COMMON_LIBS}

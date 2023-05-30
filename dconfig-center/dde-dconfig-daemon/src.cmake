@@ -4,6 +4,7 @@
 
 find_package(Qt5DBus REQUIRED)
 
+if(EnableDtk5)
 qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml
     dconfigserver.h DSGConfigServer
     configmanager_adaptor DSGConfigAdaptor)
@@ -11,6 +12,17 @@ qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktop
 qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml
     dconfigconn.h DSGConfigConn
     manager_adaptor DSGConfigManagerAdaptor)
+endif()
+
+if(EnableDtk6)
+qt_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml
+    dconfigserver.h DSGConfigServer
+    configmanager_adaptor DSGConfigAdaptor)
+
+qt_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml
+    dconfigconn.h DSGConfigConn
+    manager_adaptor DSGConfigManagerAdaptor)
+endif()
 
 include_directories(../common)
 

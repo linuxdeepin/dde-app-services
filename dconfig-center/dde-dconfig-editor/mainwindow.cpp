@@ -31,6 +31,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QMessageBox>
+#include <QActionGroup>
 
 MainWindow::MainWindow(QWidget *parent) :
     DMainWindow(parent)
@@ -83,7 +84,7 @@ MainWindow::MainWindow(QWidget *parent) :
     auto contentViewWraper = new QWidget(this);
     auto contentViewLayout = new QVBoxLayout(contentViewWraper);
     contentViewLayout->setSpacing(0);
-    contentViewLayout->setMargin(0);
+    contentViewLayout->setContentsMargins(0, 0, 0, 0);
     contentView = new Content();
     contentView->setObjectName(QStringLiteral("contentView"));
 
@@ -611,7 +612,12 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
     labelWidget->setToolTip(getter->description(m_key, language));
     m_hLay->addWidget(labelWidget);
     QWidget *valueWidget = nullptr;
-    if (v.type() == QVariant::Bool) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    const auto valueType = v.type();
+#else
+    const auto valueType = v.typeId();
+#endif
+    if (valueType == QVariant::Bool) {
         auto widget = new DSwitchButton(this);
         widget->setChecked(v.toBool());
         widget->setEnabled(canWrite);
@@ -620,7 +626,7 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
             emit valueChanged(checked);
         });
         valueWidget = widget;
-    } else if (v.type() == QVariant::Double) {
+    } else if (valueType == QVariant::Double) {
         auto widget = new DDoubleSpinBox(this);
         widget->setRange(std::numeric_limits<double>::min(), std::numeric_limits<double>::max());
         widget->setValue(v.toDouble());

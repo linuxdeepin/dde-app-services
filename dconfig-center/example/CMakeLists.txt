@@ -6,12 +6,12 @@ PROJECT(dconfig-example)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
 
 set(REQUIRED_QT_VERSION 5.11.3)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core)
-find_package(Dtk REQUIRED Core)
+find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core)
+find_package(Dtk${DTK_VERSION_MAJOR}Core REQUIRED)
 
 ADD_EXECUTABLE(dconfig-example ./main.cpp)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC Qt5::Core ${DtkCore${DTK_VERSION_SUFFIX}_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC Qt${QT_VERSION_MAJOR}::Core Dtk${DTK_VERSION_MAJOR}::Core)
 
 dconfig_meta_files(APPID dconfig-example BASE ./configs FILES ./configs/example.json ./configs/a/example.json)
 
