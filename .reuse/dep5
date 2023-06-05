@@ -8,6 +8,11 @@ Files: debian/*
 Copyright: None
 License: CC0-1.0
 
+# Arch
+Files: archlinux/*
+Copyright: None
+License: CC0-1.0
+
 # github and OBS yaml files
 Files: .github/* .gitignore .obs/* 
 Copyright: None
