@@ -134,9 +134,6 @@ static bool existAppid(const QString &appid, const QString &localPrefix = QStrin
 
 static bool existResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
-    if (!existAppid(appid, localPrefix))
-        return false;
-
     const ResourceList &apps = resourcesForApp(appid, localPrefix);
     if (apps.contains(resourceId))
         return true;
