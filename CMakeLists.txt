@@ -22,6 +22,8 @@ else()
     message(FATAL_ERROR "Only support DTK_VERSION is 5 or 6")
 endif()
 
+set (BUILD_DOCS ON CACHE BOOL "Generate doxygen-based documentation")
+
 project(dde-app-services)
 
 add_subdirectory("dconfig-center")

@@ -15,3 +15,7 @@ add_subdirectory("dde-dconfig-editor")
 add_subdirectory("dde-dconfig")
 add_subdirectory("example")
 add_subdirectory("tests")
+
+if (BUILD_DOCS)
+    add_subdirectory(docs)
+endif()
