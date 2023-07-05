@@ -38,6 +38,11 @@ Files: dconfig-center/tests/config/* dconfig-center/tests/*.qrc
 Copyright: None
 License: CC0-1.0
 
+# docs
+Files: dconfig-center/docs/*
+Copyright: None
+License: CC-BY-4.0
+
 # Readme
 Files: *.md
 Copyright: None
