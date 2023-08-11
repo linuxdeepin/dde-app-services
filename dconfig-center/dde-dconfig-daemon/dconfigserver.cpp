@@ -210,7 +210,7 @@ void DSGConfigServer::onReleaseChanged(const ConnServiceName &service, const Con
     m_refManager->derefResource(service, connKey);
 
     const auto remainingCount = m_refManager->getRefResourceCountOnTheSR(service, connKey);
-    qCInfo(cfLog, "Reduced connection refrence service. service:%s, path:%s, remaining refrence %d", qPrintable(service), qPrintable(connKey), remainingCount);
+    qCInfo(cfLog, "Reduced connection reference service. service:%s, path:%s, remaining reference %d", qPrintable(service), qPrintable(connKey), remainingCount);
 }
 
 /*!
