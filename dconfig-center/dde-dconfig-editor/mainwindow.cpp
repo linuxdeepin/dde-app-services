@@ -628,7 +628,7 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
         valueWidget = widget;
     } else if (valueType == QVariant::Double) {
         auto widget = new DDoubleSpinBox(this);
-        widget->setRange(std::numeric_limits<double>::min(), std::numeric_limits<double>::max());
+        widget->setRange(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
         widget->setValue(v.toDouble());
         widget->setEnabled(canWrite);
         connect(widget, SIGNAL(valueChanged(double)), this, SLOT(onDoubleValueChanged(double)));
