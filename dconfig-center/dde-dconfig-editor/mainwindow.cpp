@@ -545,8 +545,8 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
     QAction *copyCmdAction = menu->addAction("复制命令");
     QAction *resetCmdAction = menu->addAction("重置");
 
-    QString setCmd = QString("dde-dconfig --set -a %1 -r %2 -k %3 -v %4").arg(appid).arg(resource).arg(key).arg(value);
-    QString getCmd = QString("dde-dconfig --get -a %1 -r %2  -k %3").arg(appid).arg(resource).arg(key);
+    QString setCmd = QString("dde-dconfig set %1 -r %2 %3 -v %4").arg(appid).arg(resource).arg(key).arg(value);
+    QString getCmd = QString("dde-dconfig get %1 -r %2 %3").arg(appid).arg(resource).arg(key);
     if (!subpath.isEmpty()) {
         setCmd.append(QString(" -s %1").arg(subpath));
         getCmd.append(QString(" -s %1").arg(subpath));

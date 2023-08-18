@@ -208,12 +208,12 @@ QList<QStringList> ExportDialog::exportData()
             data << item->data(KeyRole).toString();
             data << item->data(ValueRole).toString();
             data << item->data(DescriptionRole).toString();
-            QString setCmd = QString("dde-dconfig --set -a %1 -r %2 -k %3 -v %4").
+            QString setCmd = QString("dde-dconfig set %1 -r %2 %3 -v %4").
                              arg(item->data(AppidRole).toString()).
                              arg(item->data(ResourceRole).toString()).
                              arg(item->data(KeyRole).toString()).
                              arg(item->data(ValueRole).toString());
-            QString getCmd = QString("dde-dconfig --get -a %1 -r %2 -k %3").
+            QString getCmd = QString("dde-dconfig get %1 -r %2 %3").
                              arg(item->data(AppidRole).toString()).
                              arg(item->data(ResourceRole).toString()).
                              arg(item->data(KeyRole).toString());
