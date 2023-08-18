@@ -8,16 +8,31 @@ _dde_dconfig()
 {
     COMPREPLY=()
     local cur=${COMP_WORDS[COMP_CWORD]};
-    local cmd=${COMP_WORDS[COMP_CWORD-1]};
+    local cmd=${COMP_WORDS[COMP_CWORD - 1]};
     case $cmd in
     'dde-dconfig')
-        COMPREPLY=( $(compgen -W '--help --list --set --get --gui' -- $cur) ) ;;
+        COMPREPLY=( $(compgen -W 'help list set get gui watch' -- $cur) ) ;;
+    'list')
+        local result=( $(dde-dconfig list) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    'get')
+        local result=( $(dde-dconfig list) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    'set')
+        local result=( $(dde-dconfig list) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    'reset')
+        local result=( $(dde-dconfig list) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
+    'watch')
+        local result=( $(dde-dconfig list) )
+        COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
     '-a')
-        local result=( $(dde-dconfig --list) )
+        local result=( $(dde-dconfig list) )
         COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
     '-r')
-        local a=${COMP_WORDS[COMP_CWORD-2]}
-        local result=( $(dde-dconfig --list -a $a) )
+        local a=${COMP_WORDS[COMP_CWORD - 2]}
+        local result=( $(dde-dconfig list -a $a) )
         COMPREPLY=( $(compgen -W "${result[*]}" -- $cur) ) ;;
     '-k')
         local a=${COMP_WORDS[COMP_CWORD-4]}

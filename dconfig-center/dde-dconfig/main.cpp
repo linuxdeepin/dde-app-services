@@ -15,7 +15,95 @@
 #include "helper.hpp"
 #include "valuehandler.h"
 
-struct Options {
+class CommandManager {
+public:
+    CommandManager(const QCommandLineParser &parser,
+            const QCommandLineOption &appidOption,
+            const QCommandLineOption &resourceOption,
+            const QCommandLineOption &subpathOption,
+            const QCommandLineOption &keyOption,
+            const QCommandLineOption &methodOption,
+            const QCommandLineOption &languageOption,
+            const QCommandLineOption &valueOption)
+        : parser(parser)
+        , appidOption(appidOption)
+        , resourceOption(resourceOption)
+        , subpathOption(subpathOption)
+        , keyOption(keyOption)
+        , methodOption(methodOption)
+        , languageOption(languageOption)
+        , valueOption(valueOption)
+    {
+        updateValues();
+    }
+
+    int listCommand();
+    int getCommand();
+    int setCommand();
+    int resetCommand();
+    int watchCommand();
+
+    QString appid;
+    QString resourceid;
+    QString subpathid;
+    QString key;
+
+    void updateValues()
+    {
+        appid = fetchAppid();
+        resourceid = fetchResourceid();
+        subpathid = parser.value(subpathOption);
+        key = fetchKey();
+    }
+    // fallback to positionalArgument as key
+    inline QString fetchKey() const
+    {
+        if (parser.isSet(keyOption))
+            return parser.value(keyOption);
+        if (parser.positionalArguments().size() > 2) {
+            return parser.positionalArguments().at(2);
+        }
+        return QString();
+    }
+
+    inline bool isSetKey() const
+    {
+        return parser.isSet(keyOption) || parser.positionalArguments().size() > 2;
+    }
+
+    // fallback to positionalArgument as appid
+    inline QString fetchAppid() const
+    {
+        if (parser.isSet(appidOption))
+            return parser.value(appidOption);
+        if (parser.positionalArguments().size() > 1) {
+            return parser.positionalArguments().at(1);
+        }
+        return QString();
+    }
+
+    inline bool isSetAppid() const
+    {
+        return parser.isSet(appidOption) || parser.positionalArguments().size() >= 2;
+    }
+
+    // fallback to the same resource as appidOption
+    inline QString fetchResourceid() const
+    {
+        if (parser.isSet(resourceOption))
+            return parser.value(resourceOption);
+
+        return fetchAppid();
+    }
+
+    inline bool isSetResourceid() const
+    {
+        return parser.isSet(resourceOption) || isSetAppid();
+    }
+
+private:
+    const QCommandLineParser &parser;
+
     QCommandLineOption appidOption;
     QCommandLineOption resourceOption;
     QCommandLineOption subpathOption;
@@ -36,100 +124,16 @@ inline void outpuSTDError(const QString &value)
     std::cerr << qPrintable(value) << std::endl;
 }
 
-int onListOption(const QCommandLineParser &parser, const Options &options);
-int onGetOption(const QCommandLineParser &parser, const Options &options);
-int onSetOption(const QCommandLineParser &parser, const Options &options);
-int onResetOption(const QCommandLineParser &parser, const Options &options);
-int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, const Options &options);
-
-int main(int argc, char *argv[])
+int CommandManager::listCommand()
 {
-    QCoreApplication a(argc, argv);
-    a.setApplicationVersion(VERSION);
-
-    QCommandLineParser parser;
-    parser.addHelpOption();
-
-    QCommandLineOption localPrefixOption("p", QCoreApplication::translate("main", "working prefix directory."), "prefix", QString());
-    parser.addOption(localPrefixOption);
-
-    QCommandLineOption listOption("list", QCoreApplication::translate("main", "list configure information with appid, resource or subpath."));
-    parser.addOption(listOption);
-
-    QCommandLineOption appidOption("a", QCoreApplication::translate("main", "appid for a specific application.\n"
-                                                                            "it is empty string if we need to manage application independent configuration."), "appid", QString());
-    parser.addOption(appidOption);
-
-    QCommandLineOption resourceOption("r", QCoreApplication::translate("main", "resource id for configure name."), "resource", QString());
-    parser.addOption(resourceOption);
-
-    QCommandLineOption subpathOption("s", QCoreApplication::translate("main", "subpath for configure."), "subpath", QString());
-    parser.addOption(subpathOption);
-
-    QCommandLineOption getOption("get", QCoreApplication::translate("main", "query content for configure."));
-    parser.addOption(getOption);
-
-    QCommandLineOption keyOption("k", QCoreApplication::translate("main", "configure item's key."), "key", QString());
-    parser.addOption(keyOption);
-
-    QCommandLineOption methodOption("m", QCoreApplication::translate("main", "method for the configure item."), "method", QString("value"));
-    parser.addOption(methodOption);
-
-    QCommandLineOption languageOption("l", QCoreApplication::translate("main", "language for the configuration item."), "language", QString());
-    parser.addOption(languageOption);
-
-    QCommandLineOption setOption("set", QCoreApplication::translate("main", "set configure item 's value."));
-    parser.addOption(setOption);
-
-    QCommandLineOption resetOption("reset", QCoreApplication::translate("main", "reset configure item 's value."));
-    parser.addOption(resetOption);
-
-    QCommandLineOption valueOption("v", QCoreApplication::translate("main", "new value to set configure item."), "value", QString());
-    parser.addOption(valueOption);
-
-    QCommandLineOption watchOption("watch", QCoreApplication::translate("main", "watch value changed for some configure item."));
-    parser.addOption(watchOption);
-
-    QCommandLineOption guiOption("gui", QCoreApplication::translate("main", "start dde-dconfig-editor as a gui configure tool."));
-    parser.addOption(guiOption);
-
-    parser.process(a);
-
-    if (argc == 1) {
-        parser.showHelp(0);
-    }
-
-    Options options { appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption };
-    if (parser.isSet(guiOption)) {
-        QProcess::startDetached("/bin/dde-dconfig-editor");
-        return 0;
-    } else {
-        if (parser.isSet(listOption)) {
-            return onListOption(parser, options);
-        } else if (parser.isSet(getOption)) {
-            return onGetOption(parser, options);
-        } else if (parser.isSet(setOption)) {
-            return onSetOption(parser, options);
-        } else if (parser.isSet(resetOption)) {
-            return onResetOption(parser, options);
-        } else if (parser.isSet(watchOption)) {
-            return onWatchOption(a, parser, options);
-        }
-        parser.showHelp(0);
-    }
-}
-
-int onListOption(const QCommandLineParser &parser, const Options &options)
-{
-    const auto &appid = parser.value(options.appidOption);
-    const auto &resourceid = parser.value(options.resourceOption);
     // list命令，查看app、resource、subpath
-    if (parser.isSet(options.appidOption)) {
+    if (isSetAppid()) {
         if (!existAppid(appid)) {
             outpuSTDError(QString("not exist appid:%1").arg(appid));
             return 1;
         }
-        if (parser.isSet(options.resourceOption)) {
+        // don't fallback to the same resource as appidOption
+        if (parser.isSet(resourceOption)) {
             if (!existResource(appid, resourceid)) {
                 outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
                 return 1;
@@ -144,7 +148,7 @@ int onListOption(const QCommandLineParser &parser, const Options &options)
                 outpuSTD(item);
             }
         }
-    } else if(parser.isSet(options.resourceOption)) {
+    } else if(parser.isSet(resourceOption)) {
         const auto &commons = resourcesForAllApp();
         QRegularExpression re(resourceid);
         for (auto item : commons) {
@@ -162,16 +166,12 @@ int onListOption(const QCommandLineParser &parser, const Options &options)
     return 0;
 }
 
-int onGetOption(const QCommandLineParser &parser, const Options &options)
+int CommandManager::getCommand()
 {
-    const auto &appid = parser.value(options.appidOption);
-    const auto &resourceid = parser.value(options.resourceOption);
-    const auto &subpathid = parser.value(options.subpathOption);
-    const auto &key = parser.value(options.keyOption);
-    const auto &method = parser.value(options.methodOption);
+    const auto &method = parser.value(methodOption);
 
     // query命令，查看指定配置的详细信息，操作方法和配置项信息
-    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption)) {
+    if (!isSetAppid() || !isSetResourceid()) {
         const QStringList methods{"value",
                             "name",
                             "description",
@@ -191,7 +191,7 @@ int onGetOption(const QCommandLineParser &parser, const Options &options)
 
     ValueHandler handler(appid, resourceid, subpathid);
     if (auto manager = handler.createManager()) {
-        if (!parser.isSet(options.keyOption) && !parser.isSet(options.methodOption)) {
+        if (!isSetKey() && !parser.isSet(methodOption)) {
 
             QStringList result = manager->keyList();
             for (auto item : result) {
@@ -199,8 +199,8 @@ int onGetOption(const QCommandLineParser &parser, const Options &options)
             }
             return 0;
         }
-        if (parser.isSet(options.keyOption)) {
-            const auto &language = parser.value(options.languageOption);
+        if (isSetKey()) {
+            const auto &language = parser.value(languageOption);
 
             if (method == "value") {
                 QVariant result = manager->value(key);
@@ -241,16 +241,11 @@ int onGetOption(const QCommandLineParser &parser, const Options &options)
     return 0;
 }
 
-int onSetOption(const QCommandLineParser &parser, const Options &options)
+int CommandManager::setCommand()
 {
-    const auto &appid = parser.value(options.appidOption);
-    const auto &resourceid = parser.value(options.resourceOption);
-    const auto &subpathid = parser.value(options.subpathOption);
-    const auto &key = parser.value(options.keyOption);
-
     // set命令，设置指定配置项
-    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption) || !parser.isSet(options.keyOption)
-            ||!parser.isSet(options.valueOption)) {
+    if (!isSetAppid() || !isSetResourceid() || !isSetKey()
+            ||!parser.isSet(valueOption)) {
         outpuSTDError("not set appid, resource, key or value.");
         return 1;
     }
@@ -260,7 +255,7 @@ int onSetOption(const QCommandLineParser &parser, const Options &options)
         return 1;
     }
 
-    const auto &value = parser.value(options.valueOption);
+    const auto &value = parser.value(valueOption);
     ValueHandler handler(appid, resourceid, subpathid);
     {
         QScopedPointer<ConfigGetter> manager(handler.createManager());
@@ -281,18 +276,13 @@ int onSetOption(const QCommandLineParser &parser, const Options &options)
     return 0;
 }
 
-int onResetOption(const QCommandLineParser &parser, const Options &options)
+int CommandManager::resetCommand()
 {
     // reset命令，设置指定配置项
-    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption) || !parser.isSet(options.keyOption)) {
+    if (!isSetAppid() || !isSetResourceid() || !isSetKey()) {
         outpuSTDError("not set appid, resource or key.");
         return 1;
     }
-
-    const auto &appid = parser.value(options.appidOption);
-    const auto &resourceid = parser.value(options.resourceOption);
-    const auto &subpathid = parser.value(options.subpathOption);
-    const auto &key = parser.value(options.keyOption);
 
     if (!existResource(appid, resourceid)) {
         outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
@@ -312,15 +302,10 @@ int onResetOption(const QCommandLineParser &parser, const Options &options)
     return 0;
 }
 
-int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, const Options &options)
+int CommandManager::watchCommand()
 {
-    const auto &appid = parser.value(options.appidOption);
-    const auto &resourceid = parser.value(options.resourceOption);
-    const auto &subpathid = parser.value(options.subpathOption);
-    const auto &key = parser.value(options.keyOption);
-
     // watch命令，监控一些配置项改变信号
-    if (!parser.isSet(options.appidOption) || !parser.isSet(options.resourceOption)) {
+    if (!isSetAppid() || !isSetResourceid()) {
         outpuSTDError("not set appid or resource.");
         return 1;
     }
@@ -345,5 +330,107 @@ int onWatchOption(const QCoreApplication &a, const QCommandLineParser &parser, c
         outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
         return 1;
     }
-    return a.exec();
+    return qApp->exec();
+}
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+    a.setApplicationVersion(VERSION);
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription(QCoreApplication::translate("main", "A console tool to get and set configuration items for DTK Config."));
+    parser.addHelpOption();
+
+    QCommandLineOption appidOption("a", QCoreApplication::translate("main", "appid for a specific application, \n"
+                                                                            "it is empty string if we need to manage application independent configuration.\n"
+                                                                            "second positional argument as appid if not the option"), "appid", QString());
+    parser.addOption(appidOption);
+
+    QCommandLineOption resourceOption("r", QCoreApplication::translate("main", "resource id for configure name, \n"
+                                                                               "it's value is same as `a` option if not the option."), "resource", QString());
+    parser.addOption(resourceOption);
+
+    QCommandLineOption subpathOption("s", QCoreApplication::translate("main", "subpath for configure."), "subpath", QString());
+    parser.addOption(subpathOption);
+
+    QCommandLineOption keyOption("k", QCoreApplication::translate("main", "configure item's key.\n"
+                                                                          "three positional argument as key if not the option"), "key", QString());
+    parser.addOption(keyOption);
+
+    QCommandLineOption valueOption("v", QCoreApplication::translate("main", "new value to set configure item."), "value", QString());
+    parser.addOption(valueOption);
+
+    QCommandLineOption localPrefixOption("p", QCoreApplication::translate("main", "working prefix directory."), "prefix", QString());
+    parser.addOption(localPrefixOption);
+
+    QCommandLineOption methodOption("m", QCoreApplication::translate("main", "method for the configure item."), "method", QString("value"));
+    parser.addOption(methodOption);
+
+    QCommandLineOption languageOption("l", QCoreApplication::translate("main", "language for the configuration item."), "language", QString());
+    parser.addOption(languageOption);
+
+    QCommandLineOption listOption("list", QCoreApplication::translate("main", "list configure information with appid, resource or subpath."));
+    listOption.setFlags(listOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(listOption);
+
+    QCommandLineOption getOption("get", QCoreApplication::translate("main", "query content for configure, including the configure item's all keys, value ..."));
+    getOption.setFlags(getOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(getOption);
+
+    QCommandLineOption setOption("set", QCoreApplication::translate("main", "set configure item 's value."));
+    setOption.setFlags(setOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(setOption);
+
+    QCommandLineOption resetOption("reset", QCoreApplication::translate("main", "reset configure item 's value."));
+    resetOption.setFlags(resetOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(resetOption);
+
+    QCommandLineOption watchOption("watch", QCoreApplication::translate("main", "watch value changed for some configure item."));
+    watchOption.setFlags(watchOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(watchOption);
+
+    QCommandLineOption guiOption("gui", QCoreApplication::translate("main", "start dde-dconfig-editor as a gui configure tool."));
+    guiOption.setFlags(guiOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(guiOption);
+
+    // support positional argument for subcommand.
+    parser.addPositionalArgument(listOption.names().constFirst(), listOption.description(), "\n list: dde-dconfig list \n");
+    parser.addPositionalArgument(getOption.names().constFirst(), getOption.description(), "get: dde-dconfig get -a dconfig-example -r example -k key1 \n");
+    parser.addPositionalArgument(setOption.names().constFirst(), setOption.description(), "set: dde-dconfig set -a dconfig-example -r example -k key1 -v 1 \n");
+    parser.addPositionalArgument(resetOption.names().constFirst(), resetOption.description(), "reset: dde-dconfig reset -a dconfig-example -r example -k key1 \n");
+    parser.addPositionalArgument(watchOption.names().constFirst(), watchOption.description(), "watch: dde-dconfig watch -a dconfig-example -r example -k key1 \n");
+    parser.addPositionalArgument(guiOption.names().constFirst(), guiOption.description(), "gui: dde-dconfig gui \n");
+
+    parser.process(a);
+
+    if (argc == 1) {
+        parser.showHelp(0);
+    }
+
+    const auto positions = parser.positionalArguments();
+    const auto subcommand = positions.isEmpty() ? QString() : positions.constFirst();
+
+    CommandManager manager {parser, appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption };
+    if (parser.isSet(guiOption) || guiOption.names().contains(subcommand)) {
+        const QString guiTool("dde-dconfig-editor");
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+        return QProcess::startDetached(guiTool);
+#else
+        return QProcess::startDetached(guiTool, {});
+#endif
+    }
+    if (parser.isSet(listOption) || listOption.names().contains(subcommand)) {
+        return manager.listCommand();
+    } else if (parser.isSet(getOption) || getOption.names().contains(subcommand)) {
+        return manager.getCommand();
+    } else if (parser.isSet(setOption) || setOption.names().contains(subcommand)) {
+        return manager.setCommand();
+    } else if (parser.isSet(resetOption) || resetOption.names().contains(subcommand)) {
+        return manager.resetCommand();
+    } else if (parser.isSet(watchOption) || watchOption.names().contains(subcommand)) {
+        return manager.watchCommand();
+    }
+
+    parser.showHelp(0);
 }
