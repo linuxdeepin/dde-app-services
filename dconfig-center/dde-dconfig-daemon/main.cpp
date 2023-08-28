@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <QCoreApplication>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <DLog>
 
