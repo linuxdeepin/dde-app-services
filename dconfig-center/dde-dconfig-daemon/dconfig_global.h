@@ -30,7 +30,7 @@ static const QString VirtualInterAppId = "_";
 
 inline QString formatDBusObjectPath(QString path)
 {
-    return path.replace('.', '_').replace('-', '_');
+    return path.replace(QRegularExpression(QStringLiteral("[\\. -]")), QStringLiteral("_"));
 }
 inline QString outerAppidToInner(const QString &appid)
 {
