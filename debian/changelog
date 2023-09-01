@@ -1,3 +1,25 @@
+dde-app-services (1.0.22) unstable; urgency=medium
+
+  * chore: Change the way to get application name
+  * feat: Manage user by sysusers.d to replace postinst
+  * feat: Being consistent with meta dir of dtkcore(Issue: #10)
+  * feat: Support runtime conrtorl of verbose log on/off switch
+  * chore(CI): Update obs tag build workflow
+  * chore: Adapt to compile for qt6(Issue: #86)
+  * feat: add archlinux build
+  * chore: Adapt to qt6(Issue: #86)
+  * Fix: Set function invalid when appid is not exist
+  * Docs: Add DtkConfig document
+  * chore: Sync by https://github.com/linuxdeepin/.github/commit/559e91167d4919644f37bbcf123eb0651c1528ea(Influence: none)
+  * fix: typo refrence to reference
+    Thanks to aleksana
+  * fix: Wrong value for negative float type in editor
+  * feat: Support positional argument for dde-dconfig
+  * chore: Can't find QCommandLineParser
+  * fix: some app failed to register dbus service
+
+ -- YeShanShan <yeshanshan@deepin.org>  Fri, 01 Sep 2023 13:35:25 +0800
+
 dde-app-services (1.0.21) unstable; urgency=medium
 
   * fix: Wrong exit signal
