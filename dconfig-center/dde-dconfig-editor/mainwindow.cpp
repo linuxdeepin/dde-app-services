@@ -53,8 +53,8 @@ MainWindow::MainWindow(QWidget *parent) :
     appListView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto appHeader = new DSearchEdit();
-    appHeader->setPlaceHolder("appid");
-    appHeader->setPlaceholderText("input filter appid");
+    appHeader->setPlaceHolder(tr("appid"));
+    appHeader->setPlaceholderText(tr("input filter appid"));
     QObject::connect(appHeader, &DSearchEdit::textChanged, [this](const QString &appid){
         refreshApps(appid);
     });
@@ -71,8 +71,8 @@ MainWindow::MainWindow(QWidget *parent) :
     resourceListView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     auto resourceHeader = new DSearchEdit();
     resourceHeader->setMinimumWidth(200);
-    resourceHeader->setPlaceHolder("resource");
-    resourceHeader->setPlaceholderText("input filter resource");
+    resourceHeader->setPlaceHolder(tr("resource"));
+    resourceHeader->setPlaceholderText(tr("input filter resource"));
     QObject::connect(resourceHeader, &DSearchEdit::textChanged, [this](const QString &resourceid){
         const auto &appid = appListView->model()->data(appListView->currentIndex(), ConfigUserRole + 2).toString();
         refreshAppResources(appid, resourceid);
@@ -89,8 +89,8 @@ MainWindow::MainWindow(QWidget *parent) :
     contentView->setObjectName(QStringLiteral("contentView"));
 
     auto contentHeader = new DSearchEdit();
-    contentHeader->setPlaceHolder("keys");
-    contentHeader->setPlaceholderText("input filter keys");
+    contentHeader->setPlaceHolder(tr("keys"));
+    contentHeader->setPlaceholderText(tr("input filter keys"));
     QObject::connect(contentHeader, &DSearchEdit::textChanged, [this](const QString &keyid){
         const auto &appid = appListView->model()->data(appListView->currentIndex(), ConfigUserRole + 2).toString();
         const auto &resourceId = resourceListView->model()->data(resourceListView->currentIndex(), ConfigUserRole + 3).toString();
@@ -153,7 +153,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // set history
     DTitlebar *titlebar = this->titlebar();
     titlebar->setIcon(QIcon(APP_ICON));
-    connect(titlebar->menu()->addAction("setting history"), &QAction::triggered, [this](){
+    connect(titlebar->menu()->addAction(tr("setting history")), &QAction::triggered, [this](){
         qInfo() << "show history view";
         historyView->show();
 
@@ -167,14 +167,14 @@ MainWindow::MainWindow(QWidget *parent) :
         refreshResourceKeys(appid, resourceId, subpath, contentHeader->text());
     });
 
-    connect(titlebar->menu()->addAction("export"), &QAction::triggered, [this]() {
+    connect(titlebar->menu()->addAction(tr("export")), &QAction::triggered, [this]() {
         qInfo() << "export setting";
         exportView->loadData(contentView->language());
         exportView->show();
     });
     exportView = new ExportDialog(this);
     exportView->setFixedSize(QSize(400, 600));
-    connect(titlebar->menu()->addAction("OEM"), &QAction::triggered, [this]() {
+    connect(titlebar->menu()->addAction(tr("OEM")), &QAction::triggered, [this]() {
         oemView->loadData(contentView->language());
         oemView->show();
     });
@@ -289,32 +289,40 @@ void MainWindow::refreshResourceKeys(const QString &appid, const QString &resour
 void MainWindow::installTranslate()
 {
     DTitlebar *titlebar = this->titlebar();
-    auto languageMenu = titlebar->menu()->addMenu("config language");
-    auto defaultAction = languageMenu->addAction("default");
+    auto languageMenu = titlebar->menu()->addMenu(tr("config language"));
+    auto defaultAction = languageMenu->addAction(tr("default"));
     defaultAction->setCheckable(true);
-    auto chineseAction = languageMenu->addAction("chinese");
+    auto chineseAction = languageMenu->addAction(tr("chinese"));
     chineseAction->setCheckable(true);
-    auto englishAction = languageMenu->addAction("english");
+    auto englishAction = languageMenu->addAction(tr("english"));
     englishAction->setCheckable(true);
     QActionGroup *languageGroup = new QActionGroup(this);
     languageGroup->addAction(defaultAction);
     languageGroup->addAction(chineseAction);
     languageGroup->addAction(englishAction);
-    defaultAction->setChecked(true);
 
-    connect(defaultAction, &QAction::triggered, [this](){
+    connect(defaultAction, &QAction::toggled, [this](){
         contentView->setLanguage("");
     });
-    connect(chineseAction, &QAction::triggered, [this](){
+    connect(chineseAction, &QAction::toggled, [this](){
         contentView->setLanguage("zh_CN");
     });
-    connect(englishAction, &QAction::triggered, [this](){
+    connect(englishAction, &QAction::toggled, [this](){
         contentView->setLanguage("en_US");
     });
     connect(contentView, &Content::languageChanged, this, [this](){
         emit resourceListView->clicked(resourceListView->currentIndex());
     });
 
+    const auto systemLanguage = QLocale::system().name();
+    qDebug() << systemLanguage;
+    if (systemLanguage == "zh_CN") {
+        chineseAction->setChecked(true);
+    } else if (systemLanguage == "en_US") {
+        englishAction->setChecked(true);
+    } else {
+        defaultAction->setChecked(true);
+    }
 }
 
 void MainWindow::translateAppName()
@@ -540,10 +548,10 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
 
     QMenu *menu = new QMenu(widget);
 
-    QAction *exportAction = menu->addAction("导出");
-    QAction *copyAction = menu->addAction("复制");
-    QAction *copyCmdAction = menu->addAction("复制命令");
-    QAction *resetCmdAction = menu->addAction("重置");
+    QAction *exportAction = menu->addAction(tr("export"));
+    QAction *copyAction = menu->addAction(tr("copy value"));
+    QAction *copyCmdAction = menu->addAction(tr("convert to cmd"));
+    QAction *resetCmdAction = menu->addAction(tr("reset value"));
 
     QString setCmd = QString("dde-dconfig set %1 -r %2 %3 -v %4").arg(appid).arg(resource).arg(key).arg(value);
     QString getCmd = QString("dde-dconfig get %1 -r %2 %3").arg(appid).arg(resource).arg(key);
@@ -552,7 +560,7 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
         getCmd.append(QString(" -s %1").arg(subpath));
     }
     connect(exportAction, &QAction::triggered, this, [this, appid, resource, subpath, key, value, description, setCmd, getCmd]{
-        QString fileName = QFileDialog::getSaveFileName(this, tr("导出当前配置"), "", tr("文件(*.csv)"));
+        QString fileName = QFileDialog::getSaveFileName(this, tr("export current configuration"), "", tr("file(*.csv)"));
         QFile file(fileName);
         if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream stream(&file);
@@ -566,8 +574,8 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
             file.close();
             if (stream.status() != QTextStream::Ok) {
                 qWarning() << "stream.status:" << stream.status();
-                DDialog dialog("文件保存失败!", "",this);
-                dialog.addButton("确定", true, DDialog::ButtonWarning);
+                DDialog dialog("save failed", "",this);
+                dialog.addButton("ok", true, DDialog::ButtonWarning);
                 dialog.exec();
             }
         }

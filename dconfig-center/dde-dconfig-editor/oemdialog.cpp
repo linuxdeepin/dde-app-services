@@ -25,7 +25,7 @@ OEMDialog::OEMDialog(QWidget *parent)
     m_exportView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_exportView->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
-    m_exportBtn = new DSuggestButton("OEM");
+    m_exportBtn = new DSuggestButton(tr("OEM"));
     m_exportBtn->setEnabled(false);
     QHBoxLayout *hLayout = new QHBoxLayout();
     hLayout->addStretch(1);
@@ -176,7 +176,7 @@ void OEMDialog::treeItemChanged(DStandardItem *valueItem)
 
 void OEMDialog::saveFiles()
 {
-    QString dirName = QFileDialog::getExistingDirectory(this, tr("导出目录"), QDir::homePath(),
+    QString dirName = QFileDialog::getExistingDirectory(this, tr("export directory"), QDir::homePath(),
                                                         QFileDialog::ShowDirsOnly |
                                                         QFileDialog::DontResolveSymlinks);
     if (dirName.isEmpty())
@@ -222,8 +222,8 @@ void OEMDialog::saveCSVFile(const QString &dirName)
             this->close();
         } else {
             qWarning() << "stream.status:" << out.status();
-            DDialog dialog("文件保存失败!", "",this);
-            dialog.addButton("确定", true, ButtonWarning);
+            DDialog dialog(tr("save filed"), "",this);
+            dialog.addButton(tr("ok"), true, ButtonWarning);
             dialog.exec();
         }
     }
@@ -257,7 +257,7 @@ void OEMDialog::displayChangedResult()
                              << new DStandardItem(path));
         }
     }
-    DSuggestButton *btn = new DSuggestButton("确认");
+    DSuggestButton *btn = new DSuggestButton(tr("ok"));
     QHBoxLayout *hlayout = new QHBoxLayout;
     hlayout->addStretch(1);
     hlayout->addSpacing(20);
@@ -283,9 +283,9 @@ void OEMDialog::closeEvent(QCloseEvent *event)
         event->accept();
         return;
     }
-    DDialog dialog("文件未保存，确定退出!", "",this);
-    dialog.addButton("取消", true, ButtonWarning);
-    dialog.addButton("确定", true, ButtonWarning);
+    DDialog dialog(tr("file doesn't save"), "",this);
+    dialog.addButton(tr("cancle"), true, ButtonWarning);
+    dialog.addButton(tr("ok"), true, ButtonWarning);
     connect(dialog.getButton(0), &QPushButton::clicked, this, [event]{
         event->ignore();
     });
@@ -330,8 +330,8 @@ void OEMDialog::createJsonFile(const QString &fileName, const QList<DStandardIte
     file.close();
     if (out.status() != QTextStream::Ok) {
         qWarning() << "stream.status:" << out.status();
-        DDialog dialog("文件保存失败!", "",this);
-        dialog.addButton("确定", true, ButtonWarning);
+        DDialog dialog("save failed", "",this);
+        dialog.addButton("ok", true, ButtonWarning);
         dialog.exec();
     }
     qDebug() << byteArray;

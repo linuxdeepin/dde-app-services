@@ -12,7 +12,9 @@ Build-Depends:
  libdtkgui-dev,
  libdtkwidget-dev,
  libgtest-dev,
- doxygen, qttools5-dev-tools
+ doxygen,
+ qttools5-dev-tools,
+ qttools5-dev
 Standards-Version: 4.3.0
 
 Package: dde-dconfig-daemon
