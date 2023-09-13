@@ -338,6 +338,8 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     a.setApplicationVersion(VERSION);
 
+    loadTranslation("dde-dconfig");
+
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::translate("main", "A console tool to get and set configuration items for DTK Config."));
     parser.addHelpOption();

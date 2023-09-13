@@ -10,7 +10,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif ()
 
 set(REQUIRED_QT_VERSION 5.11.3)
-find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
+find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus LinguistTools)
 find_package(Dtk${DTK_VERSION_MAJOR}Core REQUIRED)
 
 # generate moc_predefs.h
@@ -36,6 +36,14 @@ if (EnableDtk5)
     qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_MANAGER} configmanager_interface)
 endif()
 
+set(TRANSLATIONS translates/dde-dconfig_zh_CN.ts)
+if(EnableDtk6)
+    qt6_add_translation(QM_FILES ${TRANSLATIONS})
+endif()
+if (EnableDtk5)
+    qt5_add_translation(QM_FILES ${TRANSLATIONS})
+endif()
+
 set(HEADERS
     ../common/helper.hpp
     ../common/valuehandler.h
@@ -45,7 +53,7 @@ set(SOURCES
     ../common/valuehandler.cpp
 )
 
-ADD_EXECUTABLE(dde-dconfig ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML})
+ADD_EXECUTABLE(dde-dconfig ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML} ${QM_FILES})
 
 set(COMMON_LIBS
     Qt${QT_VERSION_MAJOR}::Core
@@ -62,6 +70,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 install(TARGETS dde-dconfig DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${QM_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/dde-dconfig/translations/)
 
 set(BASH_COMPLETION_COMPLETIONSDIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions/)
 install(DIRECTORY bash_completion.d/ DESTINATION ${BASH_COMPLETION_COMPLETIONSDIR})

@@ -19,8 +19,8 @@ ExportDialog::ExportDialog(QWidget *parent)
     m_exportView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     QCheckBox *checkbox = new QCheckBox();
-    checkbox->setText("全选");
-    m_exportBtn = new DSuggestButton("导出");
+    checkbox->setText(tr("select all"));
+    m_exportBtn = new DSuggestButton(tr("export"));
     m_exportBtn->setEnabled(false);
     QHBoxLayout *hLayout = new QHBoxLayout();
     hLayout->addStretch(1);
@@ -46,7 +46,7 @@ ExportDialog::ExportDialog(QWidget *parent)
 void ExportDialog::loadData(const QString &language)
 {
     auto model = new QStandardItemModel(this);
-    model->setHorizontalHeaderLabels(QStringList() << QStringLiteral("内容"));
+    model->setHorizontalHeaderLabels(QStringList() << tr("content"));
     connect(model, &QStandardItemModel::itemChanged, this, &ExportDialog::treeItemChanged);
     connect(model, &QStandardItemModel::itemChanged, this, [this] {
         m_exportBtn->setEnabled(hasChildItemChecked());
@@ -160,7 +160,7 @@ bool ExportDialog::hasChildItemChecked()
 
 void ExportDialog::saveFile()
 {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("导出当前配置"), "", tr("文件(*.csv)"));
+    QString fileName = QFileDialog::getSaveFileName(this, tr("export current configuration"), "", tr("file(*.csv)"));
     QFile file(fileName);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream stream(&file);
@@ -175,8 +175,8 @@ void ExportDialog::saveFile()
             this->close();
         } else {
             qWarning() << "stream.status:" << stream.status();
-            DDialog dialog("文件保存失败!", "",this);
-            dialog.addButton("确定", true, ButtonWarning);
+            DDialog dialog(tr("save failed"), "",this);
+            dialog.addButton(tr("ok"), true, ButtonWarning);
             dialog.exec();
         }
     }

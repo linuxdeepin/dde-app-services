@@ -12,6 +12,9 @@
 #include <QDBusArgument>
 #include <QJsonDocument>
 #include <DConfigFile>
+#include <dstandardpaths.h>
+#include <QCoreApplication>
+#include <QTranslator>
 
 using ResourceId = QString;
 using AppId = QString;
@@ -193,4 +196,25 @@ static QVariant stringToQVariant(const QString &s)
     if (error.error == QJsonParseError::NoError)
         return doc.toVariant();
     return s;
+}
+
+static QStringList translationDirs()
+{
+    QStringList result;
+    result << QCoreApplication::applicationDirPath();
+    for (auto item : Dtk::Core::DStandardPaths::standardLocations(QStandardPaths::DataLocation)) {
+        result << item + "/translations";
+    };
+    return result;
+}
+
+static void loadTranslation(const QString &fileName)
+{
+    auto translator = new QTranslator(QCoreApplication::instance());
+    for (auto item :translationDirs()) {
+        if (translator->load(QLocale::system(), fileName, "_", item, ".qm")) {
+            QCoreApplication::installTranslator(translator);
+            break;
+        }
+    }
 }
