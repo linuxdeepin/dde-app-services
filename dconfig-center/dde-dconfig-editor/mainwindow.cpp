@@ -534,6 +534,7 @@ void Content::onValueChanged(const QVariant &value)
         return;
     }
     manager->setValue(keyContent->key(), value);
+    keyContent->updateContent(manager.data());
 
     // TODO
     emit sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << keyContent->key(), old, value);
@@ -588,14 +589,16 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
         clip->setText(setCmd);
     });
 
-    connect(resetCmdAction, &QAction::triggered, this, [this, key] {
+    connect(resetCmdAction, &QAction::triggered, this, [this, key, widget] {
         QScopedPointer<ConfigGetter> manager(m_getter->createManager());
         const auto &old = manager->value(key);
         manager->reset(key);
+        if (auto contentWidget = qobject_cast<KeyContent *>(widget)) {
+            contentWidget->updateContent(manager.get());
+        }
         const auto value = manager->value(key);
         if (old != value) {
             emit sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << key, old, value);
-            requestRefreshResourceKeys();
         }
     });
     menu->exec(QCursor::pos());
@@ -616,8 +619,21 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
     bool canWrite = permissions == "readwrite" ? true : false;
     qDebug() << "key and value " << m_key << v;
 
-    DLabel *labelWidget = new DLabel(QString("%1 [%2]").arg(getter->displayName(m_key, language), m_key));
-    labelWidget->setToolTip(getter->description(m_key, language));
+    QString displayName = getter->displayName(m_key, language);
+    if (displayName.isEmpty()) {
+        displayName = getter->displayName(m_key, QString());
+        if (displayName.isEmpty()) {
+            displayName = m_key;
+        }
+    }
+    DLabel *labelWidget = new DLabel(QString("%1 [%2]").arg(displayName, m_key));
+    labelWidget->setObjectName("label-view");
+    QString description = getter->description(m_key, language);
+    if (description.isEmpty()) {
+        description = getter->description(m_key, QString());
+    }
+    labelWidget->setToolTip(description);
+
     m_hLay->addWidget(labelWidget);
     QWidget *valueWidget = nullptr;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -627,7 +643,6 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
 #endif
     if (valueType == QVariant::Bool) {
         auto widget = new DSwitchButton(this);
-        widget->setChecked(v.toBool());
         widget->setEnabled(canWrite);
         connect(widget, &DSwitchButton::clicked, widget, [this, widget](bool checked){
             widget->clearFocus();
@@ -637,13 +652,11 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
     } else if (valueType == QVariant::Double) {
         auto widget = new DDoubleSpinBox(this);
         widget->setRange(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
-        widget->setValue(v.toDouble());
         widget->setEnabled(canWrite);
         connect(widget, SIGNAL(valueChanged(double)), this, SLOT(onDoubleValueChanged(double)));
         valueWidget = widget;
     } else {
         auto widget = new DLineEdit(this);
-        widget->setText(qvariantToString(v));
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::editingFinished, widget, [this, widget](){
             widget->clearFocus();
@@ -652,13 +665,29 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
         valueWidget = widget;
     }
     if (valueWidget) {
+        valueWidget->setObjectName("value-view");
         m_hLay->addWidget(valueWidget);
     }
+    updateContent(getter);
 }
 
 QString KeyContent::key() const
 {
     return m_key;
+}
+
+void KeyContent::updateContent(ConfigGetter *getter)
+{
+    if (auto viewWidget = findChild<QWidget *>("value-view")) {
+        const QVariant &v = getter->value(m_key);
+        if (auto widget = qobject_cast<DSwitchButton*>(viewWidget)) {
+            widget->setChecked(v.toBool());
+        } else if (auto widget = qobject_cast<DDoubleSpinBox *>(viewWidget)) {
+            widget->setValue(v.toDouble());
+        } else if (auto widget = qobject_cast<DLineEdit *>(viewWidget)) {
+            widget->setText(qvariantToString(v));
+        }
+    }
 }
 
 void KeyContent::onDoubleValueChanged(double value)

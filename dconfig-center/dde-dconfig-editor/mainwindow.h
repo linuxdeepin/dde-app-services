@@ -36,6 +36,7 @@ public:
     KeyContent(const QString &key, QWidget *parent = nullptr);
     void setBaseInfo(ConfigGetter *getter, const QString &language);
     QString key() const;
+    void updateContent(ConfigGetter *getter);
 
 private Q_SLOTS:
     void onDoubleValueChanged(double value);
