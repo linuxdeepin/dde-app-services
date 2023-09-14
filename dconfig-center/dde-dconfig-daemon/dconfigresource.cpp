@@ -386,8 +386,10 @@ void DSGConfigResource::doGlobalValueChanged(const QString &key, const ResourceK
 */
 void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, DConfigMeta *newMeta)
 {
-    const QSet<QString> &newKeyList = {newMeta->keyList().begin(), newMeta->keyList().end()};
-    const QSet<QString> &oldKeyList = {oldMeta->keyList().begin(), oldMeta->keyList().end()};
+    const auto newMetaKeys = newMeta->keyList();
+    const auto oldMetaKeys = oldMeta->keyList();
+    const QSet<QString> &newKeyList = {newMetaKeys.begin(), newMetaKeys.end()};
+    const QSet<QString> &oldKeyList = {oldMetaKeys.begin(), oldMetaKeys.end()};
 
     // 配置项已经被移除，oldMeta - newMeta，移除cache值
     const auto subtractKeys = oldKeyList - (newKeyList);
