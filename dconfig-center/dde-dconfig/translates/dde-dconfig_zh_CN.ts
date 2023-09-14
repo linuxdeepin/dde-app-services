@@ -45,7 +45,7 @@ three positional argument as key if not the option</source>
     <message>
         <location filename="../main.cpp" line="367"/>
         <source>method for the configure item.</source>
-        <translation>指定配置项的字段信息，用于获取配置项的详细信息，值为{name | discription | visibility | permissions | version}其中一个，此选项在get模式下工作</translation>
+        <translation>指定配置项的字段信息，用于获取配置项的详细信息，值为{name | discription | visibility | permissions | version | isDefaultValue}其中一个，此选项在get模式下工作</translation>
     </message>
     <message>
         <location filename="../main.cpp" line="370"/>

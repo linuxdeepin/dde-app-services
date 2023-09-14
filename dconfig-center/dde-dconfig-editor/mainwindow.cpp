@@ -678,6 +678,10 @@ QString KeyContent::key() const
 
 void KeyContent::updateContent(ConfigGetter *getter)
 {
+    if (auto widget = findChild<DLabel*>("label-view")) {
+        const bool isDefaultValue = getter->isDefaultValue(m_key);
+        widget->setText(handleModificationInfomation(widget->text(), isDefaultValue));
+    }
     if (auto viewWidget = findChild<QWidget *>("value-view")) {
         const QVariant &v = getter->value(m_key);
         if (auto widget = qobject_cast<DSwitchButton*>(viewWidget)) {
@@ -693,6 +697,19 @@ void KeyContent::updateContent(ConfigGetter *getter)
 void KeyContent::onDoubleValueChanged(double value)
 {
     emit valueChanged(value);
+}
+
+QString KeyContent::handleModificationInfomation(const QString &text, bool isModified) const
+{
+    const QString MidificationFlag("*");
+    if (isModified) {
+        if (text.endsWith(MidificationFlag))
+            return text.chopped(MidificationFlag.size());
+    } else {
+        if (!text.endsWith(MidificationFlag))
+            return text + MidificationFlag;
+    }
+    return text;
 }
 
 HistoryDialog::HistoryDialog(QWidget *parent)

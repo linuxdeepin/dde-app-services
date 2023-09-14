@@ -224,3 +224,14 @@ TEST_F(ut_DConfigConn, appValue) {
     // can't fallback to generic value
     ASSERT_EQ(conn->value("canExit").variant(), false);
 }
+
+TEST_F(ut_DConfigConn, isDefaultValue) {
+    conn->reset("canExit");
+    ASSERT_TRUE(conn->isDefaultValue("canExit"));
+
+    conn->setValue("canExit", QDBusVariant{false});
+    ASSERT_FALSE(conn->isDefaultValue("canExit"));
+
+    conn->reset("canExit");
+    ASSERT_TRUE(conn->isDefaultValue("canExit"));
+}

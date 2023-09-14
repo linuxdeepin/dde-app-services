@@ -118,6 +118,11 @@ inline void outpuSTD(const QString &value)
 {
     std::cout << qPrintable(value) << std::endl;
 }
+// output for standard ostream(dev 1)
+inline void outpuSTD(const bool value)
+{
+    std::cout << (value ? "true" : "false") << std::endl;
+}
 // output for standard ostream(dev 2)
 inline void outpuSTDError(const QString &value)
 {
@@ -205,7 +210,7 @@ int CommandManager::getCommand()
             if (method == "value") {
                 QVariant result = manager->value(key);
                 if (result.type() == QVariant::Bool) {
-                    outpuSTD(result.toBool() ? "true" : "false");
+                    outpuSTD(result.toBool());
                 } else if (result.type() == QVariant::Double) {
                     outpuSTD(QString::number(result.toDouble()));
                 } else {
@@ -225,6 +230,9 @@ int CommandManager::getCommand()
                 outpuSTD(result);
             } else if (method == "version") {
                 QString result = manager->version();
+                outpuSTD(result);
+            } else if (method == "isDefaultValue") {
+                bool result = manager->isDefaultValue(key);
                 outpuSTD(result);
             } else {
                 outpuSTDError(QString("not exit the method:[%1] for `query` command.").arg(method));

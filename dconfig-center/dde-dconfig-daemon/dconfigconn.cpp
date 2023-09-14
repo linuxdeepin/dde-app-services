@@ -193,6 +193,19 @@ QDBusVariant DSGConfigConn::value(const QString &key)
     return QDBusVariant{value};
 }
 
+bool DSGConfigConn::isDefaultValue(const QString &key)
+{
+    if (!contains(key))
+        return false;
+
+    // Try to get value from cache.
+    auto value = file()->cacheValue(cache(), key);
+    const auto isDefault = !value.isValid();
+
+    qCDebug(cfLog) << "Get isDefaultValue value key:" << key << ", isDefault:" << isDefault;
+    return isDefault;
+}
+
 /*!
  \brief 返回指定配置项的可见性
  \a key 配置项名称

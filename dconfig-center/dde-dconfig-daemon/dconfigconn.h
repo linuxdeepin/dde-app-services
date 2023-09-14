@@ -52,6 +52,7 @@ public Q_SLOTS: // METHODS
     void setValue(const QString &key, const QDBusVariant &value);
     void reset(const QString &key);
     QDBusVariant value(const QString &key);
+    bool isDefaultValue(const QString &key);
     QString visibility(const QString &key) ;
     QString permissions(const QString &key) ;
     int flags(const QString &key);

@@ -39,6 +39,8 @@ dde-dconfig get dconfig-example -r=example -m=visibility canExit
 # query permissions for the key.
 dde-dconfig get dconfig-example -r=example -m=permissions canExit
 
+# query isDefaultValue for the key.
+dde-dconfig get dconfig-example -r=example -m=isDefaultValue canExit
 
 # set value for the key.
 dde-dconfig set dconfig-example -r=example canExit -v=false

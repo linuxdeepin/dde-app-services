@@ -68,6 +68,8 @@ public:
         // 设置值指定配置项的值
         config.setValue("canExit", false);
 
+        qDebug() << "key item's value is default:" << config.isDefaultValue("canExit");
+
         // 重置指定配置项的值
         config.reset("canExit");
     }
