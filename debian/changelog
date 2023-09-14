@@ -1,3 +1,11 @@
+dde-app-services (1.0.23) unstable; urgency=medium
+
+  * feat: Add chinese translation for tools(Issue: #66)
+  * feat: Sync setValue for dde-dconfig-editor
+  * fix: Crashed when repareCache for dde-dconfig-daemon
+
+ -- YeShanShan <yeshanshan@deepin.org>  Thu, 14 Sep 2023 13:25:42 +0800
+
 dde-app-services (1.0.22) unstable; urgency=medium
 
   * chore: Change the way to get application name
