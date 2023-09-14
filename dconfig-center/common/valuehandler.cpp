@@ -88,6 +88,11 @@ public:
         manager->release();
     }
 
+    bool isDefaultValue(const QString &key) override
+    {
+        return manager->isDefaultValue(key);
+    }
+
     DSGConfigManager *createManager(const QString &appid, const QString &fileName, const QString &subpath)
     {
         DSGConfig dsg_config(DSG_CONFIG, "/", QDBusConnection::systemBus());
@@ -199,6 +204,11 @@ public:
     void release() override
     {
         manager.reset();
+    }
+
+    bool isDefaultValue(const QString &key) override
+    {
+        return !manager->cacheValue(userCache.get(), key).isValid();
     }
 
 

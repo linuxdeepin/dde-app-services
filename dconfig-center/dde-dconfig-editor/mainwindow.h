@@ -45,6 +45,7 @@ Q_SIGNALS:
     void valueChanged(const QVariant &value);
 
 private:
+    QString handleModificationInfomation(const QString &text, bool isModified) const;
     QString m_key;
     QHBoxLayout *m_hLay = nullptr;
 };

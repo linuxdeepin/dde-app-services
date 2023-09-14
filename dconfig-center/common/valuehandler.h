@@ -23,6 +23,7 @@ public:
     virtual QString version() const = 0;
 
     virtual void release() = 0;
+    virtual bool isDefaultValue(const QString &key) = 0;
 };
 
 class ValueHandler : public QObject

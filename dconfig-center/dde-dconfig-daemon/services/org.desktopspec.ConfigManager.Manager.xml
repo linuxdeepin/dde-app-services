@@ -5,6 +5,10 @@
       <arg type='s' name='key' direction='in'/>
       <arg type='v' name='value' direction='out'/>
     </method>
+    <method name='isDefaultValue'>
+      <arg type='s' name='key' direction='in'/>
+      <arg type='b' name='isDefaultValue' direction='out'/>
+    </method>
     <method name='setValue'>
       <arg type='s' name='key' direction='in'/>
       <arg type='v' name='value' direction='in'/>

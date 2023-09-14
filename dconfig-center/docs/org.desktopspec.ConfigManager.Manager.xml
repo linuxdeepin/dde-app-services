@@ -11,6 +11,14 @@
       <arg type='v' name='value' direction='out'/>
     </method>
 
+    <!-- 判断配置项的值是否是默认值 -->
+    <method name='isDefaultValue'>
+      <!-- 配置项的唯一标识 -->
+      <arg type='s' name='key' direction='in'/>
+      <!-- `true`表示配置项的值是默认值 -->
+      <arg type='b' name='isDefaultValue' direction='out'/>
+    </method>
+
     <!-- 设置配置项的值 -->
     <method name='setValue'>
       <!-- 配置项的唯一标识 -->
