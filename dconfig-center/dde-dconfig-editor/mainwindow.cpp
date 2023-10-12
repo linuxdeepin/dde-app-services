@@ -69,6 +69,7 @@ MainWindow::MainWindow(QWidget *parent) :
     resourceListView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     resourceListView->setItemDelegate(new LevelDelegate(resourceListView));
     resourceListView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    resourceListView->setModel(new QStandardItemModel());
     auto resourceHeader = new DSearchEdit();
     resourceHeader->setMinimumWidth(200);
     resourceHeader->setPlaceHolder(tr("resource"));
@@ -218,8 +219,8 @@ void MainWindow::refreshApps(const QString &matchAppid)
 
 void MainWindow::refreshAppResources(const QString &appid, const QString &matchResource)
 {
-    auto model = new QStandardItemModel(resourceListView);
     resourceListView->reset();
+    auto model = qobject_cast<QStandardItemModel *>(resourceListView->model());
 
     const auto &resources = appid == NoAppId ? ResourceList() : resourcesForApp(appid);
 
@@ -259,7 +260,6 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
 
     }
 
-    resourceListView->setModel(model);
     if (model->rowCount() > 0) {
         resourceListView->setCurrentIndex(resourceListView->model()->index(0, 0));
     }
