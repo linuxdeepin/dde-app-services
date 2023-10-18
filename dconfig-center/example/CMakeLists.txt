@@ -13,11 +13,11 @@ ADD_EXECUTABLE(dconfig-example ./main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Qt${QT_VERSION_MAJOR}::Core Dtk${DTK_VERSION_MAJOR}::Core)
 
-dconfig_meta_files(APPID dconfig-example BASE ./configs FILES ./configs/example.json ./configs/a/example.json)
+dconfig_meta_files(APPID dconfig-example BASE ./configs FILES ./configs/a/example.json)
 
 dconfig_meta_files(COMMONID true FILES ./configs/example.json ./configs/a/example.json)
 
-dconfig_meta_files(APPID dconfig-example FILES ./configs/example.json ./configs/a/example.json)
+dconfig_meta_files(APPID dconfig-example FILES ./configs/example.json)
 
 dconfig_override_files(APPID dconfig-example BASE ./configs META_NAME example  FILES ./configs/dconf-example.override.json ./configs/a/dconf-example.override.a.json)
 

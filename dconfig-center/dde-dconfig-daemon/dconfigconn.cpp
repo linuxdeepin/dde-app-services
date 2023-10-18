@@ -115,6 +115,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
     if (!contains(key))
         return;
 
+    if (!hasPermissionByUid(key))
+        return;
+
     const auto &v = decodeQDBusArgument(value.variant());
     qCDebug(cfLog) << "Set value, key:" << key << ", now value:" << v << ", old value:" << file()->value(key, cache());
     if(!file()->setValue(key, v, getAppid(), cache()))
@@ -151,6 +154,9 @@ void DSGConfigConn::reset(const QString &key)
 QDBusVariant DSGConfigConn::value(const QString &key)
 {
     if (!contains(key))
+        return QDBusVariant();
+
+    if (!hasPermissionByUid(key))
         return QDBusVariant();
 
     // Try to get value from cache.
@@ -272,4 +278,26 @@ DConfigFile *DSGConfigConn::file() const
 DConfigCache *DSGConfigConn::cache() const
 {
     return m_resource->getCache(m_key);
+}
+
+bool DSGConfigConn::hasPermissionByUid(const QString &key) const
+{
+    auto flags = meta()->flags(key);
+    if (flags.testFlag(DConfigFile::UserPublic))
+        return true;
+
+    if (!calledFromDBus())
+        return true;
+
+    const QString &service = message().service();
+    const uint callerUid = connection().interface()->serviceUid(service);
+    const auto connectionUid = getConnectionKey(m_key);
+    bool hasPermission = callerUid == connectionUid;
+
+    if (!hasPermission) {
+        QString errorMsg = QString("[%1] No Permission configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
+        sendErrorReply(QDBusError::AccessDenied, errorMsg);
+        qWarning() << qPrintable(errorMsg);
+    }
+    return hasPermission;
 }

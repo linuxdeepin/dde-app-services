@@ -79,6 +79,16 @@ TEST_F(ut_DConfigServer, acquireManager) {
     ASSERT_EQ(server->resourceSize(), 1);
 }
 
+TEST_F(ut_DConfigServer, acquireManagerV2) {
+    ASSERT_EQ(server->acquireManagerV2(TestUid, APP_ID, FILE_NAME, QString("")).path(),
+              formatDBusObjectPath(QString("/%1/%2/%3").arg(APP_ID, FILE_NAME, QString::number(TestUid))));
+    ASSERT_EQ(server->resourceSize(), 1);
+
+    auto path2 = server->acquireManager(APP_ID, "example_noexist", QString("")).path();
+    ASSERT_EQ(server->resourceObject(path2), nullptr);
+    ASSERT_EQ(server->resourceSize(), 1);
+}
+
 TEST_F(ut_DConfigServer, resourceSize) {
 
     auto path1 = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();

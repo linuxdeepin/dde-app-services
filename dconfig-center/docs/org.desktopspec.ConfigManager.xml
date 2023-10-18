@@ -11,6 +11,20 @@
       <arg type='o' name='path' direction='out'/>
     </method>
 
+    <!-- 根据用户id获取需要管理的配置描述文件DBus path -->
+    <method name='acquireManagerV2'>
+        <!-- 用户唯一标识-->
+      <arg type='u' name='uid' direction='in'/>
+        <!-- 应用唯一标识-->
+      <arg type='s' name='appid' direction='in'/>
+        <!-- 配置id，配置描述文件标识-->
+      <arg type='s' name='name' direction='in'/>
+        <!-- 子目录 -->
+      <arg type='s' name='subpath' direction='in'/>
+        <!-- DBus path，配置描述文件的链接路径，通过此path来进行此配置描述文件的管理 -->
+      <arg type='o' name='path' direction='out'/>
+    </method>
+
     <!-- 热更新配置描述文件，当配置描述文件内容发生改变时，并且配置中心存在此配置描述文件的链接时，需要调用此接口 -->
     <method name='update'>
         <!-- 配置描述文件完整路径 -->

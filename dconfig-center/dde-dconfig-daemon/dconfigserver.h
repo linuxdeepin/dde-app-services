@@ -47,6 +47,8 @@ Q_SIGNALS:
 public Q_SLOTS:
     QDBusObjectPath acquireManager(const QString &appid, const QString &name, const QString &subpath);
 
+    QDBusObjectPath acquireManagerV2(const uint &uid, const QString &appid, const QString &name, const QString &subpath);
+
     void update(const QString &path);
 
     void sync(const QString &path);

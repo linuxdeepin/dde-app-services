@@ -14,6 +14,10 @@ echo delayReleaseTime: $(dbus-send --system --type=method_call --print-reply=lit
 #acquireManager
 DCONFIG_RESOURCE_PATH=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.acquireManager string:'dconfig-example' string:'example' string:'')
 
+#acquireManagerV2
+USERID=$(id -u)
+DCONFIG_RESOURCE_PATH=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.acquireManagerV2 uint32:$USERID, string:'dconfig-example' string:'example' string:'')
+
 #object path
 echo path: $DCONFIG_RESOURCE_PATH
 
@@ -39,14 +43,14 @@ dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.Confi
 
 
 #value
-dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit' 
+dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit'
 
 
 #setValue
-PROPERTY_VALUE=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit')  
-if [[ "$PROPERTY_VALUE" = *true ]];then 
+PROPERTY_VALUE=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit')
+if [[ "$PROPERTY_VALUE" = *true ]];then
   dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.setValue string:'canExit' variant:boolean:false
-else  
+else
   dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.setValue string:'canExit' variant:boolean:true
 fi
 
@@ -54,7 +58,7 @@ fi
 dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.reset string:'canExit'
 
 #value
-dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit' 
+dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit'
 
 #isDefaultValue
 dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.isDefaultValue string:'canExit'
@@ -73,5 +77,22 @@ dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopsp
 
 # killall dbus-monitor
 # kill $DBUS_MONITOR_PID
+
+#acquireManagerV2
+DCONFIG_RESOURCE_PATH_BY_UID=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.acquireManagerV2 uint32:$USERID, string:'dconfig-example' string:'example' string:'')
+
+#object path
+echo $DCONFIG_RESOURCE_PATH_BY_UID
+
+#value
+dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit'
+
+#setValue
+PROPERTY_VALUE=$(dbus-send --system --type=method_call --print-reply=literal --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.value string:'canExit')
+if [[ "$PROPERTY_VALUE" = *true ]];then
+  dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.setValue string:'canExit' variant:boolean:false
+else
+  dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager $DCONFIG_RESOURCE_PATH org.desktopspec.ConfigManager.Manager.setValue string:'canExit' variant:boolean:true
+fi
 
 jobs -p |xargs kill 
