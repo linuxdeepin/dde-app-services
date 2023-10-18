@@ -56,3 +56,6 @@ dde-dconfig reset dconfig-example -r=example canExit
 dde-dconfig get dconfig-example -r=example canExit
 # query value for the key, which data type is array and value is json format.
 dde-dconfig get dconfig-example -r=example array
+
+# query value for the key canExit of user(uid)
+dde-dconfig get dconfig-example -r=example -k canExit -u $(id -u)

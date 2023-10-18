@@ -66,6 +66,7 @@ private:
     DTK_CORE_NAMESPACE::DConfigMeta *meta() const;
     DTK_CORE_NAMESPACE::DConfigFile *file() const;
     DTK_CORE_NAMESPACE::DConfigCache *cache() const;
+    bool hasPermissionByUid(const QString &key) const;
 
 private:
     ConnKey m_key;

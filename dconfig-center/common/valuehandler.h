@@ -31,14 +31,17 @@ class ValueHandler : public QObject
     Q_OBJECT
 public:
     explicit ValueHandler(const QString &appid, const QString &fileName, const QString &subpath);
+    explicit ValueHandler(int uid, const QString &appid, const QString &fileName, const QString &subpath);
     ~ValueHandler();
 
     ConfigGetter *createManager();
+    int getUid() const;
 
 Q_SIGNALS:
     void valueChanged(const QString &key);
 
 public:
+    int uid = -1;
     const QString appid;
     const QString fileName;
     const QString subpath;

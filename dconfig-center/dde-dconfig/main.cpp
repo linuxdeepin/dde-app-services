@@ -18,6 +18,7 @@
 class CommandManager {
 public:
     CommandManager(const QCommandLineParser &parser,
+            const QCommandLineOption &uidOption,
             const QCommandLineOption &appidOption,
             const QCommandLineOption &resourceOption,
             const QCommandLineOption &subpathOption,
@@ -26,6 +27,7 @@ public:
             const QCommandLineOption &languageOption,
             const QCommandLineOption &valueOption)
         : parser(parser)
+        , uidOption(uidOption)
         , appidOption(appidOption)
         , resourceOption(resourceOption)
         , subpathOption(subpathOption)
@@ -50,6 +52,8 @@ public:
 
     void updateValues()
     {
+        if (parser.isSet(uidOption))
+            uid = parser.value(uidOption).toInt();
         appid = fetchAppid();
         resourceid = fetchResourceid();
         subpathid = parser.value(subpathOption);
@@ -104,6 +108,8 @@ public:
 private:
     const QCommandLineParser &parser;
 
+    int uid = -1;
+    QCommandLineOption uidOption;
     QCommandLineOption appidOption;
     QCommandLineOption resourceOption;
     QCommandLineOption subpathOption;
@@ -194,7 +200,7 @@ int CommandManager::getCommand()
         return 1;
     }
 
-    ValueHandler handler(appid, resourceid, subpathid);
+    ValueHandler handler(uid, appid, resourceid, subpathid);
     if (auto manager = handler.createManager()) {
         if (!isSetKey() && !parser.isSet(methodOption)) {
 
@@ -264,7 +270,7 @@ int CommandManager::setCommand()
     }
 
     const auto &value = parser.value(valueOption);
-    ValueHandler handler(appid, resourceid, subpathid);
+    ValueHandler handler(uid, appid, resourceid, subpathid);
     {
         QScopedPointer<ConfigGetter> manager(handler.createManager());
         if (manager) {
@@ -297,7 +303,7 @@ int CommandManager::resetCommand()
         return 1;
     }
 
-    ValueHandler handler(appid, resourceid, subpathid);
+    ValueHandler handler(uid, appid, resourceid, subpathid);
     {
         QScopedPointer<ConfigGetter> manager(handler.createManager());
         if (manager) {
@@ -323,7 +329,7 @@ int CommandManager::watchCommand()
         return 1;
     }
 
-    ValueHandler handler(appid, resourceid, subpathid);
+    ValueHandler handler(uid, appid, resourceid, subpathid);
     QScopedPointer<ConfigGetter> manager(handler.createManager());
     if (manager) {
         const auto &matchKey = key;
@@ -351,6 +357,9 @@ int main(int argc, char *argv[])
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::translate("main", "A console tool to get and set configuration items for DTK Config."));
     parser.addHelpOption();
+
+    QCommandLineOption uidOption("u", QCoreApplication::translate("main", "operate configure items of the user uid."), "uid", QString());
+    parser.addOption(uidOption);
 
     QCommandLineOption appidOption("a", QCoreApplication::translate("main", "appid for a specific application, \n"
                                                                             "it is empty string if we need to manage application independent configuration.\n"
@@ -404,6 +413,7 @@ int main(int argc, char *argv[])
     guiOption.setFlags(guiOption.flags() ^ QCommandLineOption::HiddenFromHelp);
     parser.addOption(guiOption);
 
+
     // support positional argument for subcommand.
     parser.addPositionalArgument(listOption.names().constFirst(), listOption.description(), "\n list: dde-dconfig list \n");
     parser.addPositionalArgument(getOption.names().constFirst(), getOption.description(), "get: dde-dconfig get -a dconfig-example -r example -k key1 \n");
@@ -421,7 +431,7 @@ int main(int argc, char *argv[])
     const auto positions = parser.positionalArguments();
     const auto subcommand = positions.isEmpty() ? QString() : positions.constFirst();
 
-    CommandManager manager {parser, appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption };
+    CommandManager manager {parser, uidOption, appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption };
     if (parser.isSet(guiOption) || guiOption.names().contains(subcommand)) {
         const QString guiTool("dde-dconfig-editor");
 #if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)

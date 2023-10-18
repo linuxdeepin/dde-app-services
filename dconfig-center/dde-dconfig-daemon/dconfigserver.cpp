@@ -152,6 +152,29 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
 {
     const auto &service = calledFromDBus() ? message().service() : "test.service";
     const uint &uid = calledFromDBus() ? connection().interface()->serviceUid(service).value() : TestUid;
+    return acquireManagerV2(uid, appid, name, subpath);
+}
+
+/*!
+ \brief 响应请求配置文件管理连接
+ \a 用户的唯一ID
+ \a 应用程序的唯一ID
+ \a 配置文件名
+ \a 配置文件子目录
+ \return
+ */
+QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString &appid, const QString &name, const QString &subpath)
+{
+    struct passwd *pw = getpwuid(uid);
+    if (!pw) {
+        QString errorMsg = QString("User with UID %1 does not exist.").arg(uid);
+        if (calledFromDBus())
+            sendErrorReply(QDBusError::Failed, errorMsg);
+        qWarning() << qPrintable(errorMsg);
+        return QDBusObjectPath();
+    }
+
+    const auto &service = calledFromDBus() ? message().service() : "test.service";
     qCDebug(cfLog, "AcquireManager service:%s, uid:%d, appid:%s", qPrintable(service), uid, qPrintable(appid));
     const QString &innerAppid = outerAppidToInner(appid);
     const GenericResourceKey &genericResourceKey = getGenericResourceKey(name, subpath);

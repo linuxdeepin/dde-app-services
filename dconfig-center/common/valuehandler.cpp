@@ -96,17 +96,24 @@ public:
     DSGConfigManager *createManager(const QString &appid, const QString &fileName, const QString &subpath)
     {
         DSGConfig dsg_config(DSG_CONFIG, "/", QDBusConnection::systemBus());
-        QDBusPendingReply<QDBusObjectPath> dbus_reply = dsg_config.acquireManager(appid, fileName, subpath);
+        QDBusPendingReply<QDBusObjectPath> dbus_reply;
+        if (owner->getUid() != -1) {
+            dbus_reply = dsg_config.acquireManagerV2(owner->getUid(), appid, fileName, subpath);
+        } else {
+            dbus_reply = dsg_config.acquireManager(appid, fileName, subpath);
+        }
         const QDBusObjectPath dbus_path = dbus_reply.value();
         if (dbus_reply.isError() || dbus_path.path().isEmpty()) {
-            qWarning() << QString("can't not get dbus path for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath);
+            qWarning() << QString("can't not get dbus path for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath)
+                       << dbus_reply.error().message();
             return nullptr;
         }
 
         QScopedPointer<DSGConfigManager> config(new DSGConfigManager(DSG_CONFIG_MANAGER, dbus_path.path(),
                                                                      QDBusConnection::systemBus()));
         if (!config->isValid()) {
-            qWarning() << QString("can't not get dbus handler for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath);
+            qWarning() << QString("can't not get dbus handler for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath)
+                       << dbus_reply.error().message();
             return nullptr;
         }
         manager.reset(config.take());
@@ -259,6 +266,14 @@ ValueHandler::ValueHandler(const QString &appid, const QString &fileName, const 
 {
 }
 
+ValueHandler::ValueHandler(int uid, const QString &appid, const QString &fileName, const QString &subpath)
+    : uid(uid),
+      appid(appid),
+      fileName(fileName),
+      subpath(subpath)
+{
+}
+
 ValueHandler::~ValueHandler()
 {
 }
@@ -279,6 +294,11 @@ ConfigGetter* ValueHandler::createManager()
     }
     qWarning() << QString("get value handler error for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath);
     return nullptr;
+}
+
+int ValueHandler::getUid() const
+{
+    return uid;
 }
 
 ConfigGetter::~ConfigGetter(){}
