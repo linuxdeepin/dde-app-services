@@ -61,7 +61,7 @@ Q_SIGNALS: // SIGNALS
     void globalValueChanged(const QString &key);
 
 private:
-    QString getAppid();
+    QString getAppid() const;
     bool contains(const QString &key);
     DTK_CORE_NAMESPACE::DConfigMeta *meta() const;
     DTK_CORE_NAMESPACE::DConfigFile *file() const;

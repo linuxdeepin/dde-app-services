@@ -232,14 +232,14 @@ int DSGConfigConn::flags(const QString &key)
     return static_cast<int>(meta()->flags(key));
 }
 
-QString DSGConfigConn::getAppid()
+QString DSGConfigConn::getAppid() const
 {
     if (m_appName.isEmpty()) {
         if (calledFromDBus()) {
             const QString &service = message().service();
-            m_appName = getProcessNameByPid(connection().interface()->servicePid(service));
+            const_cast<DSGConfigConn *>(this)->m_appName = getProcessNameByPid(connection().interface()->servicePid(service));
         } else {
-            m_appName = QString("testappid");
+            const_cast<DSGConfigConn *>(this)->m_appName = QString("testappid");
         }
     }
     return m_appName;
