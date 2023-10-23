@@ -1,3 +1,12 @@
+dde-app-services (1.0.24) unstable; urgency=medium
+
+  * feat: Add the way to check value is or not default value(Issue: dtk#3)
+  * chore: Add the key const to the function getAppid
+  * chore: add acquireManagerV2 interface(Issue: 5928)
+  * fix: dde-dconfig-editor crashed(Bug: 222631)
+
+ -- Deepin Packages Builder <packages@deepin.org>  Mon, 23 Oct 2023 13:52:12 +0800
+
 dde-app-services (1.0.23) unstable; urgency=medium
 
   * feat: Add chinese translation for tools(Issue: #66)
