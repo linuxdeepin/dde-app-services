@@ -221,6 +221,7 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
 {
     resourceListView->reset();
     auto model = qobject_cast<QStandardItemModel *>(resourceListView->model());
+    model->clear();
 
     const auto &resources = appid == NoAppId ? ResourceList() : resourcesForApp(appid);
 
