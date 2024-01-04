@@ -4,32 +4,32 @@
 <context>
     <name>Content</name>
     <message>
-        <location filename="../mainwindow.cpp" line="551"/>
+        <location filename="../mainwindow.cpp" line="591"/>
         <source>export</source>
         <translation>导出</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="552"/>
+        <location filename="../mainwindow.cpp" line="592"/>
         <source>copy value</source>
         <translation>复制值</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="553"/>
+        <location filename="../mainwindow.cpp" line="593"/>
         <source>convert to cmd</source>
         <translation>复制命令</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="554"/>
+        <location filename="../mainwindow.cpp" line="594"/>
         <source>reset value</source>
         <translation>重置</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="563"/>
+        <location filename="../mainwindow.cpp" line="603"/>
         <source>export current configuration</source>
         <translation>导出当前配置</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="563"/>
+        <location filename="../mainwindow.cpp" line="603"/>
         <source>file(*.csv)</source>
         <translation>文件(*.csv)</translation>
     </message>
@@ -85,57 +85,62 @@
         <translation>输入应用Id</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="74"/>
+        <location filename="../mainwindow.cpp" line="75"/>
         <source>resource</source>
         <translation>配置Id</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="75"/>
+        <location filename="../mainwindow.cpp" line="76"/>
         <source>input filter resource</source>
         <translation>输入配置Id</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="92"/>
+        <location filename="../mainwindow.cpp" line="93"/>
         <source>keys</source>
         <translation>配置项Key值</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="93"/>
+        <location filename="../mainwindow.cpp" line="94"/>
         <source>input filter keys</source>
         <translation>输入配置项Key值</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="156"/>
+        <location filename="../mainwindow.cpp" line="177"/>
         <source>setting history</source>
         <translation>修改历史</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="170"/>
+        <location filename="../mainwindow.cpp" line="191"/>
         <source>export</source>
         <translation>导出</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="177"/>
+        <location filename="../mainwindow.cpp" line="198"/>
         <source>OEM</source>
         <translation>定制镜像</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="292"/>
+        <location filename="../mainwindow.cpp" line="314"/>
+        <source>reset value</source>
+        <translation>重置</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="331"/>
         <source>config language</source>
         <translation>配置语言</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="293"/>
+        <location filename="../mainwindow.cpp" line="332"/>
         <source>default</source>
         <translation>默认</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="295"/>
+        <location filename="../mainwindow.cpp" line="334"/>
         <source>chinese</source>
         <translation>中文</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="297"/>
+        <location filename="../mainwindow.cpp" line="336"/>
         <source>english</source>
         <translation>英文</translation>
     </message>
