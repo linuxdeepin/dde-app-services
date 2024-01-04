@@ -151,6 +151,26 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
+    resourceListView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(resourceListView, &QWidget::customContextMenuRequested, this, [this](const QPoint&) {
+        if (auto model = qobject_cast<QStandardItemModel*>(resourceListView->model())){
+            const auto index = resourceListView->currentIndex();
+            if (!index.isValid())
+                return;
+            const auto &type = model->data(index, ConfigUserRole + 1).toInt();
+            if (type & ConfigType::ResourceType || type == ConfigType::SubpathType) {
+                const auto &appid = model->data(index, ConfigUserRole + 2).toString();
+                const auto &resourceId = model->data(index, ConfigUserRole + 3).toString();
+                const auto &subpath = model->data(index, ConfigUserRole + 4).toString();
+                if (resourceId.isEmpty()) {
+                    qWarning() << "error" << appid << resourceId;
+                    return;
+                }
+                onCustomResourceMenuRequested(appid, resourceId, subpath);
+            }
+        }
+    });
+
     // set history
     DTitlebar *titlebar = this->titlebar();
     titlebar->setIcon(QIcon(APP_ICON));
@@ -285,6 +305,24 @@ void MainWindow::refreshResourceSubpaths(QStandardItemModel *model, const QStrin
 void MainWindow::refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId)
 {
     contentView->refreshResourceKeys(appid, resourceId, subpath, matchKeyId);
+}
+
+void MainWindow::onCustomResourceMenuRequested(const QString &appid, const QString &resource, const QString &subpath)
+{
+     QMenu menu(resourceListView);
+
+     QAction *resetCmdAction = menu.addAction(tr("reset value"));
+
+     connect(resetCmdAction, &QAction::triggered, this, [this, appid, resource, subpath] {
+         QScopedPointer<ValueHandler> getter(new ValueHandler(appid, resource, subpath));
+         QScopedPointer<ConfigGetter> manager(getter->createManager());
+         const auto keys = manager->keyList();
+         for (const auto &item : qAsConst(keys)) {
+             manager->reset(item);
+         }
+         refreshResourceKeys(appid, resource, subpath);
+     });
+     menu.exec(QCursor::pos());
 }
 
 void MainWindow::installTranslate()

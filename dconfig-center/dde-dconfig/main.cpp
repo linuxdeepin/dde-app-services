@@ -293,8 +293,8 @@ int CommandManager::setCommand()
 int CommandManager::resetCommand()
 {
     // reset命令，设置指定配置项
-    if (!isSetAppid() || !isSetResourceid() || !isSetKey()) {
-        outpuSTDError("not set appid, resource or key.");
+    if (!isSetAppid() || !isSetResourceid()) {
+        outpuSTDError("not set appid, resource");
         return 1;
     }
 
@@ -307,7 +307,14 @@ int CommandManager::resetCommand()
     {
         QScopedPointer<ConfigGetter> manager(handler.createManager());
         if (manager) {
-            manager->reset(key);
+            if (isSetKey()) {
+                manager->reset(key);
+            } else {
+                const auto keys = manager->keyList();
+                for (const auto &item : qAsConst(keys)) {
+                    manager->reset(item);
+                }
+            }
         } else {
             outpuSTDError(QString("not create value handler for appid=%1, resource=%2, subpath=%3.").arg(appid, resourceid, subpathid));
             return 1;
@@ -401,7 +408,7 @@ int main(int argc, char *argv[])
     setOption.setFlags(setOption.flags() ^ QCommandLineOption::HiddenFromHelp);
     parser.addOption(setOption);
 
-    QCommandLineOption resetOption("reset", QCoreApplication::translate("main", "reset configure item 's value."));
+    QCommandLineOption resetOption("reset", QCoreApplication::translate("main", "reset configure item's value, reset all configure item's value if not `-k` option."));
     resetOption.setFlags(resetOption.flags() ^ QCommandLineOption::HiddenFromHelp);
     parser.addOption(resetOption);
 

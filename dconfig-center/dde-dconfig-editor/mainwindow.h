@@ -116,6 +116,8 @@ private slots:
     void refreshResourceSubpaths(QStandardItemModel *model, const QString &appid, const QString &resourceId);
 
     void refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId = QString());
+
+    void onCustomResourceMenuRequested(const QString &appid, const QString &resource, const QString &subpath);
 private:
     void installTranslate();
 
