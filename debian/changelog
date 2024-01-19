@@ -1,3 +1,13 @@
+dde-app-services (1.0.25) unstable; urgency=medium
+
+  * Fix: Don't hardcode qhelpgenerator
+    Thanks to Hillwood Yang
+  * fix: repeated items for dde-dconfig-editor
+  * fix: deb's format wrong
+  * feat: support to reset all keys for configuration
+
+ -- Deepin Packages Builder <packages@deepin.org>  Fri, 19 Jan 2024 14:42:32 +0800
+
 dde-app-services (1.0.24) unstable; urgency=medium
 
   * feat: Add the way to check value is or not default value(Issue: dtk#3)
