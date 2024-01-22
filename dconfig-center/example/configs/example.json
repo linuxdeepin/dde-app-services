@@ -12,6 +12,16 @@
             "permissions": "readwrite",
             "visibility": "private"
         },
+        "readOnlyKey": {
+            "value": true,
+            "serial": 0,
+            "flags": ["global"],
+            "name": "I am name",
+            "name[zh_CN]": "我是名字",
+            "description": "I am description",
+            "permissions": "readonly",
+            "visibility": "private"
+        },
         "key2": {
             "value": "125",
             "serial": 0,

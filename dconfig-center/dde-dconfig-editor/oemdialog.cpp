@@ -86,6 +86,7 @@ void OEMDialog::loadData(const QString &language)
 
                 QVariant value =  manager.get()->value(key);
                 QVariant description = manager.get()->description(key, language);
+                QVariant flags = manager.get()->flags(key);
                 auto valueItem = new DStandardItem();
                 valueItem->setSizeHint(QSize(200, 45));
                 valueItem->setData(app, AppidRole);
@@ -94,6 +95,7 @@ void OEMDialog::loadData(const QString &language)
                 valueItem->setData(key, KeyRole);
                 valueItem->setData(value, ValueRole);
                 valueItem->setData(description, DescriptionRole);
+                valueItem->setData(flags, FlagsRole);
                 resourceItem->appendRow(QList<QStandardItem*>() << keyItem << valueItem);
                 m_exportView->setIndexWidget(valueItem->index(), getItemWidget(manager.get(), valueItem));
             }
@@ -120,12 +122,14 @@ void OEMDialog::loadData(const QString &language)
                     QVariant value =  manager.get()->value(key);
                     QVariant description = manager.get()->description(key, language);
                     auto valueItem = new DStandardItem(value.toString());
+                    QVariant flags = manager.get()->flags(key);
                     valueItem->setData(app, AppidRole);
                     valueItem->setData(resource, ResourceRole);
                     valueItem->setData(subpath, SubpathRole);
                     valueItem->setData(key, KeyRole);
                     valueItem->setData(value, ValueRole);
                     valueItem->setData(description, DescriptionRole);
+                    valueItem->setData(flags, FlagsRole);
 
                     subpathItem->appendRow(QList<QStandardItem*>() << keyItem << valueItem);
                     m_exportView->setIndexWidget(valueItem->index(), getItemWidget(manager.get(), valueItem));
@@ -339,8 +343,8 @@ void OEMDialog::createJsonFile(const QString &fileName, const QList<DStandardIte
 
 QWidget *OEMDialog::getItemWidget(ConfigGetter *getter, DStandardItem *item)
 {
-    const QString &permissions = getter->permissions(item->data(KeyRole).toString());
-    bool canWrite = permissions == "readwrite" ? true : false;
+    const int flags = getter->flags(item->data(KeyRole).toString());
+    bool canWrite = !(flags & Dtk::Core::DConfigFile::Flag::NoOverride);
     QVariant v = item->data(ValueRole);
     QWidget *valueWidget = nullptr;
     if (v.type() == QVariant::Bool) {

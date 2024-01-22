@@ -21,6 +21,7 @@ public:
     virtual QString displayName(const QString &key, const QString &locale) = 0;
     virtual QString description(const QString &key, const QString &locale) = 0;
     virtual QString version() const = 0;
+    virtual int flags(const QString &key) const = 0;
 
     virtual void release() = 0;
     virtual bool isDefaultValue(const QString &key) = 0;
