@@ -31,6 +31,8 @@ constexpr int SubpathRole = Qt::UserRole + 13;
 constexpr int KeyRole = Qt::UserRole + 14;
 constexpr int ValueRole = Qt::UserRole + 15;
 constexpr int DescriptionRole = Qt::UserRole + 16;
+constexpr int FlagsRole = Qt::UserRole + 17;
+
 static const QString NoAppId;
 static const QString VirtualAppName("virtual-generic-applicaiton");
 

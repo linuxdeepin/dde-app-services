@@ -83,6 +83,11 @@ public:
         return manager->version();
     }
 
+    int flags(const QString &key) const override
+    {
+        return manager->flags(key);
+    }
+
     void release() override
     {
         manager->release();
@@ -206,6 +211,11 @@ public:
     {
         const auto ver = manager->meta()->version();
         return QString("%1.%2").arg(ver.major).arg(ver.minor);
+    }
+
+    int flags(const QString &key) const override
+    {
+        return manager->meta()->flags(key);
     }
 
     void release() override
