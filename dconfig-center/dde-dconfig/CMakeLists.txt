@@ -72,5 +72,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 install(TARGETS dde-dconfig DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES ${QM_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/dde-dconfig/translations/)
 
-set(BASH_COMPLETION_COMPLETIONSDIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions/)
-install(DIRECTORY bash_completion.d/ DESTINATION ${BASH_COMPLETION_COMPLETIONSDIR})
+set(BASH_COMPLETION_COMPLETIONS ${CMAKE_INSTALL_DATADIR}/bash-completion/completions/)
+install(FILES ./completion/dde-dconfig.bash DESTINATION ${BASH_COMPLETION_COMPLETIONS} RENAME dde-dconfig)
+
+set(ZSH_COMPLETION_COMPLETIONS ${CMAKE_INSTALL_DATADIR}/zsh/vendor-completions/)
+install(FILES ./completion/dde-dconfig.zsh DESTINATION ${ZSH_COMPLETION_COMPLETIONS} RENAME _dde-dconfig)
