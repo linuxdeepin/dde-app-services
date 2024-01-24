@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SPDX-FileCopyrightText: 2023 Uniontech Software Technology Co.,Ltd.
+# SPDX-FileCopyrightText: 2024 Uniontech Software Technology Co.,Ltd.
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -12,15 +12,10 @@ _dde_dconfig() {
 
 	case $prev in
 	'dde-dconfig')
-		COMPREPLY=($(compgen -W 'help list set get gui watch' -- $cur))
+		COMPREPLY=($(compgen -W 'help list set get reset gui watch' -- $cur))
 		return
 		;;
-	'list')
-		local result=($(dde-dconfig list))
-		COMPREPLY=($(compgen -W "${result[*]}" -- $cur))
-		return
-		;;
-	'set')
+	'list' | 'set' | 'reset' | 'watch')
 		local result=($(dde-dconfig list))
 		COMPREPLY=($(compgen -W "${result[*]}" -- $cur))
 		return
@@ -30,16 +25,6 @@ _dde_dconfig() {
 			COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
 			return
 		fi
-		local result=($(dde-dconfig list))
-		COMPREPLY=($(compgen -W "${result[*]}" -- $cur))
-		return
-		;;
-	'reset')
-		local result=($(dde-dconfig list))
-		COMPREPLY=($(compgen -W "${result[*]}" -- $cur))
-		return
-		;;
-	'watch')
 		local result=($(dde-dconfig list))
 		COMPREPLY=($(compgen -W "${result[*]}" -- $cur))
 		return
