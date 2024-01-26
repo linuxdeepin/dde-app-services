@@ -17,6 +17,7 @@
 #include <QTranslator>
 
 using ResourceId = QString;
+using ResourcePath = QString;
 using AppId = QString;
 using SubpathKey = QString;
 using ResourceList = QList<ResourceId>;
@@ -72,9 +73,9 @@ static AppList applications(const QString &localPrefix = QString())
     return result;
 }
 
-static QSet<ResourceId> resourcesForDirectory(const QString &dir)
+static QSet<ResourcePath> resourcePathsForDirectory(const QString &dir)
 {
-    QSet<ResourceId> result;
+    QSet<ResourcePath> result;
     QDirIterator iterator(dir, QDir::Files);
     while(iterator.hasNext()) {
         iterator.next();
@@ -83,19 +84,31 @@ static QSet<ResourceId> resourcesForDirectory(const QString &dir)
         if (!file.fileName().endsWith(SUFFIX))
             continue;
 
-        ResourceId resourceName = file.fileName().chopped(SUFFIX.size());
-        result.insert(resourceName);
+        result.insert(file.absoluteFilePath());
     }
     return result;
+}
+
+static ResourceList resourcePathsForApp(const QString &appid, const QString &localPrefix = QString())
+{
+    QSet<ResourcePath> result;
+    result.reserve(50);
+    using namespace Dtk::Core;
+    for (auto item : DConfigMeta::applicationMetaDirs(localPrefix, appid)) {
+        result += resourcePathsForDirectory(item);
+    }
+    return result.values();
 }
 
 static ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
 {
     QSet<ResourceId> result;
     result.reserve(50);
-    using namespace Dtk::Core;
-    for (auto item : DConfigMeta::applicationMetaDirs(localPrefix, appid)) {
-        result += resourcesForDirectory(item);
+    for (auto item : resourcePathsForApp(appid, localPrefix)) {
+        const QFileInfo file(item);
+
+        ResourceId resourceName = file.fileName().chopped(SUFFIX.size());
+        result.insert(resourceName);
     }
     return result.values();
 }
@@ -106,16 +119,21 @@ static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
     result.reserve(50);
     using namespace Dtk::Core;
     for (auto item : DConfigMeta::genericMetaDirs(localPrefix)) {
-        result += resourcesForDirectory(item);
+        for (auto resourcePath : resourcePathsForDirectory(item)) {
+            const QFileInfo file(resourcePath);
+
+            ResourceId resourceName = file.fileName().chopped(SUFFIX.size());
+            result.insert(resourceName);
+        }
     }
     return result.values();
 }
 
-static ResourceList subpathsForResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
+static SubpathList subpathsForResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
     SubpathList result;
-    for (auto item : resourcesForApp(appid, localPrefix)) {
-        QDir resourceDir(item);
+    for (auto item : resourcePathsForApp(appid, localPrefix)) {
+        QDir resourceDir(QFileInfo(item).absoluteDir());
         auto filters = QDir::Dirs | QDir::NoDotAndDotDot;
         resourceDir.setFilter(filters);
         QDirIterator iterator(resourceDir, QDirIterator::Subdirectories);
@@ -125,6 +143,8 @@ static ResourceList subpathsForResource(const AppId &appid, const ResourceId &re
             const QFileInfo &file(iterator.fileInfo());
             if (QDir(file.absoluteFilePath()).exists(resourceId + SUFFIX)) {
                 auto subpath = file.absoluteFilePath().replace(resourceDir.absolutePath(), "");
+                if (result.contains(subpath))
+                    continue;
                 result.append(subpath);
             }
         }
@@ -139,8 +159,8 @@ static bool existAppid(const QString &appid, const QString &localPrefix = QStrin
 
 static bool existResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
-    const ResourceList &apps = resourcesForApp(appid, localPrefix);
-    if (apps.contains(resourceId))
+    const ResourceList &resources = resourcesForApp(appid, localPrefix);
+    if (resources.contains(resourceId))
         return true;
 
     const ResourceList &commons = resourcesForAllApp(localPrefix);
