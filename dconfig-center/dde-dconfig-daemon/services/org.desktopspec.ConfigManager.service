@@ -2,4 +2,4 @@
 Name=org.desktopspec.ConfigManager
 Exec=/usr/bin/dde-dconfig-daemon
 User=dde-dconfig-daemon
-SystemdService=dde-dconfig-daemon.service
+SystemdService=dbus-org.desktopspec.ConfigManager.service
