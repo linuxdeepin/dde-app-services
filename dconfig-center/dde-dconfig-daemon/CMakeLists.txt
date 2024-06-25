@@ -50,7 +50,6 @@ install(FILES services/dde-dconfig-daemon.service DESTINATION ${CMAKE_INSTALL_PR
 
 ## sysusers file
 install (FILES services/dde-dconfig-daemon.conf DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/sysusers.d)
-install (FILES services/dde-dconfig-daemon-tmpfiles.conf DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/tmpfiles.d)
 
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})

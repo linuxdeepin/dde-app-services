@@ -13,4 +13,3 @@ override_dh_auto_configure:
 override_dh_auto_install:
 	dh_auto_install
 	dh_installsysusers dde-dconfig-daemon.sysusers
-	dh_installtmpfiles dde-dconfig-daemon.tmpfiles
