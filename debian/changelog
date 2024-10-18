@@ -1,3 +1,9 @@
+dde-app-services (1.0.26) unstable; urgency=medium
+
+  * chore: systemd hardening
+
+ -- fuleyi <fuleyi@uniontech.com>  Fri, 18 Oct 2024 15:21:27 +0800
+
 dde-app-services (1.0.25) unstable; urgency=medium
 
   * Fix: Don't hardcode qhelpgenerator
