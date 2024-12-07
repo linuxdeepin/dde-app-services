@@ -1,3 +1,9 @@
+dde-app-services (1.0.27) unstable; urgency=medium
+
+  * fix: dde-dconfig-daemon can't be started by DBus
+
+ -- YeShanShan <yeshanshan@deepin.org>  Sat, 07 Dec 2024 10:57:44 +0800
+
 dde-app-services (1.0.26) unstable; urgency=medium
 
   * chore: systemd hardening
