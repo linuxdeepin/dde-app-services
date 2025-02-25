@@ -17,6 +17,7 @@
 #include <DLineEdit>
 #include <DSwitchButton>
 #include <DSpinBox>
+#include <QJsonArray>
 
 OEMDialog::OEMDialog(QWidget *parent)
     : DDialog( parent)
@@ -308,7 +309,17 @@ void OEMDialog::createJsonFile(const QString &fileName, const QList<DStandardIte
     qWarning() << fileName;
     QJsonObject rootObject, object, contentsObject, keyObject;
     for (auto item : items) {
-        keyObject.insert("value", QJsonValue::fromVariant(item->data(ValueRole)));
+        QVariant variant = item->data(ValueRole);
+        QJsonValue val = QJsonValue::fromVariant(variant);
+        if (variant.canConvert<QString>()) {
+            QString str = variant.toString();
+            QJsonDocument doc = QJsonDocument::fromJson(str.toUtf8());
+            if (!doc.isNull() && doc.isArray()) {
+                val = doc.array();
+            }
+        }
+
+        keyObject.insert("value", val);
         keyObject.insert("serial", 0);
         keyObject.insert("permissions", "readwrite");
         contentsObject.insert(item->data(KeyRole).toString(), keyObject);
