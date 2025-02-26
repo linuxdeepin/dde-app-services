@@ -352,6 +352,26 @@ void MainWindow::installTranslate()
     connect(contentView, &Content::languageChanged, this, [this](){
         emit resourceListView->clicked(resourceListView->currentIndex());
     });
+    const auto userInfos = fetchUserInfos();
+    if (!userInfos.isEmpty()) {
+        auto userMenu = titlebar->menu()->addMenu(tr("Switch User"));
+        QActionGroup *userGroup = new QActionGroup(this);
+        for (const auto user : userInfos) {
+            const auto uid = user.second;
+            auto action = userMenu->addAction(user.first);
+            action->setProperty("uid", uid);
+            action->setCheckable(true);
+            if (ValueHandler::currentUid() == uid) {
+                action->setChecked(true);
+            }
+            userGroup->addAction(action);
+        }
+        connect(userGroup, &QActionGroup::triggered, this, [this] (QAction *action) {
+            const auto uid = action->property("uid").toInt();
+            qDebug() << "Switch to the user" << action->text() << ", uid:" << uid;
+            ValueHandler::setCurrentUid(uid);
+        });
+    }
 
     const auto systemLanguage = QLocale::system().name();
     qDebug() << systemLanguage;

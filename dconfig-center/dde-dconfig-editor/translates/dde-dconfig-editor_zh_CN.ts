@@ -144,6 +144,11 @@
         <source>english</source>
         <translation>英文</translation>
     </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="357"/>
+        <source>Switch User</source>
+        <translation>切换用户</translation>
+    </message>
 </context>
 <context>
     <name>OEMDialog</name>

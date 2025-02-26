@@ -23,6 +23,7 @@ using SubpathKey = QString;
 using ResourceList = QList<ResourceId>;
 using AppList = QList<AppId>;
 using SubpathList = QList<SubpathKey>;
+using UserInfo = QPair<QString, int>;
 
 static const QString &SUFFIX = QString(".json");
 constexpr int ConfigUserRole = Qt::UserRole + 10;
@@ -239,4 +240,25 @@ static void loadTranslation(const QString &fileName)
             break;
         }
     }
+}
+
+static QList<UserInfo> fetchUserInfos()
+{
+    QList<UserInfo> res;
+    QFile file("/etc/passwd");
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    while (!file.atEnd()) {
+        QByteArray line = file.readLine();
+        const auto user = line.split(':');
+        if (user.count() != 7)
+            continue;
+        const auto loginin = user.at(6);
+        if (loginin.contains("nologin"))
+            continue;
+
+        res << UserInfo{user[0], user[2].toInt()};
+    }
+    return res;
 }

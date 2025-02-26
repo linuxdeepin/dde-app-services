@@ -34,6 +34,8 @@ public:
     explicit ValueHandler(const QString &appid, const QString &fileName, const QString &subpath);
     explicit ValueHandler(int uid, const QString &appid, const QString &fileName, const QString &subpath);
     ~ValueHandler();
+    static void setCurrentUid(int uid);
+    static int currentUid();
 
     ConfigGetter *createManager();
     int getUid() const;
