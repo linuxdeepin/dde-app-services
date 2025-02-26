@@ -288,6 +288,20 @@ ValueHandler::~ValueHandler()
 {
 }
 
+static int g_currentUid = -1;
+void ValueHandler::setCurrentUid(int uid)
+{
+    g_currentUid = uid;
+}
+
+int ValueHandler::currentUid()
+{
+    if (g_currentUid == -1) {
+        g_currentUid = getuid();
+    }
+    return g_currentUid;
+}
+
 ConfigGetter* ValueHandler::createManager()
 {
     if (DBusHandler::isServiceRegistered() || DBusHandler::isServiceActivatable()) {
@@ -308,6 +322,8 @@ ConfigGetter* ValueHandler::createManager()
 
 int ValueHandler::getUid() const
 {
+    if (uid == -1)
+        return currentUid();
     return uid;
 }
 
