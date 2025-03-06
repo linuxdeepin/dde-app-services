@@ -13,11 +13,22 @@
 
 static void exitApp(int signal)
 {
-    Q_UNUSED(signal);
-    QCoreApplication::exit();
+    qInfo() << "App exited due to receiving signal" << signal;
+    QCoreApplication::exit(1);
 }
 int main(int argc, char *argv[])
 {
+    // 异常处理，调用QCoreApplication::exit，使DSGConfigServer正常析构。
+    struct sigaction sa;
+    sa.sa_handler = exitApp;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESETHAND;
+
+    sigaction(SIGSEGV, &sa, nullptr);
+    sigaction(SIGILL, &sa, nullptr);
+    sigaction(SIGABRT, &sa, nullptr);
+    sigaction(SIGFPE, &sa, nullptr);
+
     QCoreApplication a(argc, argv);
     a.setOrganizationName("deepin");
 
@@ -64,12 +75,6 @@ int main(int argc, char *argv[])
         qInfo() << "Exit dconfig daemon and release resources.";
         dsgConfig.exit();
     });
-
-    // 异常处理，调用QCoreApplication::exit，使DSGConfigServer正常析构。
-    std::signal(SIGINT, exitApp);
-    std::signal(SIGABRT, exitApp);
-    std::signal(SIGTERM, exitApp);
-    std::signal(SIGKILL, exitApp);
 
     return a.exec();
 }
