@@ -1,3 +1,12 @@
+dde-app-services (1.0.28) unstable; urgency=medium
+
+  * feat: support to read other user's config for editor
+  * refact: using sigaction to handle signal
+  * refact: modify DSG_DATA_DIRS keeping up with linglong
+  * fix: incorrect override format for json when export to OEM
+
+ -- YeShanShan <yeshanshan@deepin.org>  Tue, 18 Mar 2025 21:23:23 +0800
+
 dde-app-services (1.0.27) unstable; urgency=medium
 
   * fix: dde-dconfig-daemon can't be started by DBus
