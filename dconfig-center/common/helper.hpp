@@ -212,6 +212,12 @@ static QString qvariantToString(const QVariant &v)
     return doc.isNull() ? v.toString() : doc.toJson();
 }
 
+static QString qvariantToStringCompact(const QVariant &v)
+{
+    const auto &doc = QJsonDocument::fromVariant(v);
+    return doc.isNull() ? v.toString() : doc.toJson(QJsonDocument::Compact);
+}
+
 static QVariant stringToQVariant(const QString &s)
 {
     QJsonParseError error;

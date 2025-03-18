@@ -196,12 +196,23 @@ void OEMDialog::saveOverridesFiles(const QString &dirName)
     }
 }
 
+static QString escapeCsvField(const QString &field) {
+    bool needsQuotes = field.contains(',') || field.contains('"') || field.contains('\n');
+    QString escaped = field;
+    escaped.replace("\"", "\"\"");
+    if (needsQuotes) {
+        escaped = "\"" + escaped + "\"";
+    }
+    return escaped;
+}
+
 void OEMDialog::saveCSVFile(const QString &dirName)
 {
     QString fileName = dirName + "/" + "data.csv";
     QFile file(fileName);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
+        out.setCodec("UTF-8");
         out << "appid," << "resource," << "key," << "value," << "path" << "\n";
         for (auto items : m_overrides) {
             for (auto item : items) {
@@ -210,12 +221,11 @@ void OEMDialog::saveCSVFile(const QString &dirName)
                 if (!item->data(SubpathRole).toString().isEmpty()) {
                     path.append(item->data(SubpathRole).toString());
                 }
-                QString content = QString("%1, %2, %3, %4, %5").arg(item->data(AppidRole).toString())
-                                                     .arg(item->data(ResourceRole).toString())
-                                                     .arg(item->data(KeyRole).toString())
-                                                     .arg(item->data(ValueRole).toString())
-                                                     .arg(path);
-                out << content << "\n";
+                out << escapeCsvField(item->data(AppidRole).toString()) << ",";
+                out << escapeCsvField(item->data(ResourceRole).toString()) << ",";
+                out << escapeCsvField(item->data(KeyRole).toString()) << ",";
+                out << escapeCsvField(qvariantToStringCompact(item->data(ValueRole))) << ",";
+                out << escapeCsvField(path) << "\n";
             }
         }
         out.flush();
@@ -257,7 +267,7 @@ void OEMDialog::displayChangedResult()
             model->appendRow(QList<QStandardItem*>() << new DStandardItem(item->data(AppidRole).toString())
                              << new DStandardItem(item->data(ResourceRole).toString())
                              << new DStandardItem(item->data(KeyRole).toString())
-                             << new DStandardItem(item->data(ValueRole).toString())
+                             << new DStandardItem(qvariantToString(item->data(ValueRole)))
                              << new DStandardItem(path));
         }
     }
@@ -375,10 +385,10 @@ QWidget *OEMDialog::getItemWidget(ConfigGetter *getter, DStandardItem *item)
         valueWidget = widget;
     } else {
         auto widget = new DLineEdit();
-        widget->setText(v.toString());
+        widget->setText(qvariantToString(v));
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::textChanged, widget, [this, item](const QString &text){
-            item->setData(text, ValueRole);
+            item->setData(stringToQVariant(text), ValueRole);
             treeItemChanged(item);
         });
         valueWidget = widget;
