@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-only
 
-find_package(Qt5DBus REQUIRED)
-
 if(EnableDtk5)
 qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml
     dconfigserver.h DSGConfigServer
