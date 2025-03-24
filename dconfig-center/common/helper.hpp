@@ -231,7 +231,7 @@ static QStringList translationDirs()
 {
     QStringList result;
     result << QCoreApplication::applicationDirPath();
-    for (auto item : Dtk::Core::DStandardPaths::standardLocations(QStandardPaths::DataLocation)) {
+    for (auto item : Dtk::Core::DStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation)) {
         result << item + "/translations";
     };
     return result;

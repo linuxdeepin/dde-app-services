@@ -212,7 +212,6 @@ void OEMDialog::saveCSVFile(const QString &dirName)
     QFile file(fileName);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
-        out.setCodec("UTF-8");
         out << "appid," << "resource," << "key," << "value," << "path" << "\n";
         for (auto items : m_overrides) {
             for (auto item : items) {
@@ -357,7 +356,12 @@ QWidget *OEMDialog::getItemWidget(ConfigGetter *getter, DStandardItem *item)
     bool canWrite = !(flags & Dtk::Core::DConfigFile::Flag::NoOverride);
     QVariant v = item->data(ValueRole);
     QWidget *valueWidget = nullptr;
-    if (v.type() == QVariant::Bool) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    const auto valueType = v.type();
+#else
+    const auto valueType = v.typeId();
+#endif
+    if (valueType == QVariant::Bool) {
         auto btn = new DSwitchButton();
         btn->setChecked(v.toBool());
         btn->setEnabled(canWrite);
@@ -373,7 +377,7 @@ QWidget *OEMDialog::getItemWidget(ConfigGetter *getter, DStandardItem *item)
         hlayout->addWidget(btn);
 
         valueWidget = widget;
-    } else if (v.type() == QVariant::Double) {
+    } else if (valueType == QVariant::Double) {
         auto widget = new DDoubleSpinBox();
         widget->setRange(std::numeric_limits<double>::min(), std::numeric_limits<double>::max());
         widget->setValue(v.toDouble());
