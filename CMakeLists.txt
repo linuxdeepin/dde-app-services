@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.7)
 set(DVERSION "1.0.0" CACHE STRING "define project version")
 add_definitions(-DVERSION="${DVERSION}")
 
-set(DTK_VERSION "5" CACHE STRING "Dtk Version")
+set(DTK_VERSION "6" CACHE STRING "Dtk Version")
 
 if (DTK_VERSION STREQUAL "5")
     set(QT_VERSION_MAJOR "5")

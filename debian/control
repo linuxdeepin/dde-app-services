@@ -6,15 +6,15 @@ Build-Depends:
  debhelper (>=9),
  pkg-config,
  cmake,
- qtbase5-dev,
+ qt6-base-dev,
  libdtkcommon-dev,
- libdtkcore-dev(>=5.6.19),
- libdtkgui-dev,
- libdtkwidget-dev,
+ libdtk6core-dev,
+ libdtk6gui-dev,
+ libdtk6widget-dev,
  libgtest-dev,
  doxygen,
- qttools5-dev-tools,
- qttools5-dev
+ qt6-tools-dev-tools,
+ qt6-tools-dev
 Standards-Version: 4.3.0
 
 Package: dde-dconfig-daemon
