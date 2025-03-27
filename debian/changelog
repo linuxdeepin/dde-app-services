@@ -1,3 +1,10 @@
+dde-app-services (1.0.29) unstable; urgency=medium
+
+  * refact: switch to qt6 for debian
+  * feat: adapt to dtk6
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Thu, 27 Mar 2025 11:34:40 +0800
+
 dde-app-services (1.0.28) unstable; urgency=medium
 
   * feat: support to read other user's config for editor
