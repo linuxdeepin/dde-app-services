@@ -7,15 +7,16 @@ After=dbus.socket
 
 [Service]
 Type=dbus
-User=dde-dconfig-daemon
+User=deepin-daemon
 BusName=org.desktopspec.ConfigManager
 ExecStart=/usr/bin/dde-dconfig-daemon
 Environment=DSG_DATA_DIRS=/usr/share/dsg:/var/lib/linglong/entries/share/dsg
 
-ReadOnlyPaths=/usr/share/dsg -/persistent/linglong/entries/share/dsg
+ReadOnlyPaths=/usr/share/dsg -/var/lib/linglong/entries/share/dsg
 
 StateDirectory=dde-dconfig-daemon
 StateDirectoryMode=0700
+LogsDirectory=deepin
 
 DevicePolicy=closed
 

@@ -14,7 +14,23 @@
 
 #include "manager_adaptor.h"
 
+Q_DECLARE_LOGGING_CATEGORY(cfLog);
 DCORE_USE_NAMESPACE
+
+static QString configPrefixPath()
+{
+    static QString path;
+    if (path.isEmpty()) {
+        const char *stateDirectory("STATE_DIRECTORY");
+        if (!qEnvironmentVariableIsEmpty(stateDirectory)) {
+            path = QString("%1/.config").arg(qEnvironmentVariable(stateDirectory));
+        } else {
+            path = DStandardPaths::path(DStandardPaths::XDG::ConfigHome);
+        }
+        qInfo(cfLog) << "Config's prefix path is:" << path;
+    }
+    return path;
+}
 
 DSGConfigResource::DSGConfigResource(const QString &name, const QString &subpath, const QString &localPrefix, QObject *parent)
     : QObject (parent),
@@ -235,7 +251,7 @@ DConfigFile *DSGConfigResource::getOrCreateFile(const QString &appid)
         return file;
 
     QScopedPointer<DConfigFile> file(new DConfigFile(innerAppidToOuter(appid), m_fileName, m_subpath));
-    file->globalCache()->setCachePathPrefix(DStandardPaths::path(DStandardPaths::XDG::ConfigHome) + "/global");
+    file->globalCache()->setCachePathPrefix(configPrefixPath() + "/global");
     if (!file->load(m_localPrefix))
         return nullptr;
 
@@ -261,7 +277,7 @@ DConfigCache *DSGConfigResource::createCache(const QString &appid, const uint ui
     const auto resourceKey = getResourceKey(appid, m_key);
     if (auto file = getFile(resourceKey)) {
         QScopedPointer<DConfigCache> cache(file->createUserCache(uid));
-        cache->setCachePathPrefix(DStandardPaths::path(DStandardPaths::XDG::ConfigHome) + QString("/%1").arg(uid));
+        cache->setCachePathPrefix(configPrefixPath() + QString("/%1").arg(uid));
         if (cache->load(m_localPrefix))
             return cache.take();
     }

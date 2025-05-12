@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 
     QCoreApplication a(argc, argv);
     a.setOrganizationName("deepin");
+    a.setApplicationName("dde-dconfig-daemon");
 
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -69,6 +70,18 @@ int main(int argc, char *argv[])
 
     // Initialization of DtkCore needs to be later than `registerService` avoid earlier request itself.
     Dtk::Core::DLogManager::registerConsoleAppender();
+    const char *logsDirectory("LOGS_DIRECTORY");
+    if (!qEnvironmentVariableIsEmpty(logsDirectory)) {
+        const QString path(qEnvironmentVariable(logsDirectory));
+        const auto logPath(QString("%1/%2/%2.log").arg(path).arg(a.applicationName()));
+        const QFileInfo file(logPath);
+        if (!file.exists()) {
+            if (!QDir().mkpath(file.absoluteDir().path())) {
+                qWarning() << "Failed to create log path." << file.absoluteFilePath();
+            }
+        }
+        Dtk::Core::DLogManager::setlogFilePath(logPath);
+    }
     Dtk::Core::DLogManager::registerFileAppender();
     qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&dsgConfig]() {
