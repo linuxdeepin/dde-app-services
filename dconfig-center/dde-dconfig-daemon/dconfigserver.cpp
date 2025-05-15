@@ -307,11 +307,50 @@ ConfigureId DSGConfigServer::getConfigureIdByPath(const QString &path)
 
     auto res = getMetaConfigureId(absolutePath);
     if (res.isInValid()) {
-        if (res.isInValid()) {
-            res = getOverrideConfigureId(absolutePath);
+        res = getOverrideConfigureId(absolutePath);
+    }
+    if (!res.isInValid()) {
+        if (isConfigurePath(absolutePath, res.appid))
+            return res;
+    }
+    return ConfigureId();
+}
+
+static bool isPathInDirectory(const QString &path, const QString &dir) {
+    const QDir targetDir(dir);
+    QDir currentDir(path);
+    while (currentDir != targetDir && !currentDir.isRoot()) {
+        if (!currentDir.cdUp()) {
+            return false;
         }
     }
-    return res;
+
+    return (currentDir == targetDir);
+}
+
+bool DSGConfigServer::isConfigurePath(const QString &path, const QString &appId) const
+{
+    QStringList dirs;
+    const QStringList metaDirs = DConfigMeta::genericMetaDirs(m_localPrefix);
+    dirs << metaDirs;
+
+    if (!appId.isEmpty())
+        dirs << DConfigMeta::applicationMetaDirs(m_localPrefix, appId);
+
+    QStringList overrideDirs {
+        QString("%1/etc/dsg/configs/overrides").arg(m_localPrefix)
+    };
+    for (const auto dir : metaDirs) {
+        overrideDirs << QString("%1/%2/overrides").arg(m_localPrefix).arg(dir);
+    }
+    dirs << overrideDirs;
+
+    for (const auto dir: dirs) {
+        if (isPathInDirectory(path, dir)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /*!
