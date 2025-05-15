@@ -96,6 +96,13 @@ DSGConfigResource *DSGConfigServer::resourceObject(const GenericResourceKey &key
  */
 void DSGConfigServer::setDelayReleaseTime(const int ms)
 {
+    if (ms < 0) {
+        QString errorMsg = QString("Negative values are not supported for delayed release time.");
+        if (calledFromDBus())
+            sendErrorReply(QDBusError::InvalidArgs, errorMsg);
+        qCWarning(cfLog()) << qPrintable(errorMsg);
+        return;
+    }
     m_refManager->setDelayReleaseTime(ms);
 }
 
