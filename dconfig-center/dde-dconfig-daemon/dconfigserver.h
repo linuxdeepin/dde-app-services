@@ -75,6 +75,8 @@ private:
     ResourceKey getResourceKeyByConfigCache(const ConfigCacheKey &key);
 
     ConfigureId getConfigureIdByPath(const QString &path);
+
+    bool isConfigurePath(const QString &path, const QString& appId) const;
 private:
 
     // 所有链接，一个资源对应一个链接
