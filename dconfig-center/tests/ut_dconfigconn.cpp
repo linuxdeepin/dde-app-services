@@ -151,8 +151,8 @@ TEST_F(ut_DConfigConn, value) {
     ASSERT_EQ(conn->value("map").variant().toMap(), map);
 
     QVariantMap mapArray;
-    mapArray.insert("key1", QStringList{"value1"});
-    mapArray.insert("key2", QStringList{"value2"});
+    mapArray.insert("key1", QVariantList{"value1"});
+    mapArray.insert("key2", QVariantList{"value2"});
     QVariantList arrayMap;
     arrayMap.append(map);
     ASSERT_EQ(conn->value("map_array").variant().toMap(), mapArray);
