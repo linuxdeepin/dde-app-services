@@ -2,14 +2,6 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-only
 
-PROJECT(dde-dconfig)
-CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
-
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX /usr)
-endif ()
-
-set(REQUIRED_QT_VERSION 5.11.3)
 find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus LinguistTools)
 find_package(Dtk${DTK_VERSION_MAJOR}Core REQUIRED)
 
@@ -61,9 +53,9 @@ set(COMMON_LIBS
     Dtk${DTK_VERSION_MAJOR}::Core
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${COMMON_LIBS})
+target_link_libraries(dde-dconfig PUBLIC ${COMMON_LIBS})
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(dde-dconfig PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}
     ../common

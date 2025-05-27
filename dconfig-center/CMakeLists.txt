@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-only
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
-
 project(dconfig-center)
 
 set(CMAKE_CXX_STANDARD 14)
