@@ -186,7 +186,7 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
     const QString &innerAppid = outerAppidToInner(appid);
     const GenericResourceKey &genericResourceKey = getGenericResourceKey(name, subpath);
     DSGConfigResource *resource = resourceObject(genericResourceKey);
-    QScopedPointer<DSGConfigResource> resourceHolder;
+    std::unique_ptr<DSGConfigResource> resourceHolder;
     if (!resource) {
         resource = new DSGConfigResource(name, subpath, m_localPrefix);
         resource->setSyncRequestCache(m_syncRequestCache);
@@ -220,7 +220,7 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
     }
 
     if (resourceHolder) {
-        m_resources.insert(genericResourceKey, resourceHolder.take());
+        m_resources.insert(genericResourceKey, resourceHolder.release());
         QObject::connect(resource, &DSGConfigResource::releaseConn, this, &DSGConfigServer::onReleaseChanged);
     }
 

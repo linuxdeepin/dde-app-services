@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 3.7)
-
 find_package (Doxygen REQUIRED)
 set (QCH_INSTALL_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/qt${QT_VERSION_MAJOR}/doc CACHE STRING "QCH install location")
 

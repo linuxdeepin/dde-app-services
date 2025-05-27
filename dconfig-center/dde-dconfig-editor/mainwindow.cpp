@@ -314,13 +314,17 @@ void MainWindow::onCustomResourceMenuRequested(const QString &appid, const QStri
      QAction *resetCmdAction = menu.addAction(tr("reset value"));
 
      connect(resetCmdAction, &QAction::triggered, this, [this, appid, resource, subpath] {
-         QScopedPointer<ValueHandler> getter(new ValueHandler(appid, resource, subpath));
-         QScopedPointer<ConfigGetter> manager(getter->createManager());
-         const auto keys = manager->keyList();
-         for (const auto &item : qAsConst(keys)) {
-             manager->reset(item);
-         }
-         refreshResourceKeys(appid, resource, subpath);
+        QScopedPointer<ValueHandler> getter(new ValueHandler(appid, resource, subpath));
+        QScopedPointer<ConfigGetter> manager(getter->createManager());
+        const auto keys = manager->keyList();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        for (const auto &item : std::as_const(keys)) {
+#else
+        for (const auto &item : qAsConst(keys)) {
+#endif
+            manager->reset(item);
+        }
+        refreshResourceKeys(appid, resource, subpath);
      });
      menu.exec(QCursor::pos());
 }

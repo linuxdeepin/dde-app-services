@@ -215,9 +215,15 @@ int CommandManager::getCommand()
 
             if (method == "value") {
                 QVariant result = manager->value(key);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                if (result.typeId() == QMetaType::Bool) {
+                    outpuSTD(result.toBool());
+                } else if (result.typeId() == QMetaType::Double) {
+#else
                 if (result.type() == QVariant::Bool) {
                     outpuSTD(result.toBool());
                 } else if (result.type() == QVariant::Double) {
+#endif
                     outpuSTD(QString::number(result.toDouble()));
                 } else {
                     outpuSTD(QString("\"%1\"").arg(qvariantToString(result)));
@@ -275,9 +281,15 @@ int CommandManager::setCommand()
         QScopedPointer<ConfigGetter> manager(handler.createManager());
         if (manager) {
             QVariant result = manager->value(key);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            if (result.typeId() == QMetaType::Bool) {
+                manager->setValue(key, QVariant(value).toBool());
+            } else if (result.typeId() == QMetaType::Double) {
+#else
             if (result.type() == QVariant::Bool) {
                 manager->setValue(key, QVariant(value).toBool());
             } else if (result.type() == QVariant::Double) {
+#endif
                 manager->setValue(key, value.toDouble());
             } else {
                 manager->setValue(key, stringToQVariant(value));
@@ -311,7 +323,11 @@ int CommandManager::resetCommand()
                 manager->reset(key);
             } else {
                 const auto keys = manager->keyList();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                for (const auto &item : std::as_const(keys)) {
+#else
                 for (const auto &item : qAsConst(keys)) {
+#endif
                     manager->reset(item);
                 }
             }

@@ -88,7 +88,7 @@ static QString removeBackSlash(const QString &target)
     if (target.isEmpty() || target.back() != '/')
         return target;
 
-    return target.left(target.count() - 1);
+    return target.left(target.size() - 1);
 }
 
 inline ConfigureId getMetaConfigureId(const QString &path)

@@ -114,14 +114,14 @@ public:
             return nullptr;
         }
 
-        QScopedPointer<DSGConfigManager> config(new DSGConfigManager(DSG_CONFIG_MANAGER, dbus_path.path(),
+        std::unique_ptr<DSGConfigManager> config(new DSGConfigManager(DSG_CONFIG_MANAGER, dbus_path.path(),
                                                                      QDBusConnection::systemBus()));
         if (!config->isValid()) {
             qWarning() << QString("can't not get dbus handler for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath)
                        << dbus_reply.error().message();
             return nullptr;
         }
-        manager.reset(config.take());
+        manager.reset(config.release());
         QObject::connect(manager.get(), &DSGConfigManager::valueChanged, owner, &ValueHandler::valueChanged);
 
         return manager.get();
@@ -234,21 +234,21 @@ public:
         if (manager)
             return manager.get();
 
-        QScopedPointer<DConfigFile> config(new DConfigFile(appid, fileName, subpath));
-        QScopedPointer<DConfigCache> cache(config->createUserCache(getuid()));
+        std::unique_ptr<DConfigFile> config(new DConfigFile(appid, fileName, subpath));
+        std::unique_ptr<DConfigCache> cache(config->createUserCache(getuid()));
         if (!config->load() || !cache->load()) {
             return nullptr;
         }
 
-        manager.reset(config.take());
-        userCache.reset(cache.take());
+        manager.reset(config.release());
+        userCache.reset(cache.release());
         return manager.get();
     }
 
 private:
 
-    QScopedPointer<DConfigFile> manager;
-    QScopedPointer<DConfigCache> userCache;
+    std::unique_ptr<DConfigFile> manager;
+    std::unique_ptr<DConfigCache> userCache;
     ValueHandler *owner;
 };
 

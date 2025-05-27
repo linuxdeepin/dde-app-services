@@ -81,7 +81,7 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
     const ConnKey &connKey = getConnKey(appid, uid);
 
     DConfigCache *cache = m_caches.value(connKey);
-    QScopedPointer<DConfigCache> cacheHolder;
+    std::unique_ptr<DConfigCache> cacheHolder;
     if (!cache) {
         cache = createCache(appid, uid);
         if (!cache) {
@@ -92,7 +92,7 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
         cacheHolder.reset(cache);
     }
 
-    QScopedPointer<DSGConfigConn> connPointer(new DSGConfigConn(connKey, this));
+    std::unique_ptr<DSGConfigConn> connPointer(new DSGConfigConn(connKey, this));
     if (qgetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS").isEmpty()) {
         (void) new DSGConfigManagerAdaptor(connPointer.get());
         QDBusConnection bus = QDBusConnection::systemBus();
@@ -106,9 +106,9 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
 
     // Add cache to `m_caches` only initialized successful, otherwise it should be deleted.
     if (cacheHolder)
-        m_caches.insert(connKey, cacheHolder.take());
+        m_caches.insert(connKey, cacheHolder.release());
 
-    auto conn = connPointer.take();
+    auto conn = connPointer.release();
     m_conns.insert(connKey, conn);
     conn->setResource(this);
 
@@ -139,7 +139,7 @@ bool DSGConfigResource::reparse(const QString &appid)
     if (!file)
         return true;
 
-    QScopedPointer<DConfigFile> config(new DConfigFile(*file));
+    std::unique_ptr<DConfigFile> config(new DConfigFile(*file));
     auto newMeta = config->meta();
     if (!newMeta->load()) {
         qWarning() << QString("Reparse resource error for [%1].").arg(m_key);
@@ -176,7 +176,7 @@ bool DSGConfigResource::reparse(const QString &appid)
     // config refresh.
     delete file;
     file = nullptr;
-    m_files[resouceKey] = config.take();
+    m_files[resouceKey] = config.release();
 
     // emit valuechanged.
     for (auto iter = cacheChangedValues.begin(); iter != cacheChangedValues.end(); ++iter) {
@@ -250,13 +250,13 @@ DConfigFile *DSGConfigResource::getOrCreateFile(const QString &appid)
     if (auto file = m_files.value(resourceKey))
         return file;
 
-    QScopedPointer<DConfigFile> file(new DConfigFile(innerAppidToOuter(appid), m_fileName, m_subpath));
+    std::unique_ptr<DConfigFile> file(new DConfigFile(innerAppidToOuter(appid), m_fileName, m_subpath));
     file->globalCache()->setCachePathPrefix(configPrefixPath() + "/global");
     if (!file->load(m_localPrefix))
         return nullptr;
 
-    m_files.insert(resourceKey, file.data());
-    return file.take();
+    m_files.insert(resourceKey, file.get());
+    return file.release();
 }
 
 DConfigCache *DSGConfigResource::getOrCreateCache(const QString &appid, const uint uid)
@@ -276,10 +276,10 @@ DConfigCache *DSGConfigResource::createCache(const QString &appid, const uint ui
 {
     const auto resourceKey = getResourceKey(appid, m_key);
     if (auto file = getFile(resourceKey)) {
-        QScopedPointer<DConfigCache> cache(file->createUserCache(uid));
+        std::unique_ptr<DConfigCache> cache(file->createUserCache(uid));
         cache->setCachePathPrefix(configPrefixPath() + QString("/%1").arg(uid));
         if (cache->load(m_localPrefix))
-            return cache.take();
+            return cache.release();
     }
     return nullptr;
 }
