@@ -1,3 +1,15 @@
+dde-app-services (1.0.30) unstable; urgency=medium
+
+  * chore(CI): add debian check workflow
+  * refactor: update CMake requirements and smart pointer usage
+  * fix: replace QStringList with QVariantList in test case
+  * fix: add input validation and update D-Bus permissions
+  * fix: improve configuration path validation and duplicate check
+  * feat: improve config and log management
+  * chore: remove sysusers configuration files
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Wed, 28 May 2025 18:00:58 +0800
+
 dde-app-services (1.0.29) unstable; urgency=medium
 
   * refact: switch to qt6 for debian
