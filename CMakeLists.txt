@@ -2,9 +2,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-only
 
-cmake_minimum_required(VERSION 3.10...3.27)
-
-cmake_policy(SET CMP0177 NEW)
+cmake_minimum_required(VERSION 3.10)
 
 set(DVERSION "1.0.0" CACHE STRING "define project version")
 add_definitions(-DVERSION="${DVERSION}")
