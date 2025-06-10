@@ -128,6 +128,69 @@ interface: `desktopspec.ConfigManager`， Method: `org.desktopspec.ConfigManager
 
 ***在使用此服务时，需要考虑在执行第二个步骤时，不应该释放第一个步骤的连接，否则可能获取的DBus path已经失效***
 
+#### 用户配置数据删除接口
+
+为了解决在删除用户时，dde-dconfig-daemon的用户配置信息没有被删除的问题，提供了一个新的D-Bus接口 `removeUserData`，用于安全地删除指定用户的所有配置信息。
+
+##### 接口定义
+
+- **服务名**: `org.desktopspec.ConfigManager`
+- **对象路径**: `/`
+- **接口名**: `org.desktopspec.ConfigManager`
+- **方法名**: `removeUserData`
+
+```xml
+<method name='removeUserData'>
+  <arg type='u' name='uid' direction='in'/>
+</method>
+```
+
+**参数说明**:
+- 输入参数: `uid` (uint32) - 要删除配置数据的用户ID
+- 返回值: 无返回值（void）
+
+##### 安全机制
+
+权限控制通过D-Bus安全策略实现：
+- 只有 `root` 用户和 `deepin-daemon` 用户可以调用此接口
+- 其他用户的调用将被D-Bus安全策略拒绝
+
+##### 功能说明
+
+此接口将删除指定用户的以下数据：
+
+1. **内存中的连接和缓存**:
+   - 所有属于该用户的配置连接 (DSGConfigConn)
+   - 用户特定的配置缓存 (DConfigCache)
+   - 相关的资源引用
+
+2. **文件系统中的配置文件**:
+   - 用户特定的配置缓存目录: `${STATE_DIRECTORY}/.config/{uid}/`
+
+**不删除的内容**:
+- 应用程序的系统级配置（全局配置）
+- 其他用户的配置数据
+- 应用程序的元数据文件
+
+##### 使用示例
+
+```bash
+# 删除用户ID为1000的配置
+dbus-send --system --type=method_call --print-reply \
+    --dest=org.desktopspec.ConfigManager / \
+    org.desktopspec.ConfigManager.removeUserData uint32:1000
+```
+
+##### 注意事项
+
+⚠️ **重要警告**:
+- 此操作是不可逆的，删除的配置无法恢复
+
+🔒 **安全提醒**:
+- 只有授权用户才能调用此接口
+- 操作会被记录到系统日志中
+- 建议定期审查配置删除操作的日志
+
 ## 调试
 
 在安装`dde-dconfig-daemon`时，会创建`dde-dconfig-daemon用户`，并且家目录$HOME_DIR为`/var/lib/dde-dconfig-daemon`，默认情况下使用`dde-dconfig-daemon用户`去运行dde-dconfig-daemon。

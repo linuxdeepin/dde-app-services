@@ -194,3 +194,23 @@ inline QString getUserNameByUid(const uint uid)
     return QString::number(uid);
 #endif
 }
+
+/*!
+ \brief 获取配置文件的基础路径
+ 优先使用STATE_DIRECTORY环境变量，否则使用XDG标准配置目录。
+ 使用静态缓存避免重复计算。
+ \return 配置文件基础路径
+ */
+inline QString configPrefixPath()
+{
+    static QString path;
+    if (path.isEmpty()) {
+        const char *stateDirectory("STATE_DIRECTORY");
+        if (!qEnvironmentVariableIsEmpty(stateDirectory)) {
+            path = QString("%1/.config").arg(qEnvironmentVariable(stateDirectory));
+        } else {
+            path = Dtk::Core::DStandardPaths::path(Dtk::Core::DStandardPaths::XDG::ConfigHome);
+        }
+    }
+    return path;
+}

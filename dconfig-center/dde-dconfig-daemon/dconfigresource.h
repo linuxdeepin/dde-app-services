@@ -56,6 +56,8 @@ public:
     void setSyncRequestCache(ConfigSyncRequestCache *cache);
     void doSyncConfigCache(const ConfigCacheKey &key);
 
+    QList<ConnKey> getConnectionsByUid(const uint uid) const;
+
 Q_SIGNALS:
     void releaseResource(const ConnServiceName &service);
     void releaseConn(const ConnServiceName &service, const ConnKey &connKey);
