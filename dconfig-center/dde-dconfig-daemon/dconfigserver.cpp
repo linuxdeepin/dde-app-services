@@ -12,6 +12,8 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QLoggingCategory>
+#include <QDir>
+#include <QFile>
 
 #include "configmanager_adaptor.h"
 
@@ -131,6 +133,70 @@ void DSGConfigServer::setLogRules(const QString &rules)
     }
     QLoggingCategory::setFilterRules(result.join('\n'));
     qCInfo(cfLog(), "Set log filter rules to:\"%s\"", qPrintable(rules));
+}
+
+/*!
+ \brief 删除指定用户的所有配置数据
+ 删除指定用户的内存连接、缓存以及文件系统中的配置目录。
+ 权限控制完全通过D-Bus安全策略实现，无需额外验证。
+ \a uid 要删除配置数据的用户ID
+ */
+void DSGConfigServer::removeUserData(const uint &uid)
+{
+    qCInfo(cfLog()) << QString("Starting to remove user data for UID %1").arg(uid);
+
+    // 收集要删除的连接
+    QList<ConnKey> connectionsToRemove;
+    for (auto iter = m_resources.begin(); iter != m_resources.end(); ++iter) {
+        auto resource = iter.value();
+        if (!resource)
+            continue;
+
+        // 获取该用户在此资源中的所有连接
+        const QList<ConnKey> userConnections = resource->getConnectionsByUid(uid);
+        connectionsToRemove.append(userConnections);
+
+        for (const ConnKey &connKey : userConnections) {
+            qCDebug(cfLog()) << QString("Found connection to remove: %1").arg(connKey);
+        }
+    }
+
+    // 逐个删除连接和相关数据
+    int removedCount = 0;
+    for (const ConnKey &connKey : connectionsToRemove) {
+        const GenericResourceKey &resourceKey = getGenericResourceKey(connKey);
+        auto resource = m_resources.value(resourceKey);
+        if (resource) {
+            // 删除连接，这会自动保存并删除相关的缓存和配置文件
+            resource->removeConn(connKey);
+            removedCount++;
+
+            qCInfo(cfLog()) << QString("Removed connection: %1").arg(connKey);
+
+            // 如果资源没有更多连接，清理资源
+            if (resource->isEmptyConn()) {
+                qCInfo(cfLog()) << QString("Removing empty resource: %1").arg(resourceKey);
+                m_resources.remove(resourceKey);
+                resource->deleteLater();
+            }
+        }
+        }
+
+    // 删除文件系统中的用户配置目录
+    const QString userConfigBasePath = QString("%1/%2").arg(m_localPrefix).arg(configPrefixPath());
+    if (!userConfigBasePath.isEmpty()) {
+        const QString userCacheDir = QString("%1/%2").arg(userConfigBasePath).arg(uid);
+        QDir cacheDir(userCacheDir);
+        if (cacheDir.exists()) {
+            if (cacheDir.removeRecursively()) {
+                qCInfo(cfLog()) << QString("Removed user cache directory: %1").arg(userCacheDir);
+            } else {
+                qCWarning(cfLog()) << QString("Failed to remove user cache directory: %1").arg(userCacheDir);
+            }
+        }
+    }
+
+    qCInfo(cfLog()) << QString("Successfully removed %1 connections for user UID %2").arg(removedCount).arg(uid);
 }
 
 void DSGConfigServer::setLocalPrefix(const QString &localPrefix)

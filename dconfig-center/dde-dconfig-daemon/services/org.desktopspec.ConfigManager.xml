@@ -31,4 +31,7 @@
     <method name='setLogRules'>
       <arg type='s' name='rules' direction='in'/>
     </method>
+    <method name='removeUserData'>
+      <arg type='u' name='uid' direction='in'/>
+    </method>
 </interface>

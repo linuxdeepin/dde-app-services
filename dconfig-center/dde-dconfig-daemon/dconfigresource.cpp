@@ -17,20 +17,6 @@
 Q_DECLARE_LOGGING_CATEGORY(cfLog);
 DCORE_USE_NAMESPACE
 
-static QString configPrefixPath()
-{
-    static QString path;
-    if (path.isEmpty()) {
-        const char *stateDirectory("STATE_DIRECTORY");
-        if (!qEnvironmentVariableIsEmpty(stateDirectory)) {
-            path = QString("%1/.config").arg(qEnvironmentVariable(stateDirectory));
-        } else {
-            path = DStandardPaths::path(DStandardPaths::XDG::ConfigHome);
-        }
-        qInfo(cfLog) << "Config's prefix path is:" << path;
-    }
-    return path;
-}
 
 DSGConfigResource::DSGConfigResource(const QString &name, const QString &subpath, const QString &localPrefix, QObject *parent)
     : QObject (parent),
@@ -489,4 +475,23 @@ void DSGConfigResource::onGlobalValueChanged(const QString &key)
         const auto &resourceKey = getResourceKey(conn->key());
         doGlobalValueChanged(key, resourceKey);
     }
+}
+
+/*!
+ \brief 获取指定用户ID的所有连接
+ 遍历所有连接，返回属于指定用户的连接键列表
+ \a uid 用户ID
+ \return 属于该用户的连接键列表
+ */
+QList<ConnKey> DSGConfigResource::getConnectionsByUid(const uint uid) const
+{
+    QList<ConnKey> userConnections;
+    for (auto iter = m_conns.begin(); iter != m_conns.end(); ++iter) {
+        const ConnKey &connKey = iter.key();
+        const uint connUid = getConnectionKey(connKey);
+        if (connUid == uid) {
+            userConnections.append(connKey);
+        }
+    }
+    return userConnections;
 }

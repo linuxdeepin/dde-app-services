@@ -60,6 +60,8 @@ public Q_SLOTS:
     void disableVerboseLogging();
     void setLogRules(const QString &rules);
 
+    void removeUserData(const uint &uid);
+
 private Q_SLOTS:
     void onReleaseChanged(const ConnServiceName &service, const ConnKey &connKey);
 
