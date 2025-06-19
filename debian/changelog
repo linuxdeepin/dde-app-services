@@ -1,3 +1,10 @@
+dde-app-services (1.0.31) unstable; urgency=medium
+
+  * feat: add user configuration cleanup functionality
+  * refactor: simplify CMake version requirements
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Thu, 19 Jun 2025 10:13:52 +0800
+
 dde-app-services (1.0.30) unstable; urgency=medium
 
   * chore(CI): add debian check workflow
