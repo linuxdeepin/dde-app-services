@@ -1,3 +1,9 @@
+dde-app-services (1.0.32) unstable; urgency=medium
+
+  * feat: add Debian trigger integration for config updates (#111)
+
+ -- zhangkun <zhangkun2@uniontech.com>  Fri, 20 Jun 2025 17:52:05 +0800
+
 dde-app-services (1.0.31) unstable; urgency=medium
 
   * feat: add user configuration cleanup functionality
