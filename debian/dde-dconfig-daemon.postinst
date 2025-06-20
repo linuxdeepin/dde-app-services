@@ -1,0 +1,41 @@
+#!/bin/sh
+set -e
+
+# Automatically added by dh_installsystemd/13.16
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+	if [ -d /run/systemd/system ]; then
+		systemctl --system daemon-reload >/dev/null || true
+		if [ -n "$2" ]; then
+			_dh_action=restart
+		else
+			_dh_action=start
+		fi
+		deb-systemd-invoke $_dh_action 'dde-dconfig-daemon.service' >/dev/null || true
+	fi
+	
+	TIMESTAMP_DIR="/var/lib/dde-dconfig-daemon"
+	TIMESTAMP_FILE="$TIMESTAMP_DIR/last-trigger-time"
+	
+	if [ ! -d "$TIMESTAMP_DIR" ]; then
+		mkdir -p "$TIMESTAMP_DIR"
+	fi
+	
+	# Always update timestamp file when package is configured
+	touch "$TIMESTAMP_FILE"
+fi
+# End automatically added section
+
+# Handle dconfig triggers
+if [ "$1" = "triggered" ]; then
+    # Skip the first argument (triggered)
+    shift
+    
+    # Execute trigger handler with all remaining arguments (trigger paths)
+    if [ -x /usr/lib/dde-dconfig-daemon/dconfig-trigger-handler ]; then
+        /usr/lib/dde-dconfig-daemon/dconfig-trigger-handler "$@"
+    else
+        echo "Warning: dconfig-trigger-handler not found or not executable"
+    fi
+fi
+
+exit 0

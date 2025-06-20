@@ -52,3 +52,8 @@ License: CC0-1.0
 Files: *.ts .tx/*
 Copyright: None
 License: CC0-1.0
+
+# scripts
+Files: dconfig-center/dde-dconfig-daemon/scripts/*
+Copyright: None
+License: CC0-1.0

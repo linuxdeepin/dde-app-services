@@ -1,0 +1,160 @@
+#!/bin/bash
+# dconfig-trigger-handler - Handle configuration file changes via D-Bus update calls
+# This script is called when Debian triggers detect changes in configuration directories
+
+set -e
+
+# Configuration directories to monitor
+CONFIG_DIRS=(
+    "/usr/share/dsg/configs"
+    "/etc/dsg/configs"
+    "/var/lib/linglong/entries/share/dsg/configs"
+)
+
+# D-Bus service details
+DBUS_SERVICE="org.desktopspec.ConfigManager"
+DBUS_PATH="/"
+UPDATE_METHOD="update"
+
+# Logging
+LOG_TAG="dconfig-trigger-handler"
+
+# Timestamp file for tracking changes
+TIMESTAMP_DIR="/var/lib/dde-dconfig-daemon"
+TIMESTAMP_FILE="$TIMESTAMP_DIR/last-trigger-time"
+
+log_info() {
+    logger -t "$LOG_TAG" "$1" 2>/dev/null || true
+    echo "$1"
+}
+
+log_error() {
+    logger -t "$LOG_TAG" -p daemon.err "$1" 2>/dev/null || true
+    echo "ERROR: $1" >&2
+}
+
+ensure_timestamp_dir() {
+    if [ ! -d "$TIMESTAMP_DIR" ]; then
+        log_info "Creating timestamp directory: $TIMESTAMP_DIR"
+        mkdir -p "$TIMESTAMP_DIR" || {
+            log_error "Failed to create timestamp directory: $TIMESTAMP_DIR"
+            return 1
+        }
+    fi
+}
+
+update_timestamp() {
+    ensure_timestamp_dir || return 1
+    touch "$TIMESTAMP_FILE" || {
+        log_error "Failed to update timestamp file: $TIMESTAMP_FILE"
+        return 1
+    }
+    log_info "Updated timestamp file: $TIMESTAMP_FILE"
+}
+
+is_config_file() {
+    local file="$1"
+    
+    if [ ! -f "$file" ] || [ ! -r "$file" ]; then
+        return 1
+    fi
+    
+    if [[ "$file" != *.json ]]; then
+        return 1
+    fi
+    
+    # Check if file is in one of the monitored directories
+    local is_in_monitored_dir=false
+    for config_dir in "${CONFIG_DIRS[@]}"; do
+        if [[ "$file" == "$config_dir"/* ]]; then
+            is_in_monitored_dir=true
+            break
+        fi
+    done
+    
+    if [ "$is_in_monitored_dir" = false ]; then
+        return 1
+    fi
+    
+    return 0
+}
+
+call_dbus_update() {
+    local config_path="$1"
+    
+    if dbus-send --system \
+        --dest="$DBUS_SERVICE" \
+        --type=method_call \
+        "$DBUS_PATH" \
+        "$DBUS_SERVICE.$UPDATE_METHOD" \
+        string:"$config_path" >/dev/null 2>&1; then
+        return 0
+    else
+        log_error "Failed to update configuration: $config_path"
+        return 1
+    fi
+}
+
+process_newer_files_in_directory() {
+    local dir="$1"
+    local processed_count=0
+    
+    if [ ! -d "$dir" ]; then
+        log_info "Directory does not exist: $dir"
+        return 0
+    fi
+    
+    if [ ! -f "$TIMESTAMP_FILE" ]; then
+        log_info "Timestamp file doesn't exist, creating it"
+        ensure_timestamp_dir
+        touch "$TIMESTAMP_FILE"
+    fi
+    
+    # Find JSON files newer than the timestamp file
+    while IFS= read -r -d '' config_file; do
+        if is_config_file "$config_file"; then
+            log_info "Found newer config file: $config_file"
+            if call_dbus_update "$config_file"; then
+                processed_count=$((processed_count + 1))
+            fi
+        fi
+    done < <(find "$dir" -name "*.json" -type f -cnewer "$TIMESTAMP_FILE" -print0 2>/dev/null)
+    
+    log_info "Processed $processed_count newer configuration files in $dir"
+    return 0
+}
+
+process_trigger_paths() {
+    local processed_count=0
+    
+    for trigger_path in "$@"; do
+        log_info "Processing trigger path: $trigger_path"
+        
+        if [ -f "$trigger_path" ]; then
+            if is_config_file "$trigger_path"; then
+                if call_dbus_update "$trigger_path"; then
+                    processed_count=$((processed_count + 1))
+                fi
+            else
+                log_info "Skipping non-config file: $trigger_path"
+            fi
+        elif [ -d "$trigger_path" ]; then
+            process_newer_files_in_directory "$trigger_path"
+        else
+            log_error "Trigger path does not exist: $trigger_path"
+        fi
+    done
+}
+
+main() {
+    if [ $# -gt 0 ]; then
+        process_trigger_paths "$@"
+        
+        # Update timestamp after processing trigger paths
+        update_timestamp
+    fi
+    
+    log_info "dconfig trigger handler completed"
+}
+
+main "$@"
