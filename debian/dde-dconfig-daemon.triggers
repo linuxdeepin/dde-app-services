@@ -1,0 +1,12 @@
+# Debian triggers for dde-dconfig-daemon
+# Monitor configuration file directories for changes
+
+# Monitor meta configuration files - use interest to get specific file paths
+interest /usr/share/dsg/configs
+interest /etc/dsg/configs
+
+# Monitor Linglong configuration files - use interest to get specific file paths
+interest /var/lib/linglong/entries/share/dsg/configs
+
+# Trigger name for processing configuration updates
+interest dconfig-trigger

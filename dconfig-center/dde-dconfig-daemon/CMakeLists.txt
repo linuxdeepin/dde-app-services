@@ -42,3 +42,6 @@ install(FILES services/dde-dconfig-daemon.service DESTINATION ${CMAKE_INSTALL_PR
 
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+## trigger handler scripts
+install(PROGRAMS scripts/dconfig-trigger-handler DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/dde-dconfig-daemon)
