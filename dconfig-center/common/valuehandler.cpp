@@ -304,7 +304,7 @@ int ValueHandler::currentUid()
 
 ConfigGetter* ValueHandler::createManager()
 {
-    if (DBusHandler::isServiceRegistered() || DBusHandler::isServiceActivatable()) {
+    if (DBusHandler::isServiceRegistered()) {
         auto tmp = new DBusHandler(this);
         if (tmp->createManager(appid, fileName, subpath)) {
             return tmp;
