@@ -126,6 +126,7 @@ bool DSGConfigResource::reparse(const QString &appid)
         return true;
 
     std::unique_ptr<DConfigFile> config(new DConfigFile(*file));
+    config->globalCache()->setCachePathPrefix(configPrefixPath() + "/global");
     auto newMeta = config->meta();
     if (!newMeta->load()) {
         qWarning() << QString("Reparse resource error for [%1].").arg(m_key);
