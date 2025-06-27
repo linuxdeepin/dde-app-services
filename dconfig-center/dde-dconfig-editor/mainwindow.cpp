@@ -607,7 +607,7 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
 {
     m_getter.reset(new ValueHandler(appid, resource, subpath));
     QScopedPointer<ConfigGetter> manager(m_getter->createManager());
-    const QString &value =  manager.get()->value(key).toString();
+    const QString &value = qvariantToCmd(manager.get()->value(key));
     const QString &description = manager.get()->description(key, m_language);
 
     QMenu *menu = new QMenu(widget);
@@ -645,8 +645,8 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
         }
     });
     QClipboard *clip = QApplication::clipboard();
-    connect(copyAction, &QAction::triggered, this, [clip, key] {
-        clip->setText(key);
+    connect(copyAction, &QAction::triggered, this, [clip, value] {
+        clip->setText(value);
     });
     connect(copyCmdAction, &QAction::triggered, this, [clip, setCmd] {
         clip->setText(setCmd);
