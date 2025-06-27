@@ -227,6 +227,13 @@ static QVariant stringToQVariant(const QString &s)
     return s;
 }
 
+static QString qvariantToCmd(const QVariant &v)
+{
+    auto stringValue = qvariantToStringCompact(v);
+    auto jsonValue = QJsonValue::fromVariant(v);
+    return jsonValue.isBool() || jsonValue.isDouble() ? stringValue : QString("'%1'").arg(stringValue);
+}
+
 static QStringList translationDirs()
 {
     QStringList result;
