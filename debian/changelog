@@ -1,3 +1,11 @@
+dde-app-services (1.0.33) unstable; urgency=medium
+
+  * fix: remove redundant log messages in dconfig-trigger-handler
+  * feat: add qvariantToCmd helper function
+  * fix: simplify DBus service check and add cache path prefix
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Fri, 27 Jun 2025 14:33:09 +0800
+
 dde-app-services (1.0.32) unstable; urgency=medium
 
   * feat: add Debian trigger integration for config updates (#111)
