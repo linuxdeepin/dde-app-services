@@ -113,7 +113,6 @@ process_newer_files_in_directory() {
     # Find JSON files newer than the timestamp file
     while IFS= read -r -d '' config_file; do
         if is_config_file "$config_file"; then
-            log_info "Found newer config file: $config_file"
             if call_dbus_update "$config_file"; then
                 processed_count=$((processed_count + 1))
             fi
@@ -128,7 +127,6 @@ process_trigger_paths() {
     local processed_count=0
     
     for trigger_path in "$@"; do
-        log_info "Processing trigger path: $trigger_path"
         
         if [ -f "$trigger_path" ]; then
             if is_config_file "$trigger_path"; then
