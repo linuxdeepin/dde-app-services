@@ -47,5 +47,5 @@ install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 ## trigger handler scripts
 if(INSTALL_DEBIAN_TRIGGER)
-    install(PROGRAMS scripts/dconfig-trigger-handler DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/dde-dconfig-daemon)
+    install(PROGRAMS scripts/dde-dconfig-daemon-reload-handler DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/dde-dconfig-daemon)
 endif()

@@ -82,6 +82,14 @@ bool DSGConfigServer::registerService()
     return true;
 }
 
+void DSGConfigServer::initialize()
+{
+    // Initialize file signatures to avoid unnecessary updates on first reload
+    qCInfo(cfLog()) << "Initializing file signatures on service startup";
+    m_fileSignatures = allConfigureFileSignatures(m_localPrefix);
+    qCInfo(cfLog()) << "Initialized file signatures completed, size: " << m_fileSignatures.size();
+}
+
 /*!
  \brief 获得指定连接key值的连接对象
  \a key 连接对象的唯一ID
@@ -520,4 +528,87 @@ void DSGConfigServer::addConnWatchedService(const ConnServiceName & service)
                 qPrintable(getUserNameByUid(connection().interface()->serviceUid(service).value())));
         m_watcher->addWatchedService(service);
     }
+}
+
+/*!
+ * \brief Reload configuration files by detecting changes and updating them
+ *
+ */
+void DSGConfigServer::reload()
+{
+    qCInfo(cfLog()) << "Reload configuration files";
+    
+    const auto lastSignatures = m_fileSignatures;
+    m_fileSignatures = allConfigureFileSignatures(m_localPrefix);
+
+    // Find changed files
+    auto diffConfigureFiles = [] (const QVector<FileSignature> &s1, const QVector<FileSignature> &s2) {
+        QStringList diffs;
+        for (const auto& item : std::as_const(s1)) {
+            auto iter = std::find_if(s2.cbegin(), s2.cend(), [&item](const FileSignature& other) {
+                return item.filePath == other.filePath;
+            });
+            if (iter == s2.end() || (iter->changeTime != item.changeTime || iter->size != item.size)) {
+                diffs << item.filePath;
+            }
+        }
+        return diffs;
+    };
+
+    QStringList changedFiles;
+    changedFiles << diffConfigureFiles(lastSignatures, m_fileSignatures);
+    changedFiles << diffConfigureFiles(m_fileSignatures, lastSignatures);
+
+    changedFiles.removeDuplicates();
+
+    // Process changed files
+    for (const auto &file : std::as_const(changedFiles)) {
+        update(file);
+    }
+
+    qCInfo(cfLog()) << "Reload completed, processed" << changedFiles.size() << "files";
+}
+
+// Get all configuration file signatures
+QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatures(const QString &localPrefix)
+{
+    QVector<DSGConfigServer::FileSignature> signatures;
+
+    QStringList dirs;
+    // Get generic configuration directories
+    const QStringList metaDirs = DConfigMeta::genericMetaDirs(localPrefix);
+    dirs << metaDirs;
+
+    // Get override directories
+    QStringList overrideDirs {
+        QString("%1/etc/dsg/configs/overrides").arg(localPrefix)
+    };
+    for (const auto &dir : std::as_const(metaDirs)) {
+        overrideDirs << QString("%1/overrides").arg(dir);
+    }
+    dirs << overrideDirs;
+
+    for (const QString &dir : std::as_const(dirs)) {
+        if (!QDir(dir).exists())
+            continue;
+
+        QDirIterator iterator(dir, QStringList() << "*.json",
+                             QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
+        while (iterator.hasNext()) {
+            iterator.next();
+            const QString filePath = iterator.fileInfo().absoluteFilePath();
+            
+            QFileInfo fileInfo(filePath);
+            if (fileInfo.exists()) {
+                DSGConfigServer::FileSignature signature;
+                signature.filePath = filePath;
+                signature.size = fileInfo.size();
+                signature.changeTime = fileInfo.metadataChangeTime(QTimeZone::UTC);
+
+                signatures << signature;
+            }
+        }
+    }
+
+    return signatures;
 }

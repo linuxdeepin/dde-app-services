@@ -30,6 +30,8 @@ public:
     void exit();
 
     bool registerService();
+    
+    void initialize();
 
     DSGConfigResource* resourceObject(const GenericResourceKey &key) const;
 
@@ -62,6 +64,8 @@ public Q_SLOTS:
 
     void removeUserData(const uint &uid);
 
+    void reload();
+
 private Q_SLOTS:
     void onReleaseChanged(const ConnServiceName &service, const ConnKey &connKey);
 
@@ -79,6 +83,14 @@ private:
     ConfigureId getConfigureIdByPath(const QString &path);
 
     bool isConfigurePath(const QString &path, const QString& appId) const;
+    // Reload interface related structures and methods
+    struct FileSignature {
+        qint64 size;
+        QDateTime changeTime;
+        QString filePath;
+    };
+    static QVector<FileSignature> allConfigureFileSignatures(const QString &localPrefix);
+
 private:
 
     // 所有链接，一个资源对应一个链接
@@ -91,4 +103,7 @@ private:
     QString m_localPrefix;
     bool m_enableExit = false;
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
+
+    // Last time of the configuration file signature
+    QVector<FileSignature> m_fileSignatures;
 };

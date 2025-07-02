@@ -89,5 +89,7 @@ int main(int argc, char *argv[])
         dsgConfig.exit();
     });
 
+    dsgConfig.initialize(); // Initialize dconfig daemon
+
     return a.exec();
 }

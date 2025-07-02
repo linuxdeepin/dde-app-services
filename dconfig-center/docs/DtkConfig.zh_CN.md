@@ -191,6 +191,44 @@ dbus-send --system --type=method_call --print-reply \
 - 操作会被记录到系统日志中
 - 建议定期审查配置删除操作的日志
 
+#### 配置文件重新加载接口
+
+为了提高配置文件变化检测的效率和准确性，提供了一个新的D-Bus接口 `reload`，用于自动检测配置文件变化并进行热更新。
+
+##### 接口定义
+
+- **服务名**: `org.desktopspec.ConfigManager`
+- **对象路径**: `/`
+- **接口名**: `org.desktopspec.ConfigManager`
+- **方法名**: `reload`
+
+```xml
+<method name='reload'>
+</method>
+```
+
+**参数说明**:
+- 输入参数: 无参数
+- 返回值: 无返回值（void）
+
+##### 功能说明
+
+此接口将自动检测配置文件的变化并进行热更新：
+
+   - 基于文件元数据变更时间（ctime）进行检测
+   - 自动扫描所有配置目录：`/usr/share/dsg/configs`、`/etc/dsg/configs`、`/var/lib/linglong/entries/share/dsg/configs`
+   - 维护文件签名缓存（文件大小 + 变更时间）
+   - 只对实际变化的文件调用update方法
+
+##### 使用示例
+
+```bash
+# 手动触发配置重新加载
+dbus-send --system --type=method_call --print-reply \
+    --dest=org.desktopspec.ConfigManager / \
+    org.desktopspec.ConfigManager.reload
+```
+
 ## 调试
 
 在安装`dde-dconfig-daemon`时，会创建`dde-dconfig-daemon用户`，并且家目录$HOME_DIR为`/var/lib/dde-dconfig-daemon`，默认情况下使用`dde-dconfig-daemon用户`去运行dde-dconfig-daemon。
@@ -223,6 +261,16 @@ dbus-send --system --type=method_call --print-reply \
 ```
 sudo journalctl -u dde-dconfig-daemon.service -f -b
 ```
+
+- 测试reload接口
+    - 手动触发配置重新加载
+    ``` bash
+    dbus-send --system --type=method_call --print-reply --dest=org.desktopspec.ConfigManager / org.desktopspec.ConfigManager.reload
+    ```
+    - 查看reload相关日志（需要开启详细日志）
+    ``` bash
+    sudo journalctl -u dde-dconfig-daemon.service -f -b | grep -i reload
+    ```
 
 - 配置缓存文件
 配置缓存文件在目录`$HOME_DIR/.config`，其中系统配置项的缓存文件在`$HOME_DIR/.config/global`，用户级配置项在`$HOME_DIR/.cache/$uid`。
