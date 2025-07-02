@@ -60,4 +60,8 @@
     <method name='setLogRules'>
       <arg type='s' name='rules' direction='in'/>
     </method>
+
+    <!-- 重新加载配置文件，自动检测变化的配置文件并进行热更新 -->
+    <method name='reload'>
+    </method>
 </interface>

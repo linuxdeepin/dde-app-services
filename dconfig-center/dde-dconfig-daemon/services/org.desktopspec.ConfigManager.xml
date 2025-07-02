@@ -34,4 +34,6 @@
     <method name='removeUserData'>
       <arg type='u' name='uid' direction='in'/>
     </method>
+    <method name='reload'>
+    </method>
 </interface>
