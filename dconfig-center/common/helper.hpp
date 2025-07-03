@@ -11,6 +11,7 @@
 #include <QDirIterator>
 #include <QDBusArgument>
 #include <QJsonDocument>
+#include <QJsonValue>
 #include <DConfigFile>
 #include <dstandardpaths.h>
 #include <QCoreApplication>
