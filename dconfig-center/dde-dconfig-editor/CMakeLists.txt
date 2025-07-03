@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 
 PROJECT(dde-dconfig-editor)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
 
 set(DVERSION "1.0.0" CACHE STRING "define project version")
 add_definitions(-DVERSION="${DVERSION}")

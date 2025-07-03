@@ -5,6 +5,8 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <DLog>
+#include <QCommandLineParser>
+#include <QDir>
 
 #include "dconfigserver.h"
 
