@@ -3,11 +3,18 @@ set -e
 
 # Handle dconfig triggers
 if [ "$1" = "triggered" ]; then
-    # Call reload handler when triggered
-    if [ -x /usr/lib/dde-dconfig-daemon/dde-dconfig-daemon-reload-handler ]; then
-        /usr/lib/dde-dconfig-daemon/dde-dconfig-daemon-reload-handler
+    # Call reload interface directly via D-Bus
+    if dbus-send --system \
+        --dest="org.desktopspec.ConfigManager" \
+        --type=method_call \
+        "/" \
+        "org.desktopspec.ConfigManager.reload" >/dev/null 2>&1; then
+        logger -t "dde-dconfig-daemon" "Configuration trigger detected, reload completed successfully" 2>/dev/null || true
+        echo "Configuration trigger detected, reload completed successfully"
     else
-        echo "Warning: dde-dconfig-daemon-reload-handler not found or not executable"
+        logger -t "dde-dconfig-daemon" -p daemon.err "Configuration trigger detected, reload failed" 2>/dev/null || true
+        echo "ERROR: Configuration trigger detected, reload failed" >&2
+        exit 1
     fi
 fi
 

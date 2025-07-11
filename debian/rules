@@ -12,7 +12,7 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,-z
 	dh $@ --parallel
 
 override_dh_auto_configure:
-	dh_auto_configure -- -DDVERSION=$(DEB_VERSION_UPSTREAM) -DDTK_VERSION=6 -DINSTALL_DEBIAN_TRIGGER=ON
+	dh_auto_configure -- -DDVERSION=$(DEB_VERSION_UPSTREAM) -DDTK_VERSION=6
 
 
 override_dh_auto_install:

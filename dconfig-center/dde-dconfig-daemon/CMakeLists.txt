@@ -5,8 +5,6 @@
 find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus)
 find_package(Dtk${DTK_VERSION_MAJOR}Core REQUIRED)
 
-option(INSTALL_DEBIAN_TRIGGER "Install dconfig trigger handler script" OFF)
-
 # generate moc_predefs.h
 set(CMAKE_AUTOMOC ON)
 set(AUTOMOC_COMPILER_PREDEFINES ON)
@@ -44,8 +42,3 @@ install(FILES services/dde-dconfig-daemon.service DESTINATION ${CMAKE_INSTALL_PR
 
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-## trigger handler scripts
-if(INSTALL_DEBIAN_TRIGGER)
-    install(PROGRAMS scripts/dde-dconfig-daemon-reload-handler DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/dde-dconfig-daemon)
-endif()

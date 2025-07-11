@@ -7,4 +7,3 @@ usr/share/dbus-1/interfaces/*
 usr/share/dbus-1/system-services/*
 usr/share/dde-dconfig/translations/*
 usr/lib/systemd/system/*
-usr/lib/dde-dconfig-daemon/*
