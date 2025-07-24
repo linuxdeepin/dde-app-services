@@ -380,6 +380,7 @@ int main(int argc, char *argv[])
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::translate("main", "A console tool to get and set configuration items for DTK Config."));
     parser.addHelpOption();
+    parser.addVersionOption();
 
     QCommandLineOption uidOption("u", QCoreApplication::translate("main", "operate configure items of the user uid."), "uid", QString());
     parser.addOption(uidOption);
