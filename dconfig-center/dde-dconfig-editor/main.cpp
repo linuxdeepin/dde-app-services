@@ -13,6 +13,8 @@ DWIDGET_USE_NAMESPACE
 
 int main(int argc, char *argv[])
 {
+    setenv("DSG_DATA_DIRS", "/usr/share/dsg:/var/lib/linglong/entries/share/dsg", 0);
+
     DApplication a(argc, argv);
     a.setApplicationVersion(VERSION);
     a.setApplicationName("dde-dconfig-editor");
