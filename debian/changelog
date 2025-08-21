@@ -1,3 +1,11 @@
+dde-app-services (1.0.35) unstable; urgency=medium
+
+  * fix: set DSG_DATA_DIRS for linglong compatibility
+  * feat: add version option to command line parser
+  * refactor: remove trigger handler script and simplify reload logic
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Thu, 21 Aug 2025 20:08:58 +0800
+
 dde-app-services (1.0.34) unstable; urgency=medium
 
   * fix: add security hardening flags to build process
