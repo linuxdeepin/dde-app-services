@@ -24,10 +24,8 @@ int main(int argc, char *argv[])
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESETHAND;
 
-    sigaction(SIGSEGV, &sa, nullptr);
-    sigaction(SIGILL, &sa, nullptr);
-    sigaction(SIGABRT, &sa, nullptr);
-    sigaction(SIGFPE, &sa, nullptr);
+    sigaction(SIGTERM, &sa, nullptr);
+    sigaction(SIGINT, &sa, nullptr);
 
     QCoreApplication a(argc, argv);
     a.setOrganizationName("deepin");
