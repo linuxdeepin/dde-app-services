@@ -23,7 +23,7 @@ OEMDialog::OEMDialog(QWidget *parent)
 {
     m_exportView = new QTreeView();
     m_exportView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_exportView->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    m_exportView->header()->setMinimumSectionSize(400);
 
     m_exportBtn = new DSuggestButton(tr("OEM"));
     m_exportBtn->setEnabled(false);
