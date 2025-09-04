@@ -1,3 +1,12 @@
+dde-app-services (1.0.36) unstable; urgency=medium
+
+  * fix: remove version option from command line parser
+  * fix: set minimum section size for export view header
+  * fix: handle termination signals properly
+  * fix: remove exit on postinst reload failure
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Thu, 04 Sep 2025 19:35:09 +0800
+
 dde-app-services (1.0.35) unstable; urgency=medium
 
   * fix: set DSG_DATA_DIRS for linglong compatibility
