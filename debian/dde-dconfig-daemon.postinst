@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 # Handle dconfig triggers
 if [ "$1" = "triggered" ]; then
@@ -17,4 +16,3 @@ if [ "$1" = "triggered" ]; then
     fi
 fi
 
-exit 0
