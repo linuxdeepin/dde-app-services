@@ -161,8 +161,7 @@ bool DSGConfigResource::reparse(const QString &appid)
     }
 
     // config refresh.
-    delete file;
-    file = nullptr;
+    std::unique_ptr<DConfigFile> oldConfig(file);
     m_files[resouceKey] = config.release();
 
     // emit valuechanged.
