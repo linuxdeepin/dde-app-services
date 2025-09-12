@@ -1,3 +1,10 @@
+dde-app-services (1.0.37) unstable; urgency=medium
+
+  * fix: fix use-after-free bug in config reparse
+  * fix: remove set -e and exit 0 from postinst script
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Fri, 12 Sep 2025 09:20:15 +0800
+
 dde-app-services (1.0.36) unstable; urgency=medium
 
   * fix: remove version option from command line parser
