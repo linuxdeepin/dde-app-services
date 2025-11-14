@@ -42,3 +42,9 @@ install(FILES services/dde-dconfig-daemon.service DESTINATION ${CMAKE_INSTALL_PR
 
 ## bin
 install(TARGETS dde-dconfig-daemon DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# debug config file
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/misc/deepin-debug-config/dde-dconfig-daemon.json
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/deepin-debug-config/deepin-debug-config.d)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/misc/deepin-log-config/dde-dconfig-daemon.json
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/deepin-log-viewer/deepin-log.conf.d)

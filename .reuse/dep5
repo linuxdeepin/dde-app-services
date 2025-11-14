@@ -28,6 +28,11 @@ Files: dconfig-center/dde-dconfig-editor/*.qrc
 Copyright: None
 License: CC0-1.0
 
+# log-related config
+Files: dconfig-center/dde-dconfig-daemon/misc/**/*.json
+Copyright: None
+License: CC0-1.0
+
 # example
 Files: dconfig-center/example/configs/* dconfig-center/example/*.pro
 Copyright: None
