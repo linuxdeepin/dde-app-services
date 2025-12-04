@@ -1,3 +1,9 @@
+dde-app-services (1.0.38) unstable; urgency=medium
+
+  * chore: adapt debugging settings function
+
+ -- fuleyi <fuleyi@uniontech.com>  Thu, 04 Dec 2025 19:14:04 +0800
+
 dde-app-services (1.0.37) unstable; urgency=medium
 
   * fix: fix use-after-free bug in config reparse
