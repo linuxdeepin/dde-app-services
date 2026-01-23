@@ -722,6 +722,10 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
         auto widget = new DLineEdit(this);
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::editingFinished, widget, [this, widget](){
+            if (!isValidTextJsonValue(widget->text())) {
+                qWarning() << "invalid json value" << widget->text();
+                return;
+            }
             widget->clearFocus();
             emit valueChanged(stringToQVariant(widget->text()));
         });

@@ -392,6 +392,10 @@ QWidget *OEMDialog::getItemWidget(ConfigGetter *getter, DStandardItem *item)
         widget->setText(qvariantToString(v));
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::textChanged, widget, [this, item](const QString &text){
+            if (!isValidTextJsonValue(text)) {
+                qWarning() << "invalid json value" << text;
+                return;
+            }
             item->setData(stringToQVariant(text), ValueRole);
             treeItemChanged(item);
         });

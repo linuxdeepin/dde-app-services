@@ -292,6 +292,10 @@ int CommandManager::setCommand()
 #endif
                 manager->setValue(key, value.toDouble());
             } else {
+                if (!isValidTextJsonValue(value)) {
+                    outpuSTDError(QString("the value:[%1] is not a valid json text.").arg(value));
+                    return 1;
+                }
                 manager->setValue(key, stringToQVariant(value));
             }
         } else {
