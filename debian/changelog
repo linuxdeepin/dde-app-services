@@ -1,3 +1,9 @@
+dde-app-services (1.0.39) unstable; urgency=medium
+
+  * fix: add JSON validation for text input fields
+
+ -- zhangkun <zhangkun2@uniontech.com>  Thu, 29 Jan 2026 20:39:55 +0800
+
 dde-app-services (1.0.38) unstable; urgency=medium
 
   * chore: adapt debugging settings function
