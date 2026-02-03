@@ -12,6 +12,7 @@
 #include <QDBusArgument>
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QJsonArray>
 #include <DConfigFile>
 #include <dstandardpaths.h>
 #include <QCoreApplication>
@@ -225,14 +226,44 @@ static QVariant stringToQVariant(const QString &s)
     const auto &doc = QJsonDocument::fromJson(s.toUtf8(), &error);
     if (error.error == QJsonParseError::NoError)
         return doc.toVariant();
+    
+    // 将单个JSON值包装成数组后解析（支持数字、布尔、null、字符串等）
+    const QString wrappedJson = QString("[") + s + QString("]");
+    const auto &wrappedDoc = QJsonDocument::fromJson(wrappedJson.toUtf8(), &error);
+    if (error.error == QJsonParseError::NoError) {
+        QJsonArray array = wrappedDoc.array();
+        if (!array.isEmpty())
+            return array.first().toVariant();
+    }
+    
+    // 解析失败则作为普通字符串处理
     return s;
 }
 
 static bool isValidTextJsonValue(const QString &s)
 {
     QJsonParseError error;
+    
+    // 首先尝试作为JSON文档解析（对象或数组，包括多行格式）
     QJsonDocument::fromJson(s.toUtf8(), &error);
-    return error.error == QJsonParseError::NoError;
+    if (error.error == QJsonParseError::NoError)
+        return true;
+    
+    // 尝试包装成数组解析（支持数字、布尔、null、带引号的JSON字符串）
+    const QString wrappedJson = QString("[") + s + QString("]");
+    QJsonDocument::fromJson(wrappedJson.toUtf8(), &error);
+    if (error.error == QJsonParseError::NoError)
+        return true;
+    
+    // 如果字符串看起来像JSON结构（以{或[开头）但解析失败，说明是格式错误的JSON
+    // 例如: [value1","value2"] 或 {"key":value} 等
+    // 但普通文本如 "use {key} here" 不会被拒绝
+    QString trimmed = s.trimmed();
+    if (!trimmed.isEmpty() && (trimmed[0] == '{' || trimmed[0] == '['))
+        return false;
+    
+    // 其他情况作为普通字符串接受
+    return true;
 }
 
 static QString qvariantToCmd(const QVariant &v)
