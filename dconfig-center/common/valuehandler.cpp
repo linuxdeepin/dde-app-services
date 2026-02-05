@@ -309,12 +309,7 @@ ConfigGetter* ValueHandler::createManager()
         if (tmp->createManager(appid, fileName, subpath)) {
             return tmp;
         }
-    } else {
-        auto tmp = new FileHandler(this);
-        if (tmp->createManager(appid, fileName, subpath)) {
-            qDebug() << QString("using FileHandler to get value for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath);
-            return tmp;
-        }
+        delete tmp;  // 创建失败，释放内存
     }
     qWarning() << QString("get value handler error for appid=%1, resource=%2, subpath=%3.").arg(appid, fileName, subpath);
     return nullptr;

@@ -316,6 +316,10 @@ void MainWindow::onCustomResourceMenuRequested(const QString &appid, const QStri
      connect(resetCmdAction, &QAction::triggered, this, [this, appid, resource, subpath] {
         QScopedPointer<ValueHandler> getter(new ValueHandler(appid, resource, subpath));
         QScopedPointer<ConfigGetter> manager(getter->createManager());
+        if (!manager) {
+            qWarning() << "Failed to create manager for reset command";
+            return;
+        }
         const auto keys = manager->keyList();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         for (const auto &item : std::as_const(keys)) {
@@ -607,6 +611,10 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
 {
     m_getter.reset(new ValueHandler(appid, resource, subpath));
     QScopedPointer<ConfigGetter> manager(m_getter->createManager());
+    if (!manager) {
+        qWarning() << "Failed to create manager for context menu";
+        return;
+    }
     const QString &value = qvariantToCmd(manager.get()->value(key));
     const QString &description = manager.get()->description(key, m_language);
 
@@ -654,6 +662,10 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
 
     connect(resetCmdAction, &QAction::triggered, this, [this, key, widget] {
         QScopedPointer<ConfigGetter> manager(m_getter->createManager());
+        if (!manager) {
+            qWarning() << "Failed to create manager for reset";
+            return;
+        }
         const auto &old = manager->value(key);
         manager->reset(key);
         if (auto contentWidget = qobject_cast<KeyContent *>(widget)) {
@@ -796,6 +808,10 @@ HistoryDialog::HistoryDialog(QWidget *parent)
         {
 
             QScopedPointer<ConfigGetter> manager(handler.createManager());
+            if (!manager) {
+                qWarning() << "Failed to create manager for history";
+                return;
+            }
             if (manager) {
 
                 const auto &key = historyView->model()->data(index, ConfigUserRole + 5).toString();
