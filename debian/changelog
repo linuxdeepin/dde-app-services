@@ -1,3 +1,11 @@
+dde-app-services (1.0.41) unstable; urgency=medium
+
+  * Revert "fix: add JSON validation for text input fields"
+  * Revert "fix: fix JSON validation to accept plain strings"
+  * Revert "fix: improve JSON string handling in variant conversion"
+
+ -- YeShanShan <yeshanshan@uniontech.com>  Tue, 10 Feb 2026 10:55:34 +0800
+
 dde-app-services (1.0.40) unstable; urgency=medium
 
   * fix: remove FileHandler backend and add null checks
