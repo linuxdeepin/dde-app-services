@@ -23,7 +23,6 @@ list(APPEND SOURCES
     ut_dconfigconn.cpp
     ut_dconfigrefmanager.cpp
     ut_dconfigserver.cpp
-    ut_helper.cpp
 )
 
 ADD_EXECUTABLE(dconfigtest main.cpp ${HEADERS} ${SOURCES} ${DCONFIG_DBUS_XML} data.qrc)
