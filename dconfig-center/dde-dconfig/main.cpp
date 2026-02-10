@@ -226,7 +226,7 @@ int CommandManager::getCommand()
 #endif
                     outpuSTD(QString::number(result.toDouble()));
                 } else {
-                    outpuSTD(qvariantToString(result));
+                    outpuSTD(QString("\"%1\"").arg(qvariantToString(result)));
                 }
             } else if (method == "name") {
                 QString result = manager->displayName(key, language);

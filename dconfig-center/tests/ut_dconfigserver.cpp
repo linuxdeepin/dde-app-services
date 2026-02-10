@@ -200,7 +200,6 @@ TEST_F(ut_DConfigServer, acquireManagerGeneric) {
 }
 
 TEST_F(ut_DConfigServer, removeUserData) {
-    GTEST_SKIP() << "Skipping removeUserData test for now";
     // 测试用户ID
     const uint testUid1 = 1001;
     const uint testUid2 = 1002;
@@ -255,7 +254,6 @@ TEST_F(ut_DConfigServer, removeUserData) {
 }
 
 TEST_F(ut_DConfigServer, removeUserDataMultipleResources) {
-    GTEST_SKIP() << "Skipping removeUserData test for now";
     // 测试删除用户数据时涉及多个资源的情况
     const uint testUid = 1003;
     
@@ -412,7 +410,7 @@ TEST_F(ut_DConfigServer, removeUserDataFiles) {
 TEST_F(ut_DConfigServer, removeUserDataWithSubpath) {
     // 测试带有子路径的配置删除
     const uint testUid = 1006;
-    const QString subpath = "/test/subdir";
+    const QString subpath = "test/subdir";
     
     // 创建带有子路径的连接
     auto path = server->acquireManagerV2(testUid, APP_ID, FILE_NAME, subpath).path();
