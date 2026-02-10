@@ -228,13 +228,6 @@ static QVariant stringToQVariant(const QString &s)
     return s;
 }
 
-static bool isValidTextJsonValue(const QString &s)
-{
-    QJsonParseError error;
-    QJsonDocument::fromJson(s.toUtf8(), &error);
-    return error.error == QJsonParseError::NoError;
-}
-
 static QString qvariantToCmd(const QVariant &v)
 {
     auto stringValue = qvariantToStringCompact(v);
