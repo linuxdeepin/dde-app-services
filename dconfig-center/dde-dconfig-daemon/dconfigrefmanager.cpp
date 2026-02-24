@@ -528,7 +528,7 @@ void ConfigSyncRequestCache::customRequest()
             request.data << *iter;
             iter = m_configCacheKeys.erase(iter);
         }
-        qCDebug(cfLog, "Start sync config cache, syncConfigRequest count:%d, elapsed count:%d",
+        qCDebug(cfLog, "Start sync config cache, syncConfigRequest count:%lld, elapsed count:%lld",
                 request.data.count(), m_configCacheKeys.count());
         Q_EMIT syncConfigRequest(request);
     }

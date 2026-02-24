@@ -49,7 +49,7 @@ enum ConfigType {
     KeyType = 0x40,
 };
 
-static AppList applications(const QString &localPrefix = QString())
+inline AppList applications(const QString &localPrefix = QString())
 {
     AppList result;
     result << NoAppId;
@@ -75,7 +75,7 @@ static AppList applications(const QString &localPrefix = QString())
     return result;
 }
 
-static QSet<ResourcePath> resourcePathsForDirectory(const QString &dir)
+inline QSet<ResourcePath> resourcePathsForDirectory(const QString &dir)
 {
     QSet<ResourcePath> result;
     QDirIterator iterator(dir, QDir::Files);
@@ -91,7 +91,7 @@ static QSet<ResourcePath> resourcePathsForDirectory(const QString &dir)
     return result;
 }
 
-static ResourceList resourcePathsForApp(const QString &appid, const QString &localPrefix = QString())
+inline ResourceList resourcePathsForApp(const QString &appid, const QString &localPrefix = QString())
 {
     QSet<ResourcePath> result;
     result.reserve(50);
@@ -102,7 +102,7 @@ static ResourceList resourcePathsForApp(const QString &appid, const QString &loc
     return result.values();
 }
 
-static ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
+inline ResourceList resourcesForApp(const QString &appid, const QString &localPrefix = QString())
 {
     QSet<ResourceId> result;
     result.reserve(50);
@@ -115,7 +115,7 @@ static ResourceList resourcesForApp(const QString &appid, const QString &localPr
     return result.values();
 }
 
-static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
+inline ResourceList resourcesForAllApp(const QString &localPrefix = QString())
 {
     QSet<ResourceId> result;
     result.reserve(50);
@@ -131,7 +131,7 @@ static ResourceList resourcesForAllApp(const QString &localPrefix = QString())
     return result.values();
 }
 
-static SubpathList subpathsForResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
+inline SubpathList subpathsForResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
     SubpathList result;
     for (auto item : resourcePathsForApp(appid, localPrefix)) {
@@ -154,12 +154,12 @@ static SubpathList subpathsForResource(const AppId &appid, const ResourceId &res
     return result;
 }
 
-static bool existAppid(const QString &appid, const QString &localPrefix = QString())
+inline bool existAppid(const QString &appid, const QString &localPrefix = QString())
 {
     return !resourcesForApp(appid, localPrefix).isEmpty();
 }
 
-static bool existResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
+inline bool existResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
     const ResourceList &resources = resourcesForApp(appid, localPrefix);
     if (resources.contains(resourceId))
@@ -173,7 +173,7 @@ static bool existResource(const AppId &appid, const ResourceId &resourceId, cons
     return false;
 }
 
-static QVariant decodeQDBusArgument(const QVariant &v)
+inline QVariant decodeQDBusArgument(const QVariant &v)
 {
     if (v.canConvert<QDBusArgument>()) {
         // we use QJsonValue to resolve all data type in DConfigInfo class, so it's type is equal QJsonValue::Type,
@@ -207,19 +207,19 @@ static QVariant decodeQDBusArgument(const QVariant &v)
     return v;
 }
 
-static QString qvariantToString(const QVariant &v)
+inline QString qvariantToString(const QVariant &v)
 {
     const auto &doc = QJsonDocument::fromVariant(v);
     return doc.isNull() ? v.toString() : doc.toJson();
 }
 
-static QString qvariantToStringCompact(const QVariant &v)
+inline QString qvariantToStringCompact(const QVariant &v)
 {
     const auto &doc = QJsonDocument::fromVariant(v);
     return doc.isNull() ? v.toString() : doc.toJson(QJsonDocument::Compact);
 }
 
-static QVariant stringToQVariant(const QString &s)
+inline QVariant stringToQVariant(const QString &s)
 {
     QJsonParseError error;
     const auto &doc = QJsonDocument::fromJson(s.toUtf8(), &error);
@@ -228,14 +228,14 @@ static QVariant stringToQVariant(const QString &s)
     return s;
 }
 
-static QString qvariantToCmd(const QVariant &v)
+inline QString qvariantToCmd(const QVariant &v)
 {
     auto stringValue = qvariantToStringCompact(v);
     auto jsonValue = QJsonValue::fromVariant(v);
     return jsonValue.isBool() || jsonValue.isDouble() ? stringValue : QString("'%1'").arg(stringValue);
 }
 
-static QStringList translationDirs()
+inline QStringList translationDirs()
 {
     QStringList result;
     result << QCoreApplication::applicationDirPath();
@@ -245,7 +245,7 @@ static QStringList translationDirs()
     return result;
 }
 
-static void loadTranslation(const QString &fileName)
+inline void loadTranslation(const QString &fileName)
 {
     auto translator = new QTranslator(QCoreApplication::instance());
     for (auto item :translationDirs()) {
@@ -256,7 +256,7 @@ static void loadTranslation(const QString &fileName)
     }
 }
 
-static QList<UserInfo> fetchUserInfos()
+inline QList<UserInfo> fetchUserInfos()
 {
     QList<UserInfo> res;
     QFile file("/etc/passwd");

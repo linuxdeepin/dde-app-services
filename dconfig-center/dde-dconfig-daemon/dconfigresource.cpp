@@ -440,7 +440,7 @@ void DSGConfigResource::removeConn(const ConnKey &connKey)
         }
     }
 
-    qDebug(cfLog, "Removed connection:%s, remaining %d connection.", qPrintable(connKey), m_conns.count());
+    qDebug(cfLog, "Removed connection:%s, remaining %lld connection.", qPrintable(connKey), m_conns.count());
 }
 
 bool DSGConfigResource::isEmptyConn() const
@@ -450,7 +450,7 @@ bool DSGConfigResource::isEmptyConn() const
 
 void DSGConfigResource::save()
 {
-    qDebug(cfLog, "Save resource's cache for [%s], and cache count:%d", qPrintable(m_key), m_caches.count());
+    qDebug(cfLog, "Save resource's cache for [%s], and cache count:%lld", qPrintable(m_key), m_caches.count());
     for (auto item : m_files)
         item->save(m_localPrefix);
 
