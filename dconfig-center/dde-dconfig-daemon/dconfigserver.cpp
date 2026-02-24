@@ -357,7 +357,7 @@ void DSGConfigServer::onTryExit()
 void DSGConfigServer::doSyncConfigCache(const ConfigSyncBatchRequest &request)
 {
     const QList<ConfigCacheKey> &keys = request.data;
-    qCInfo(cfLog, "Do sync config cache, keys count:%d", keys.size());
+    qCInfo(cfLog, "Do sync config cache, keys count:%lld", keys.size());
     for (auto key: keys) {
         auto resourceKey = getResourceKeyByConfigCache(key);
         const auto genericResourceKey = getGenericResourceKeyByResourceKey(resourceKey);
@@ -421,12 +421,12 @@ bool DSGConfigServer::isConfigurePath(const QString &path, const QString &appId)
     QStringList overrideDirs {
         QString("%1/etc/dsg/configs/overrides").arg(m_localPrefix)
     };
-    for (const auto dir : metaDirs) {
+    for (const auto &dir : metaDirs) {
         overrideDirs << QString("%1/%2/overrides").arg(m_localPrefix).arg(dir);
     }
     dirs << overrideDirs;
 
-    for (const auto dir: dirs) {
+    for (const auto &dir: dirs) {
         if (isPathInDirectory(path, dir)) {
             return true;
         }

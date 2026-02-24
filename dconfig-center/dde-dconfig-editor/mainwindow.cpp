@@ -364,7 +364,7 @@ void MainWindow::installTranslate()
     if (!userInfos.isEmpty()) {
         auto userMenu = titlebar->menu()->addMenu(tr("Switch User"));
         QActionGroup *userGroup = new QActionGroup(this);
-        for (const auto user : userInfos) {
+        for (const auto &user : userInfos) {
             const auto uid = user.second;
             auto action = userMenu->addAction(user.first);
             action->setProperty("uid", uid);
