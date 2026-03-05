@@ -228,6 +228,35 @@ static QVariant stringToQVariant(const QString &s)
     return s;
 }
 
+static bool validateTextInput(const QString &s, QString &errorMsg)
+{
+    QString trimmed = s.trimmed();
+
+    if (trimmed.isEmpty()) {
+        return true;
+    }
+
+    QChar firstChar = trimmed[0];
+    QChar lastChar = trimmed[trimmed.length() - 1];
+
+    bool looksLikeJsonObject = (firstChar == '{' && lastChar == '}');
+    bool looksLikeJsonArray = (firstChar == '[' && lastChar == ']');
+
+    if (!looksLikeJsonObject && !looksLikeJsonArray) {
+        return true;
+    }
+
+    QJsonParseError error;
+    QJsonDocument::fromJson(trimmed.toUtf8(), &error);
+
+    if (error.error == QJsonParseError::NoError) {
+        return true;
+    }
+
+    errorMsg = QString("Input looks like JSON format but is not valid JSON: %1").arg(error.errorString());
+    return false;
+}
+
 static QString qvariantToCmd(const QVariant &v)
 {
     auto stringValue = qvariantToStringCompact(v);

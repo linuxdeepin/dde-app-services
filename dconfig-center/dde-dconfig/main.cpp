@@ -292,6 +292,11 @@ int CommandManager::setCommand()
 #endif
                 manager->setValue(key, value.toDouble());
             } else {
+                QString errorMsg;
+                if (!validateTextInput(value, errorMsg)) {
+                    outpuSTDError(errorMsg);
+                    return 1;
+                }
                 manager->setValue(key, stringToQVariant(value));
             }
         } else {
