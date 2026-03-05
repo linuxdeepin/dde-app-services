@@ -734,6 +734,11 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
         auto widget = new DLineEdit(this);
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::editingFinished, widget, [this, widget](){
+            QString errorMsg;
+            if (!validateTextInput(widget->text(), errorMsg)) {
+                qWarning() << errorMsg;
+                return;
+            }
             widget->clearFocus();
             emit valueChanged(stringToQVariant(widget->text()));
         });

@@ -391,7 +391,13 @@ QWidget *OEMDialog::getItemWidget(ConfigGetter *getter, DStandardItem *item)
         auto widget = new DLineEdit();
         widget->setText(qvariantToString(v));
         widget->setEnabled(canWrite);
-        connect(widget, &DLineEdit::textChanged, widget, [this, item](const QString &text){
+        connect(widget, &DLineEdit::editingFinished, widget, [this, widget, item](){
+            QString text = widget->text();
+            QString errorMsg;
+            if (!validateTextInput(text, errorMsg)) {
+                qWarning() << errorMsg;
+                return;
+            }
             item->setData(stringToQVariant(text), ValueRole);
             treeItemChanged(item);
         });
