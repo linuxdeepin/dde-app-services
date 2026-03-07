@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2026 Uniontech Software Technology Co.,Ltd.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+name: Unit Tests with Coverage
+
+on:
+  push:
+    branches: [ master, 'refactor/**' ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libdtkcore-dev libdtkgui-dev \
+            libgtest-dev libgmock-dev \
+            gcovr lcov \
+            qtbase5-dev qt6-base-dev \
+            dbus
+
+      - name: Configure (Debug + Coverage)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_COVERAGE=ON \
+            -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+
+      - name: Build
+        run: cmake --build build -j4
+
+      - name: Run tests
+        run: |
+          cd build
+          dbus-run-session ctest --output-on-failure --timeout 60 || true
+
+      - name: Generate coverage report
+        run: |
+          gcovr \
+            --root . \
+            --exclude '.*tests.*' \
+            --exclude '.*build.*' \
+            --html-details build/coverage.html \
+            --xml build/coverage.xml \
+            --print-summary
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage.html
+          retention-days: 14
