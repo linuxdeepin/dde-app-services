@@ -5,6 +5,7 @@
 #include "dconfigrefmanager.h"
 #include <QDebug>
 #include <QEvent>
+#include <QDateTime>
 
 // 管理服务
 class ServiceRef {
@@ -103,8 +104,27 @@ RefManager::RefManager(QObject *parent)
     : QObject(parent),
       m_delayReleaseTime(30000) // 30s
 {
-    m_timerPool.setInitFunc([](QTimer* timer){
-        timer->setSingleShot(true);
+    // 单一全局定时器，每 200ms 扫描一次待释放队列
+    m_globalReleaseTimer = new QTimer(this);
+    m_globalReleaseTimer->setSingleShot(false);
+    m_globalReleaseTimer->setInterval(200);
+    QObject::connect(m_globalReleaseTimer, &QTimer::timeout, this, [this]() {
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        QList<ConnKey> expired;
+        for (auto it = m_pendingRelease.begin(); it != m_pendingRelease.end(); ++it) {
+            if (it.value() <= now)
+                expired << it.key();
+        }
+        for (const ConnKey &key : expired) {
+            m_pendingRelease.remove(key);
+            auto resourceRef = resources.value(key);
+            if (resourceRef && resourceRef->release()) {
+                qCDebug(cfLog, "Resource[%s] removing (global timer).", qPrintable(key));
+                doDeleteResource({resourceRef});
+            }
+        }
+        if (m_pendingRelease.isEmpty())
+            m_globalReleaseTimer->stop();
     });
 }
 RefManager::~RefManager()
@@ -117,7 +137,9 @@ RefManager::~RefManager()
  */
 void RefManager::destroy()
 {
-    m_timerPool.clear();
+    if (m_globalReleaseTimer)
+        m_globalReleaseTimer->stop();
+    m_pendingRelease.clear();
     qDeleteAll(services);
     services.clear();
     qDeleteAll(resources);
@@ -199,16 +221,11 @@ void RefManager::setDelayReleaseTime(const int ms)
         qCWarning(cfLog, "It maybe consume resources too much when delayReleaseTime too long , recommand less %d min.", TimeOut);
     }
 
-    for (auto timer : m_delayReleaseingConns.values()) {
-        // Recalculate remainingTime, to stop the timer when remainingTime less 0.
-        int newRemainingTime = ms - timer->remainingTime();
-        if (newRemainingTime > 0) {
-            qCDebug(cfLog, "Reduce remaining time %d ms.", newRemainingTime);
-            timer->start(newRemainingTime);
-        } else {
-            qCDebug(cfLog, "Stop Early %d ms.", std::abs(newRemainingTime));
-            timer->stop();
-        }
+    // 更新所有待释放 key 的到期时间（按新延迟重新计算）
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    for (auto it = m_pendingRelease.begin(); it != m_pendingRelease.end(); ++it) {
+        // 到期剩余时间 = 旧到期时间 - now，用新延迟替换
+        it.value() = now + ms;
     }
 }
 
@@ -389,33 +406,19 @@ void RefManager::doDeleteResource(const QList<ResourceRef *> &deleteResources)
  */
 void RefManager::delayDeleteResource(const QList<ResourceRef *> &deleteResources)
 {
+    const qint64 expireAt = QDateTime::currentMSecsSinceEpoch() + m_delayReleaseTime;
     for (auto resourceRef : deleteResources) {
-        const ConnKey &resource = resourceRef->resource;
-
-        QTimer *timer = nullptr;
-        // 没有引用时，延迟删除连接
-        if (m_delayReleaseingConns.contains(resource)) {
-            timer = m_delayReleaseingConns.value(resource);
-        } else {
-            timer = m_timerPool.pull();
-            QObject::disconnect(timer, &QTimer::timeout, nullptr, nullptr);
-            QObject::connect(timer, &QTimer::timeout, this, [this, resource, timer](){
-                m_timerPool.push(timer);
-                m_delayReleaseingConns.remove(resource);
-                auto resourceRef = resources.value(resource);
-                if (resourceRef && resourceRef->release()) {
-                    qCDebug(cfLog, "Resource[%s] removing.", qPrintable(resourceRef->resource));
-                    doDeleteResource({resourceRef});
-                }
-            });
-            m_delayReleaseingConns.insert(resource, timer);
-        }
-        timer->start(m_delayReleaseTime);
+        const ConnKey &key = resourceRef->resource;
+        // 写入或更新到期时间（已在队列中则刷新）
+        m_pendingRelease[key] = expireAt;
+        qCDebug(cfLog, "Resource[%s] scheduled for delayed release in %d ms.", qPrintable(key), m_delayReleaseTime);
     }
+    if (!m_globalReleaseTimer->isActive())
+        m_globalReleaseTimer->start();
 }
 
 ConfigSyncRequestCache::ConfigSyncRequestCache(QObject *parent)
-    : QObject (parent)
+    : ConfigSyncPolicy(parent)
     , m_syncTimer(new QBasicTimer())
     , m_delaySyncTime(3000)
     , m_batchCount(20)
@@ -430,7 +433,7 @@ ConfigSyncRequestCache::~ConfigSyncRequestCache()
     m_syncTimer = nullptr;
 }
 
-void ConfigSyncRequestCache::pushRequest(const ConfigCacheKey &key)
+void ConfigSyncRequestCache::schedule(const ConfigCacheKey &key)
 {
     if (m_configCacheKeys.contains(key))
         return;
@@ -439,6 +442,17 @@ void ConfigSyncRequestCache::pushRequest(const ConfigCacheKey &key)
     m_configCacheKeys.insert(key);
     if (!m_syncTimer->isActive()) {
         m_syncTimer->start(m_delaySyncTime, this);
+    }
+}
+
+void ConfigSyncRequestCache::flush()
+{
+    if (m_syncTimer->isActive())
+        m_syncTimer->stop();
+
+    // 将所有待写盘请求立即分批 emit
+    while (!m_configCacheKeys.isEmpty()) {
+        customRequest();
     }
 }
 
@@ -528,7 +542,7 @@ void ConfigSyncRequestCache::customRequest()
             request.data << *iter;
             iter = m_configCacheKeys.erase(iter);
         }
-        qCDebug(cfLog, "Start sync config cache, syncConfigRequest count:%d, elapsed count:%d",
+        qCDebug(cfLog, "Start sync config cache, syncConfigRequest count:%lld, elapsed count:%lld",
                 request.data.count(), m_configCacheKeys.count());
         Q_EMIT syncConfigRequest(request);
     }

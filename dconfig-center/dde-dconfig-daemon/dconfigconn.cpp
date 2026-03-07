@@ -13,6 +13,8 @@
 #include <QDBusConnectionInterface>
 #include <QFile>
 #include <QDebug>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 DCORE_USE_NAMESPACE
 
@@ -119,6 +121,52 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
         return;
 
     const auto &v = decodeQDBusArgument(value.variant());
+
+    // T08-2: JSON Schema 校验（基于 meta description 中约定的 "[schema:...]" 格式）
+    // 格式示例：[schema:{"type":"integer","minimum":0,"maximum":100}]
+    {
+        const QString desc = meta()->description(key, QLocale());
+        const int schemaStart = desc.indexOf(QLatin1String("[schema:"));
+        const int schemaEnd   = desc.indexOf(QLatin1String("]"), schemaStart);
+        if (schemaStart >= 0 && schemaEnd > schemaStart) {
+            const QString schemaStr = desc.mid(schemaStart + 8, schemaEnd - schemaStart - 8);
+            QJsonParseError err;
+            QJsonDocument schemaDoc = QJsonDocument::fromJson(schemaStr.toUtf8(), &err);
+            if (err.error == QJsonParseError::NoError && schemaDoc.isObject()) {
+                const QJsonObject schema = schemaDoc.object();
+                const QString type = schema["type"].toString();
+                bool valid = true;
+                QString reason;
+
+                if (type == "integer" || type == "number") {
+                    bool ok = false;
+                    double num = v.toDouble(&ok);
+                    if (!ok) { valid = false; reason = "not a number"; }
+                    else {
+                        if (schema.contains("minimum") && num < schema["minimum"].toDouble())
+                            { valid = false; reason = QString("value %1 < minimum %2").arg(num).arg(schema["minimum"].toDouble()); }
+                        if (schema.contains("maximum") && num > schema["maximum"].toDouble())
+                            { valid = false; reason = QString("value %1 > maximum %2").arg(num).arg(schema["maximum"].toDouble()); }
+                    }
+                } else if (type == "string") {
+                    if (v.type() != QVariant::String)
+                        { valid = false; reason = "not a string"; }
+                } else if (type == "boolean") {
+                    if (v.type() != QVariant::Bool)
+                        { valid = false; reason = "not a boolean"; }
+                }
+
+                if (!valid) {
+                    const QString errMsg = QString("Schema validation failed for key '%1': %2").arg(key, reason);
+                    qCWarning(cfLog, "[schema] %s", qPrintable(errMsg));
+                    if (calledFromDBus())
+                        sendErrorReply("org.desktopspec.ConfigManager.InvalidValue", errMsg);
+                    return;
+                }
+            }
+        }
+    }
+
     qCDebug(cfLog) << "Set value, key:" << key << ", now value:" << v << ", old value:" << file()->value(key, cache());
     if(!file()->setValue(key, v, getAppid(), cache()))
         return;
@@ -158,6 +206,15 @@ QDBusVariant DSGConfigConn::value(const QString &key)
 
     if (!hasPermissionByUid(key))
         return QDBusVariant();
+
+    // T08-1: deprecated flag 检测（约定：meta description 中包含 "[deprecated]" 则发 warning）
+    {
+        const QString desc = meta()->description(key, QLocale());
+        if (desc.contains(QLatin1String("[deprecated]"), Qt::CaseInsensitive)) {
+            qCWarning(cfLog, "[deprecated] key '%s' in resource='%s' is deprecated. %s",
+                      qPrintable(key), qPrintable(m_resource->key()), qPrintable(desc));
+        }
+    }
 
     // Try to get value from cache.
     auto value = file()->cacheValue(cache(), key);

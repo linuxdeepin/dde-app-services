@@ -5,28 +5,43 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QDebug>
+#include <QSocketNotifier>
 #include <DLog>
 
 #include "dconfigserver.h"
+#include "servicelifecycle.h"
 
 #include <csignal>
+#include <sys/socket.h>
+#include <unistd.h>
 
-static void exitApp(int signal)
+// ---- POSIX 信号 → Qt 事件桥 ----
+static int g_signalFd[2] = {-1, -1};
+
+static void posixSignalHandler(int sig)
 {
-    qInfo() << "App exited due to receiving signal" << signal;
-    QCoreApplication::exit(1);
+    // async-signal-safe: 只写一个字节
+    char byte = static_cast<char>(sig);
+    ::write(g_signalFd[0], &byte, 1);
 }
+
+static bool setupSignalBridge()
+{
+    if (::socketpair(AF_UNIX, SOCK_STREAM, 0, g_signalFd) != 0) {
+        qWarning("socketpair() failed for signal bridge");
+        return false;
+    }
+    struct sigaction sa;
+    sa.sa_handler = posixSignalHandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGTERM, &sa, nullptr);
+    sigaction(SIGINT,  &sa, nullptr);
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
-    // 异常处理，调用QCoreApplication::exit，使DSGConfigServer正常析构。
-    struct sigaction sa;
-    sa.sa_handler = exitApp;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESETHAND;
-
-    sigaction(SIGTERM, &sa, nullptr);
-    sigaction(SIGINT, &sa, nullptr);
-
     QCoreApplication a(argc, argv);
     a.setOrganizationName("deepin");
     a.setApplicationName("dde-dconfig-daemon");
@@ -44,6 +59,9 @@ int main(int argc, char *argv[])
     parser.addOption(exitOption);
 
     parser.process(a);
+
+    // 生命周期状态机
+    ServiceLifecycle lifecycle;
 
     DSGConfigServer dsgConfig;
 
@@ -82,12 +100,47 @@ int main(int argc, char *argv[])
     }
     Dtk::Core::DLogManager::registerFileAppender();
     qInfo() << "Log path is:" << Dtk::Core::DLogManager::getlogFilePath();
+
+    // T01-2：POSIX 信号 → Qt 事件桥（有序关闭）
+    if (setupSignalBridge()) {
+        auto *signalNotifier = new QSocketNotifier(g_signalFd[1], QSocketNotifier::Read, &a);
+        QObject::connect(signalNotifier, &QSocketNotifier::activated, &a, [&lifecycle, &dsgConfig](int) {
+            char sig = 0;
+            ::read(g_signalFd[1], &sig, 1);
+            qInfo("[main] Received signal %d, starting ordered shutdown...", static_cast<int>(sig));
+            lifecycle.transitionTo(ServiceState::Stopping);
+            dsgConfig.exit();
+            lifecycle.transitionTo(ServiceState::Stopped);
+            QCoreApplication::quit();
+        });
+    } else {
+        // 降级：直接用旧的 signal handler
+        struct sigaction sa;
+        sa.sa_handler = [](int sig) {
+            qInfo("Received signal %d, exiting.", sig);
+            QCoreApplication::exit(0);
+        };
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = SA_RESETHAND;
+        sigaction(SIGTERM, &sa, nullptr);
+        sigaction(SIGINT,  &sa, nullptr);
+    }
+
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&dsgConfig]() {
         qInfo() << "Exit dconfig daemon and release resources.";
         dsgConfig.exit();
     });
 
-    dsgConfig.initialize(); // Initialize dconfig daemon
+    // T01-3：统一日志格式（时间戳 + pid + category）
+    if (qEnvironmentVariableIsEmpty("QT_MESSAGE_PATTERN")) {
+        qputenv("QT_MESSAGE_PATTERN",
+                "%{time yyyy-MM-dd hh:mm:ss.zzz} [%{pid}] %{category} %{type}: %{message}");
+    }
+
+    dsgConfig.initialize();
+    lifecycle.transitionTo(ServiceState::Running);
+    qInfo("[main] Service is now Running.");
 
     return a.exec();
 }
+

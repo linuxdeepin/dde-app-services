@@ -10,6 +10,10 @@
 #include <QDBusPendingReply>
 #include <QLoggingCategory>
 #include <QProcess>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QFile>
 #include <iostream>
 
 #include "helper.hpp"
@@ -25,7 +29,9 @@ public:
             const QCommandLineOption &keyOption,
             const QCommandLineOption &methodOption,
             const QCommandLineOption &languageOption,
-            const QCommandLineOption &valueOption)
+            const QCommandLineOption &valueOption,
+            const QCommandLineOption &outputOption,
+            const QCommandLineOption &fileOption)
         : parser(parser)
         , uidOption(uidOption)
         , appidOption(appidOption)
@@ -35,6 +41,8 @@ public:
         , methodOption(methodOption)
         , languageOption(languageOption)
         , valueOption(valueOption)
+        , outputOption(outputOption)
+        , fileOption(fileOption)
     {
         updateValues();
     }
@@ -44,11 +52,15 @@ public:
     int setCommand();
     int resetCommand();
     int watchCommand();
+    int exportCommand();   // T09-3: export snapshot
+    int importCommand();   // T09-3: import snapshot
 
     QString appid;
     QString resourceid;
     QString subpathid;
     QString key;
+    QString outputFormat;  // T09-1: "text" | "json"
+    QString snapshotFile;  // T09-3: file path for export/import
 
     void updateValues()
     {
@@ -58,6 +70,8 @@ public:
         resourceid = fetchResourceid();
         subpathid = parser.value(subpathOption);
         key = fetchKey();
+        outputFormat = parser.isSet(outputOption) ? parser.value(outputOption) : "text";
+        snapshotFile = parser.isSet(fileOption) ? parser.value(fileOption) : QString();
     }
     // fallback to positionalArgument as key
     inline QString fetchKey() const
@@ -117,6 +131,8 @@ private:
     QCommandLineOption methodOption;
     QCommandLineOption languageOption;
     QCommandLineOption valueOption;
+    QCommandLineOption outputOption;   // T09-1
+    QCommandLineOption fileOption;     // T09-3
 };
 
 // output for standard ostream(dev 1)
@@ -138,41 +154,40 @@ inline void outpuSTDError(const QString &value)
 int CommandManager::listCommand()
 {
     // list命令，查看app、resource、subpath
+    const bool jsonOut = (outputFormat == "json");
+    QStringList items;
+
     if (isSetAppid()) {
         if (!existAppid(appid)) {
             outpuSTDError(QString("not exist appid:%1").arg(appid));
             return 1;
         }
-        // don't fallback to the same resource as appidOption
         if (parser.isSet(resourceOption)) {
             if (!existResource(appid, resourceid)) {
                 outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
                 return 1;
             }
-            auto subpaths = subpathsForResource(appid, resourceid);
-            for (auto item : subpaths) {
-                outpuSTD(item);
-            }
+            items = subpathsForResource(appid, resourceid);
         } else {
-            auto resources = resourcesForApp(appid);
-            for (auto item : resources) {
-                outpuSTD(item);
-            }
+            items = resourcesForApp(appid);
         }
     } else if(parser.isSet(resourceOption)) {
         const auto &commons = resourcesForAllApp();
         QRegularExpression re(resourceid);
         for (auto item : commons) {
-            auto match = re.match(item);
-            if (match.hasMatch()) {
-                outpuSTD(item);
-            }
+            if (re.match(item).hasMatch())
+                items << item;
         }
     } else {
-        auto apps = applications();
-        for (auto item : apps) {
-            outpuSTD(item);
-        }
+        items = applications();
+    }
+
+    if (jsonOut) {
+        QJsonArray arr;
+        for (const auto &item : items) arr.append(item);
+        std::cout << QJsonDocument(arr).toJson(QJsonDocument::Compact).constData() << std::endl;
+    } else {
+        for (auto item : items) outpuSTD(item);
     }
     return 0;
 }
@@ -200,13 +215,24 @@ int CommandManager::getCommand()
         return 1;
     }
 
+    const bool jsonOut = (outputFormat == "json");
     ValueHandler handler(uid, appid, resourceid, subpathid);
     if (auto manager = handler.createManager()) {
         if (!isSetKey() && !parser.isSet(methodOption)) {
-
             QStringList result = manager->keyList();
-            for (auto item : result) {
-                outpuSTD(item);
+            if (jsonOut) {
+                QJsonArray arr;
+                for (const auto &k : result) {
+                    QJsonObject obj;
+                    obj["key"] = k;
+                    obj["value"] = manager->value(k).toString();
+                    obj["appid"] = appid;
+                    obj["resource"] = resourceid;
+                    arr.append(obj);
+                }
+                std::cout << QJsonDocument(arr).toJson(QJsonDocument::Compact).constData() << std::endl;
+            } else {
+                for (auto item : result) outpuSTD(item);
             }
             return 0;
         }
@@ -215,6 +241,14 @@ int CommandManager::getCommand()
 
             if (method == "value") {
                 QVariant result = manager->value(key);
+                if (jsonOut) {
+                    QJsonObject obj;
+                    obj["key"] = key;
+                    obj["value"] = result.toString();
+                    obj["appid"] = appid;
+                    obj["resource"] = resourceid;
+                    std::cout << QJsonDocument(obj).toJson(QJsonDocument::Compact).constData() << std::endl;
+                } else {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 if (result.typeId() == QMetaType::Bool) {
                     outpuSTD(result.toBool());
@@ -228,6 +262,7 @@ int CommandManager::getCommand()
                 } else {
                     outpuSTD(QString("\"%1\"").arg(qvariantToString(result)));
                 }
+                } // end else (non-json)
             } else if (method == "name") {
                 QString result = manager->displayName(key, language);
                 outpuSTD(result);
@@ -354,13 +389,21 @@ int CommandManager::watchCommand()
 
     ValueHandler handler(uid, appid, resourceid, subpathid);
     QScopedPointer<ConfigGetter> manager(handler.createManager());
+    const bool jsonOut = (outputFormat == "json");
     if (manager) {
         const auto &matchKey = key;
-        QObject::connect(&handler, &ValueHandler::valueChanged, [matchKey](const QString &key){
+        QObject::connect(&handler, &ValueHandler::valueChanged, [matchKey, jsonOut, this](const QString &changedKey){
             QRegularExpression re(matchKey);
-            auto match = re.match(key);
-            if (match.hasMatch()) {
-                outpuSTD(key);
+            if (!matchKey.isEmpty() && !re.match(changedKey).hasMatch())
+                return;
+            if (jsonOut) {
+                QJsonObject obj;
+                obj["key"] = changedKey;
+                obj["appid"] = appid;
+                obj["resource"] = resourceid;
+                std::cout << QJsonDocument(obj).toJson(QJsonDocument::Compact).constData() << std::endl;
+            } else {
+                outpuSTD(changedKey);
             }
         });
     } else {
@@ -368,6 +411,93 @@ int CommandManager::watchCommand()
         return 1;
     }
     return qApp->exec();
+}
+
+// T09-3: export snapshot
+int CommandManager::exportCommand()
+{
+    if (!isSetAppid() || !isSetResourceid()) {
+        outpuSTDError("export requires -a <appid> -r <resource> -o <file>");
+        return 1;
+    }
+    if (snapshotFile.isEmpty()) {
+        outpuSTDError("export requires --file/-o <snapshot.json>");
+        return 1;
+    }
+    if (!existResource(appid, resourceid)) {
+        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
+        return 1;
+    }
+
+    ValueHandler handler(uid, appid, resourceid, subpathid);
+    QScopedPointer<ConfigGetter> manager(handler.createManager());
+    if (!manager) {
+        outpuSTDError("failed to create manager");
+        return 1;
+    }
+
+    QJsonObject snapshot;
+    snapshot["appid"] = appid;
+    snapshot["resource"] = resourceid;
+    snapshot["subpath"] = subpathid;
+    QJsonObject values;
+    for (const auto &k : manager->keyList()) {
+        values[k] = manager->value(k).toString();
+    }
+    snapshot["values"] = values;
+
+    QFile f(snapshotFile);
+    if (!f.open(QIODevice::WriteOnly)) {
+        outpuSTDError(QString("cannot open file: %1").arg(snapshotFile));
+        return 1;
+    }
+    f.write(QJsonDocument(snapshot).toJson());
+    qInfo("Exported %d keys to %s", values.size(), qPrintable(snapshotFile));
+    return 0;
+}
+
+// T09-3: import snapshot
+int CommandManager::importCommand()
+{
+    if (snapshotFile.isEmpty()) {
+        outpuSTDError("import requires --file/-o <snapshot.json>");
+        return 1;
+    }
+    QFile f(snapshotFile);
+    if (!f.open(QIODevice::ReadOnly)) {
+        outpuSTDError(QString("cannot open file: %1").arg(snapshotFile));
+        return 1;
+    }
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+    if (err.error != QJsonParseError::NoError) {
+        outpuSTDError(QString("JSON parse error: %1").arg(err.errorString()));
+        return 1;
+    }
+    QJsonObject snapshot = doc.object();
+    const QString importAppid    = appid.isEmpty()    ? snapshot["appid"].toString()    : appid;
+    const QString importResource = resourceid.isEmpty()? snapshot["resource"].toString(): resourceid;
+    const QString importSubpath  = subpathid.isEmpty() ? snapshot["subpath"].toString() : subpathid;
+
+    if (!existResource(importAppid, importResource)) {
+        outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(importResource).arg(importAppid));
+        return 1;
+    }
+
+    ValueHandler handler(uid, importAppid, importResource, importSubpath);
+    QScopedPointer<ConfigGetter> manager(handler.createManager());
+    if (!manager) {
+        outpuSTDError("failed to create manager");
+        return 1;
+    }
+    const QJsonObject values = snapshot["values"].toObject();
+    int count = 0;
+    for (auto it = values.begin(); it != values.end(); ++it) {
+        manager->setValue(it.key(), it.value().toVariant());
+        count++;
+    }
+    qInfo("Imported %d keys from %s", count, qPrintable(snapshotFile));
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -438,6 +568,24 @@ int main(int argc, char *argv[])
     guiOption.setFlags(guiOption.flags() ^ QCommandLineOption::HiddenFromHelp);
     parser.addOption(guiOption);
 
+    // T09-1: --output json|text
+    QCommandLineOption outputOption(QStringList{"output", "O"},
+        QCoreApplication::translate("main", "output format: text (default) or json."), "format", "text");
+    parser.addOption(outputOption);
+
+    // T09-3: --file for export/import
+    QCommandLineOption fileOption(QStringList{"file", "o"},
+        QCoreApplication::translate("main", "snapshot file path for export/import."), "file", QString());
+    parser.addOption(fileOption);
+
+    QCommandLineOption exportOption("export", QCoreApplication::translate("main", "export all config values to a JSON snapshot file."));
+    exportOption.setFlags(exportOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(exportOption);
+
+    QCommandLineOption importOption("import", QCoreApplication::translate("main", "import config values from a JSON snapshot file."));
+    importOption.setFlags(importOption.flags() ^ QCommandLineOption::HiddenFromHelp);
+    parser.addOption(importOption);
+
 
     // support positional argument for subcommand.
     parser.addPositionalArgument(listOption.names().constFirst(), listOption.description(), "\n list: dde-dconfig list \n");
@@ -456,7 +604,7 @@ int main(int argc, char *argv[])
     const auto positions = parser.positionalArguments();
     const auto subcommand = positions.isEmpty() ? QString() : positions.constFirst();
 
-    CommandManager manager {parser, uidOption, appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption };
+    CommandManager manager {parser, uidOption, appidOption, resourceOption, subpathOption, keyOption, methodOption, languageOption, valueOption, outputOption, fileOption};
     if (parser.isSet(guiOption) || guiOption.names().contains(subcommand)) {
         const QString guiTool("dde-dconfig-editor");
 #if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
@@ -475,6 +623,10 @@ int main(int argc, char *argv[])
         return manager.resetCommand();
     } else if (parser.isSet(watchOption) || watchOption.names().contains(subcommand)) {
         return manager.watchCommand();
+    } else if (parser.isSet(exportOption) || exportOption.names().contains(subcommand)) {
+        return manager.exportCommand();
+    } else if (parser.isSet(importOption) || importOption.names().contains(subcommand)) {
+        return manager.importCommand();
     }
 
     parser.showHelp(0);

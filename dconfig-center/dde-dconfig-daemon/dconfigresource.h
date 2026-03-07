@@ -50,6 +50,7 @@ public:
 
     void save();
     void save(const QString &appid);
+    bool saveWithRetry(DConfigCache *cache, int maxRetry = 3);
 
     bool reparse(const QString &appid);
 
@@ -89,9 +90,9 @@ private:
     QString m_subpath;
     QString m_localPrefix;
 
-    QMap<ResourceKey, DConfigFile *> m_files;
-    QMap<ConnKey, DConfigCache *> m_caches;
-    QMap<ConnKey, DSGConfigConn *> m_conns;
+    QHash<ResourceKey, DConfigFile *> m_files;
+    QHash<ConnKey, DConfigCache *> m_caches;
+    QHash<ConnKey, DSGConfigConn *> m_conns;
 
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
 };

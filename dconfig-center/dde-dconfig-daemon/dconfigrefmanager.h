@@ -5,6 +5,7 @@
 #pragma once
 
 #include "dconfig_global.h"
+#include "configsyncpolicy.h"
 #include <QObject>
 #include <QHash>
 #include <QMap>
@@ -58,15 +59,15 @@ private:
 
 private:
     // 所有服务，每一个进程对应一个服务，两级关联(用户、pid)
-    QMap<ConnServiceName, ServiceRef*> services;
+    QHash<ConnServiceName, ServiceRef*> services;
 
     // 所有资源，每一个配置文件对应一个资源(用户)
-    QMap<ConnKey, ResourceRef*> resources;
+    QHash<ConnKey, ResourceRef*> resources;
 
-    // 延迟释放
-    int m_delayReleaseTime;
-    QMap<ConnKey, QTimer *> m_delayReleaseingConns;
-    ObjectPool<QTimer> m_timerPool;
+    // 延迟释放：单一全局定时器 + 到期时间戳队列（替代 per-conn QTimer 方案）
+    int m_delayReleaseTime = 1000;
+    QTimer *m_globalReleaseTimer = nullptr;
+    QHash<ConnKey, qint64> m_pendingRelease;  ///< key → 到期 epoch ms
 };
 
 struct ConfigSyncBatchRequest
@@ -74,15 +75,20 @@ struct ConfigSyncBatchRequest
     QList<ConfigCacheKey> data;
 };
 
-class ConfigSyncRequestCache : public QObject
+class ConfigSyncRequestCache : public ConfigSyncPolicy
 {
     Q_OBJECT
 public:
     explicit ConfigSyncRequestCache(QObject *parent = nullptr);
     virtual ~ConfigSyncRequestCache() override;
 
-    void pushRequest(const ConfigCacheKey& key);
-    void clear();
+    // ConfigSyncPolicy interface
+    void schedule(const ConfigCacheKey &key) override;
+    void flush() override;
+    void clear() override;
+
+    // 兼容旧接口（内部调用 schedule）
+    void pushRequest(const ConfigCacheKey &key) { schedule(key); }
 
     static ConfigCacheKey globalKey(const ResourceKey &key);
     static ConfigCacheKey userKey(const ConnKey &key);
