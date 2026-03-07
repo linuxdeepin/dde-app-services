@@ -9,6 +9,8 @@
 #include <QDBusObjectPath>
 #include <QDBusContext>
 #include <QDBusServiceWatcher>
+#include <QTimer>
+#include <QQueue>
 
 class DSGConfigResource;
 class RefManager;
@@ -45,6 +47,9 @@ Q_SIGNALS:
     void releaseResource(const ConnKey& resource);
 
     void tryExit();
+
+    /// T06-4: 配置文件更新时通知调用方（appid/resource 来自路径解析）
+    void configUpdated(const QString &appid, const QString &resource);
 
 public Q_SLOTS:
     QDBusObjectPath acquireManager(const QString &appid, const QString &name, const QString &subpath);
@@ -83,13 +88,6 @@ private:
     ConfigureId getConfigureIdByPath(const QString &path);
 
     bool isConfigurePath(const QString &path, const QString& appId) const;
-    // Reload interface related structures and methods
-    struct FileSignature {
-        qint64 size;
-        QDateTime changeTime;
-        QString filePath;
-    };
-    static QVector<FileSignature> allConfigureFileSignatures(const QString &localPrefix);
 
 private:
 
@@ -104,6 +102,8 @@ private:
     bool m_enableExit = false;
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
 
-    // Last time of the configuration file signature
-    QVector<FileSignature> m_fileSignatures;
+    // T06: inotify 热重载（替代 FileSignature 轮询方案）
+    class InotifyWatcher *m_inotifyWatcher = nullptr;
+    QTimer *m_reloadThrottle = nullptr;         ///< 节流定时器（200ms）
+    QQueue<QString> m_pendingReloadPaths;       ///< 待处理变化路径队列
 };

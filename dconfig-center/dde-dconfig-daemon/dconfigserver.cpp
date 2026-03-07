@@ -6,6 +6,7 @@
 #include "dconfigresource.h"
 #include "dconfigconn.h"
 #include "dconfigrefmanager.h"
+#include "inotifywatcher.h"
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -98,10 +99,41 @@ bool DSGConfigServer::registerService()
 
 void DSGConfigServer::initialize()
 {
-    // Initialize file signatures to avoid unnecessary updates on first reload
-    qCInfo(cfLog()) << "Initializing file signatures on service startup";
-    m_fileSignatures = allConfigureFileSignatures(m_localPrefix);
-    qCInfo(cfLog()) << "Initialized file signatures completed, size: " << m_fileSignatures.size();
+    // T06-2: 用 inotify 替代文件签名轮询方案
+    m_inotifyWatcher = new InotifyWatcher(this);
+    const QStringList configPaths = {
+        m_localPrefix + "/usr/share/dsg/configs",
+        m_localPrefix + "/etc/dsg/configs",
+        m_localPrefix + "/var/lib/linglong/entries/share/dsg/configs",
+    };
+    for (const QString &p : configPaths) {
+        if (QDir(p).exists()) {
+            m_inotifyWatcher->addPath(p);
+            qCInfo(cfLog()) << "[inotify] watching:" << p;
+        }
+    }
+
+    // T06-3: 节流定时器（200ms），批量处理变化路径
+    m_reloadThrottle = new QTimer(this);
+    m_reloadThrottle->setSingleShot(true);
+    m_reloadThrottle->setInterval(200);
+    connect(m_reloadThrottle, &QTimer::timeout, this, [this]() {
+        while (!m_pendingReloadPaths.isEmpty()) {
+            const QString path = m_pendingReloadPaths.dequeue();
+            qCDebug(cfLog()) << "[inotify] processing changed file:" << path;
+            update(path);
+        }
+    });
+
+    connect(m_inotifyWatcher, &InotifyWatcher::fileChanged, this, [this](const QString &path) {
+        if (!path.endsWith(".json"))
+            return;
+        if (!m_pendingReloadPaths.contains(path))
+            m_pendingReloadPaths.enqueue(path);
+        m_reloadThrottle->start();  // 重置节流定时器
+    });
+
+    qCInfo(cfLog()) << "InotifyWatcher initialized for config directories.";
 }
 
 /*!
@@ -484,6 +516,9 @@ void DSGConfigServer::update(const QString &path)
                 sendErrorReply(QDBusError::Failed, errorMsg);
             }
             qWarning() << qPrintable(errorMsg);
+        } else {
+            // T06-4: 通知调用方哪个 appid/resource 被更新
+            emit configUpdated(configureInfo.appid, configureInfo.resource);
         }
     }
 }
@@ -545,84 +580,21 @@ void DSGConfigServer::addConnWatchedService(const ConnServiceName & service)
 }
 
 /*!
- * \brief Reload configuration files by detecting changes and updating them
+ * \brief Reload configuration files
  *
+ * T06: inotify 驱动下，reload() 仍作为手动触发入口，
+ * 直接触发节流定时器立即刷出所有待处理路径。
  */
 void DSGConfigServer::reload()
 {
-    qCInfo(cfLog()) << "Reload configuration files";
-    
-    const auto lastSignatures = m_fileSignatures;
-    m_fileSignatures = allConfigureFileSignatures(m_localPrefix);
-
-    // Find changed files
-    auto diffConfigureFiles = [] (const QVector<FileSignature> &s1, const QVector<FileSignature> &s2) {
-        QStringList diffs;
-        for (const auto& item : std::as_const(s1)) {
-            auto iter = std::find_if(s2.cbegin(), s2.cend(), [&item](const FileSignature& other) {
-                return item.filePath == other.filePath;
-            });
-            if (iter == s2.end() || (iter->changeTime != item.changeTime || iter->size != item.size)) {
-                diffs << item.filePath;
-            }
-        }
-        return diffs;
-    };
-
-    QStringList changedFiles;
-    changedFiles << diffConfigureFiles(lastSignatures, m_fileSignatures);
-    changedFiles << diffConfigureFiles(m_fileSignatures, lastSignatures);
-
-    changedFiles.removeDuplicates();
-
-    // Process changed files
-    for (const auto &file : std::as_const(changedFiles)) {
-        update(file);
-    }
-
-    qCInfo(cfLog()) << "Reload completed, processed" << changedFiles.size() << "files";
-}
-
-// Get all configuration file signatures
-QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatures(const QString &localPrefix)
-{
-    QVector<DSGConfigServer::FileSignature> signatures;
-
-    QStringList dirs;
-    // Get generic configuration directories
-    const QStringList metaDirs = DConfigMeta::genericMetaDirs(localPrefix);
-    dirs << metaDirs;
-
-    // Get override directories
-    QStringList overrideDirs {
-        QString("%1/etc/dsg/configs/overrides").arg(localPrefix)
-    };
-    for (const auto &dir : std::as_const(metaDirs)) {
-        overrideDirs << QString("%1/overrides").arg(dir);
-    }
-    dirs << overrideDirs;
-
-    for (const QString &dir : std::as_const(dirs)) {
-        if (!QDir(dir).exists())
-            continue;
-
-        QDirIterator iterator(dir, QStringList() << "*.json",
-                             QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
-        while (iterator.hasNext()) {
-            iterator.next();
-            const QString filePath = iterator.fileInfo().absoluteFilePath();
-            
-            QFileInfo fileInfo(filePath);
-            if (fileInfo.exists()) {
-                DSGConfigServer::FileSignature signature;
-                signature.filePath = filePath;
-                signature.size = fileInfo.size();
-                signature.changeTime = fileInfo.metadataChangeTime(QTimeZone::UTC);
-
-                signatures << signature;
-            }
+    qCInfo(cfLog()) << "[reload] Manual reload triggered, flushing pending changes immediately.";
+    if (m_reloadThrottle) {
+        m_reloadThrottle->stop();
+        // 手动触发：处理所有待处理路径
+        while (!m_pendingReloadPaths.isEmpty()) {
+            const QString path = m_pendingReloadPaths.dequeue();
+            qCDebug(cfLog()) << "[reload] processing:" << path;
+            update(path);
         }
     }
-
-    return signatures;
 }
