@@ -60,6 +60,11 @@ void DSGConfigServer::exit()
                      qPrintable(it.key()), connCount);
         }
     }
+    // T05-4：退出前强制 flush，确保所有待写盘缓存落地
+    if (m_syncRequestCache) {
+        qInfo(cfLog, "Flushing pending config sync requests before exit...");
+        m_syncRequestCache->flush();
+    }
 
     m_refManager->destroy();
     qDeleteAll(m_resources);

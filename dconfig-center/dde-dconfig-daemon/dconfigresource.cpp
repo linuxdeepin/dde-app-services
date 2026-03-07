@@ -11,6 +11,7 @@
 #include <QDBusConnectionInterface>
 #include <QFile>
 #include <QDebug>
+#include <QThread>
 
 #include "manager_adaptor.h"
 
@@ -455,7 +456,19 @@ void DSGConfigResource::save()
         item->save(m_localPrefix);
 
     for (auto item : m_caches)
-        item->save(m_localPrefix);
+        saveWithRetry(item);
+}
+
+bool DSGConfigResource::saveWithRetry(DConfigCache *cache, int maxRetry)
+{
+    for (int i = 0; i < maxRetry; ++i) {
+        if (cache->save(m_localPrefix))
+            return true;
+        qCWarning(cfLog, "[sync] save failed (attempt %d/%d) for cache, retrying...", i + 1, maxRetry);
+        QThread::msleep(static_cast<unsigned long>(100 * (i + 1)));  // 指数退避
+    }
+    qCCritical(cfLog, "[sync] save failed after %d retries.", maxRetry);
+    return false;
 }
 
 void DSGConfigResource::save(const QString &appid)

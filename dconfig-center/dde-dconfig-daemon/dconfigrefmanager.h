@@ -5,6 +5,7 @@
 #pragma once
 
 #include "dconfig_global.h"
+#include "configsyncpolicy.h"
 #include <QObject>
 #include <QHash>
 #include <QMap>
@@ -74,15 +75,20 @@ struct ConfigSyncBatchRequest
     QList<ConfigCacheKey> data;
 };
 
-class ConfigSyncRequestCache : public QObject
+class ConfigSyncRequestCache : public ConfigSyncPolicy
 {
     Q_OBJECT
 public:
     explicit ConfigSyncRequestCache(QObject *parent = nullptr);
     virtual ~ConfigSyncRequestCache() override;
 
-    void pushRequest(const ConfigCacheKey& key);
-    void clear();
+    // ConfigSyncPolicy interface
+    void schedule(const ConfigCacheKey &key) override;
+    void flush() override;
+    void clear() override;
+
+    // 兼容旧接口（内部调用 schedule）
+    void pushRequest(const ConfigCacheKey &key) { schedule(key); }
 
     static ConfigCacheKey globalKey(const ResourceKey &key);
     static ConfigCacheKey userKey(const ConnKey &key);

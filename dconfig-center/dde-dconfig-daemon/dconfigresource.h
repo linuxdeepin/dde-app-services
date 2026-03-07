@@ -50,6 +50,7 @@ public:
 
     void save();
     void save(const QString &appid);
+    bool saveWithRetry(DConfigCache *cache, int maxRetry = 3);
 
     bool reparse(const QString &appid);
 

@@ -30,6 +30,7 @@ set(HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/dconfigresource.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigconn.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigrefmanager.h
+    ${CMAKE_CURRENT_LIST_DIR}/configsyncpolicy.h
 )
 set(SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/dconfigserver.cpp

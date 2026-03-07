@@ -418,7 +418,7 @@ void RefManager::delayDeleteResource(const QList<ResourceRef *> &deleteResources
 }
 
 ConfigSyncRequestCache::ConfigSyncRequestCache(QObject *parent)
-    : QObject (parent)
+    : ConfigSyncPolicy(parent)
     , m_syncTimer(new QBasicTimer())
     , m_delaySyncTime(3000)
     , m_batchCount(20)
@@ -433,7 +433,7 @@ ConfigSyncRequestCache::~ConfigSyncRequestCache()
     m_syncTimer = nullptr;
 }
 
-void ConfigSyncRequestCache::pushRequest(const ConfigCacheKey &key)
+void ConfigSyncRequestCache::schedule(const ConfigCacheKey &key)
 {
     if (m_configCacheKeys.contains(key))
         return;
@@ -442,6 +442,17 @@ void ConfigSyncRequestCache::pushRequest(const ConfigCacheKey &key)
     m_configCacheKeys.insert(key);
     if (!m_syncTimer->isActive()) {
         m_syncTimer->start(m_delaySyncTime, this);
+    }
+}
+
+void ConfigSyncRequestCache::flush()
+{
+    if (m_syncTimer->isActive())
+        m_syncTimer->stop();
+
+    // 将所有待写盘请求立即分批 emit
+    while (!m_configCacheKeys.isEmpty()) {
+        customRequest();
     }
 }
 
