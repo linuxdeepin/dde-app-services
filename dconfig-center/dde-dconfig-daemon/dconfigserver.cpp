@@ -7,6 +7,7 @@
 #include "dconfigconn.h"
 #include "dconfigrefmanager.h"
 #include "inotifywatcher.h"
+#include "configpathresolver.h"
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -99,7 +100,7 @@ bool DSGConfigServer::registerService()
 
 void DSGConfigServer::initialize()
 {
-    // T06-2: 用 inotify 替代文件签名轮询方案
+// T06-2: 用 inotify 替代文件签名轮询方案
     m_inotifyWatcher = new InotifyWatcher(this);
     const QStringList configPaths = {
         m_localPrefix + "/usr/share/dsg/configs",
@@ -134,6 +135,19 @@ void DSGConfigServer::initialize()
     });
 
     qCInfo(cfLog()) << "InotifyWatcher initialized for config directories.";
+// T03-2: 通过 ConfigPathResolver 统一管理路径（替代硬编码）
+    auto &resolver = ConfigPathResolver::instance();
+    resolver.setLocalPrefix(m_localPrefix);
+    resolver.addSearchPath("/usr/share/dsg/configs", 100);
+    resolver.addSearchPath("/etc/dsg/configs", 200);
+    const QString linglongPath("/var/lib/linglong/entries/share/dsg/configs");
+    if (QDir(m_localPrefix + linglongPath).exists())
+        resolver.addSearchPath(linglongPath, 50);
+
+    qCInfo(cfLog()) << "ConfigPathResolver initialized with paths:" << resolver.searchPaths();
+    qCInfo(cfLog()) << "Initializing file signatures on service startup";
+    m_fileSignatures = allConfigureFileSignatures(m_localPrefix);
+    qCInfo(cfLog()) << "Initialized file signatures completed, size: " << m_fileSignatures.size();
 }
 
 /*!
@@ -197,6 +211,17 @@ void DSGConfigServer::setLogRules(const QString &rules)
  */
 void DSGConfigServer::removeUserData(const uint &uid)
 {
+    // T07-1：审计日志 —— 记录调用方信息
+    QString callerService;
+    uint    callerPid = 0;
+    if (calledFromDBus()) {
+        callerService = message().service();
+        auto iface = connection().interface();
+        if (iface) callerPid = iface->servicePid(callerService).value();
+    }
+    qCWarning(cfLog(), "[AUDIT] removeUserData: uid=%u caller='%s' pid=%u",
+              uid, qPrintable(callerService), callerPid);
+
     qCInfo(cfLog()) << QString("Starting to remove user data for UID %1").arg(uid);
 
     // 收集要删除的连接
@@ -292,6 +317,21 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
  */
 QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString &appid, const QString &name, const QString &subpath)
 {
+    // T07-2：uid 校验 —— 非 root 调用方只能访问自己的数据
+    if (calledFromDBus()) {
+        auto iface = connection().interface();
+        if (iface) {
+            uint callerUid = iface->serviceUid(message().service()).value();
+            if (callerUid != 0 && callerUid != uid) {
+                const QString errMsg = QString("uid mismatch: caller uid=%1, requested uid=%2")
+                    .arg(callerUid).arg(uid);
+                qCWarning(cfLog(), "[AUDIT] acquireManagerV2 AccessDenied: %s", qPrintable(errMsg));
+                sendErrorReply(QDBusError::AccessDenied, errMsg);
+                return QDBusObjectPath();
+            }
+        }
+    }
+
     struct passwd *pw = getpwuid(uid);
     if (!pw) {
         QString errorMsg = QString("User with UID %1 does not exist.").arg(uid);
