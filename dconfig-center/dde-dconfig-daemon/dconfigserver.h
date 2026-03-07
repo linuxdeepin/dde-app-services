@@ -94,7 +94,7 @@ private:
 private:
 
     // 所有链接，一个资源对应一个链接
-    QMap<GenericResourceKey, DSGConfigResource *> m_resources;
+    QHash<GenericResourceKey, DSGConfigResource *> m_resources;
 
     QDBusServiceWatcher *m_watcher = nullptr;
 

@@ -52,6 +52,15 @@ DSGConfigServer::~DSGConfigServer()
 
 void DSGConfigServer::exit()
 {
+    // T04-4：连接泄漏检测
+    for (auto it = m_resources.begin(); it != m_resources.end(); ++it) {
+        const int connCount = it.value()->connSize();
+        if (connCount > 0) {
+            qWarning(cfLog, "[leak] Resource [%s] still has %d connection(s) on exit.",
+                     qPrintable(it.key()), connCount);
+        }
+    }
+
     m_refManager->destroy();
     qDeleteAll(m_resources);
     m_resources.clear();
