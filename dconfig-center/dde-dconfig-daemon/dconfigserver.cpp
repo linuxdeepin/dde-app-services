@@ -145,10 +145,8 @@ void DSGConfigServer::initialize()
         resolver.addSearchPath(linglongPath, 50);
 
     qCInfo(cfLog()) << "ConfigPathResolver initialized with paths:" << resolver.searchPaths();
-    qCInfo(cfLog()) << "Initializing file signatures on service startup";
-    m_fileSignatures = allConfigureFileSignatures(m_localPrefix);
-    qCInfo(cfLog()) << "Initialized file signatures completed, size: " << m_fileSignatures.size();
 }
+
 
 /*!
  \brief 获得指定连接key值的连接对象
