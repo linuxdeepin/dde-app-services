@@ -1,3 +1,9 @@
+dde-app-services (1.0.42) unstable; urgency=medium
+
+  * fix: Fix dconfig input text not conforming to JSON standards
+
+ -- zhangkun <zhangkun2@uniontech.com>  Thu, 12 Mar 2026 21:22:19 +0800
+
 dde-app-services (1.0.41) unstable; urgency=medium
 
   * Revert "fix: add JSON validation for text input fields"
