@@ -379,12 +379,8 @@ ResourceKey DSGConfigServer::getResourceKeyByConfigCache(const ConfigCacheKey &k
 
 ConfigureId DSGConfigServer::getConfigureIdByPath(const QString &path)
 {
-    QFileInfo fileInfo(path);
-    if (!fileInfo.exists()) {
-        return ConfigureId();
-    }
-
-    const auto &absolutePath = fileInfo.absoluteFilePath();
+    // Use absolute path for parsing, file may not exist (e.g., when deleted)
+    const auto &absolutePath = QFileInfo(path).absoluteFilePath();
 
     auto res = getMetaConfigureId(absolutePath);
     if (res.isInValid()) {

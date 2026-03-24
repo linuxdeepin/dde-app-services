@@ -95,7 +95,8 @@ inline ConfigureId getMetaConfigureId(const QString &path)
 {
     ConfigureId info;
     // /usr/share/dsg/configs/[$appid]/[$subpath]/$resource.json
-    static QRegularExpression usrReg(R"(/configs/(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
+    // Use negative lookahead (?!overrides/) to exclude override paths which should be handled by getOverrideConfigureId
+    static QRegularExpression usrReg(R"(/configs/(?!overrides/)(?<appid>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)?)(?<subpath>([a-z0-9\s\-_\@\-\^!#$%&.]+\/)*)(?<resource>[a-z0-9\s\-_\@\-\^!#$%&.]+).json$)");
 
     QRegularExpressionMatch match;
     match = usrReg.match(path);
