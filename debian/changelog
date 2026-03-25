@@ -1,3 +1,9 @@
+dde-app-services (1.0.43) unstable; urgency=medium
+
+  * fix: fix override path matching in reload hotloading
+
+ -- zhangkun <zhangkun2@uniontech.com>  Wed, 25 Mar 2026 17:16:55 +0800
+
 dde-app-services (1.0.42) unstable; urgency=medium
 
   * fix: Fix dconfig input text not conforming to JSON standards
