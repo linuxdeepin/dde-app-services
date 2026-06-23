@@ -411,6 +411,14 @@ void DSGConfigResource::repareCache(DConfigCache *cache, DConfigMeta *oldMeta, D
                    qPrintable(m_key), cache->uid(), qPrintable(key));
         }
     }
+    // Serial升级时移除旧缓存值，serial升级意味着旧值必须废弃
+    for (const auto &key : intersectKeys) {
+        if (newMeta->serial(key) > oldMeta->serial(key)) {
+            cache->remove(key);
+            qDebug(cfLog, "Cache removed because of serial upgraded, resource:%s, uid:%d, key:%s.",
+                   qPrintable(m_key), cache->uid(), qPrintable(key));
+        }
+    }
 }
 
 GenericResourceKey DSGConfigResource::key() const
