@@ -240,15 +240,15 @@ int DSGConfigConn::flags(const QString &key)
 
 QString DSGConfigConn::getAppid() const
 {
-    if (m_appName.isEmpty()) {
-        if (calledFromDBus()) {
-            const QString &service = message().service();
+    if (calledFromDBus()) {
+        const QString &service = message().service();
+        if (m_lastService != service) {
+            const_cast<DSGConfigConn *>(this)->m_lastService = service;
             const_cast<DSGConfigConn *>(this)->m_appName = getProcessNameByPid(connection().interface()->servicePid(service));
-        } else {
-            const_cast<DSGConfigConn *>(this)->m_appName = QString("testappid");
         }
+        return m_appName;
     }
-    return m_appName;
+    return QString("testappid");
 }
 
 bool DSGConfigConn::contains(const QString &key)

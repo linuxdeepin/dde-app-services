@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QQueue>
 #include <QString>
+#include <QFileInfo>
 #include <functional>
 #include <QRegularExpression>
 #include <DStandardPaths>
@@ -178,12 +179,21 @@ private:
 inline QString getProcessNameByPid(const uint pid)
 {
 #ifdef Q_OS_LINUX
-    const QString desc = QString("/proc/%1/cmdline").arg(pid);
+    // Prefer /proc/{pid}/exe symlink for process name.
+    // May fail due to permission (daemon runs as deepin-daemon, target process
+    // may belong to another user). Fallback to /proc/{pid}/cmdline in that case.
+    const QString exePath = QFile::symLinkTarget(QString("/proc/%1/exe").arg(pid));
+    if (!exePath.isEmpty())
+        return exePath;
 
-    QFile file(desc);
-    if(file.open(QIODevice::ReadOnly)) {
+    // Fallback: /proc/{pid}/cmdline is world-readable (0444)
+    const QString cmdlinePath = QString("/proc/%1/cmdline").arg(pid);
+    QFile file(cmdlinePath);
+    if (file.open(QIODevice::ReadOnly)) {
         const QByteArray &name = file.readLine();
-        return name.split('\0').join(" ").trimmed();
+        const QString cmd = name.split('\0').join(" ").trimmed();
+        if (!cmd.isEmpty())
+            return cmd;
     }
 #endif // Q_OS_LINUX
     return QString::number(pid);
