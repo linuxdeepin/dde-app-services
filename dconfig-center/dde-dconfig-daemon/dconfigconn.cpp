@@ -46,12 +46,24 @@ void DSGConfigConn::setResource(DSGConfigResource *resource)
     m_resource = resource;
 }
 
+void DSGConfigConn::setConfigAppId(const QString &appId)
+{
+    m_configAppId = appId;
+}
+
+void DSGConfigConn::setAppIdResolver(AppIdResolver *resolver)
+{
+    m_resolver = resolver;
+}
+
 /*!
  \brief 返回配置内容的所有配置项
  \return
  */
 QStringList DSGConfigConn::keyList() const
 {
+    // keyList 是元信息，但为避免泄露 private key 名称，需要检查权限
+    // 暂时保持开放，因为客户端需要知道有哪些 key
     return meta()->keyList();
 }
 
@@ -117,6 +129,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 
     if (!hasPermissionByUid(key))
         return;
+        
+    if (!hasPermissionByVisibility(key))
+        return;
 
     const auto &v = decodeQDBusArgument(value.variant());
     qCDebug(cfLog) << "Set value, key:" << key << ", now value:" << v << ", old value:" << file()->value(key, cache());
@@ -133,6 +148,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 void DSGConfigConn::reset(const QString &key)
 {
     if (!contains(key))
+        return;
+
+    if (!hasPermissionByVisibility(key))
         return;
 
     qCDebug(cfLog) << "Reset value, key:" << key << ", old value:" << file()->value(key, cache());
@@ -157,6 +175,9 @@ QDBusVariant DSGConfigConn::value(const QString &key)
         return QDBusVariant();
 
     if (!hasPermissionByUid(key))
+        return QDBusVariant();
+        
+    if (!hasPermissionByVisibility(key))
         return QDBusVariant();
 
     // Try to get value from cache.
@@ -203,6 +224,9 @@ bool DSGConfigConn::isDefaultValue(const QString &key)
 {
     if (!contains(key))
         return false;
+        
+    if (!hasPermissionByVisibility(key))
+        return false;
 
     // Try to get value from cache.
     auto value = file()->cacheValue(cache(), key);
@@ -238,17 +262,45 @@ int DSGConfigConn::flags(const QString &key)
     return static_cast<int>(meta()->flags(key));
 }
 
+/*!
+ \brief 获取调用方的进程路径（用于日志和 setValue 记录）
+ \return 进程可执行文件路径
+ */
 QString DSGConfigConn::getAppid() const
 {
     if (calledFromDBus()) {
         const QString &service = message().service();
         if (m_lastService != service) {
-            const_cast<DSGConfigConn *>(this)->m_lastService = service;
-            const_cast<DSGConfigConn *>(this)->m_appName = getProcessNameByPid(connection().interface()->servicePid(service));
+            m_lastService = service;
+            m_appName = getProcessNameByPid(connection().interface()->servicePid(service));
         }
         return m_appName;
     }
     return QString("testappid");
+}
+
+/*!
+ \brief 获取调用方的标准 appId（用于 private 权限校验）
+ \return 标准 appId，如 org.deepin.dde.control-center
+ */
+QString DSGConfigConn::getCallerAppId() const
+{
+    if (!calledFromDBus()) 
+        return QString();
+
+    if (!m_resolver) {
+        qCWarning(cfLog) << "AppIdResolver is not set, cannot get caller appId";
+        return QString();
+    }
+
+    const QString &service = message().service();
+    if (m_lastAppIdService != service) {
+        m_lastAppIdService = service;
+        uint pid = connection().interface()->servicePid(service);
+        uint uid = connection().interface()->serviceUid(service);
+        m_callerAppId = m_resolver->resolveAppId(service, pid, uid);
+    }
+    return m_callerAppId;
 }
 
 bool DSGConfigConn::contains(const QString &key)
@@ -300,4 +352,40 @@ bool DSGConfigConn::hasPermissionByUid(const QString &key) const
         qWarning() << qPrintable(errorMsg);
     }
     return hasPermission;
+}
+
+/*!
+ \brief 检查 private 权限
+ 当配置项 visibility 为 private 时，仅允许配置所属 appId 的应用访问
+ \a key 配置项名称
+ \return 是否有权限
+ */
+bool DSGConfigConn::hasPermissionByVisibility(const QString &key) const
+{
+    if (!calledFromDBus()) 
+        return true;
+
+    // public 配置允许所有应用访问
+    if (meta()->visibility(key) == DConfigFile::Public) 
+        return true;
+
+    // private 配置：检查调用方 appId 是否匹配配置的 appId
+    const QString &callerAppId = getCallerAppId();
+    const QString &configAppId = m_configAppId;
+
+    // generic 配置（无 appId）允许访问
+    if (configAppId.isEmpty() || configAppId == VirtualInterAppId) 
+        return true;
+
+    // appId 匹配则允许
+    if (callerAppId == configAppId) 
+        return true;
+
+    // 拒绝访问
+    QString errorMsg = QString("[%1] No permission to access private config item [%2] in [%3], "
+                               "owner appId is [%4].")
+                           .arg(callerAppId).arg(key).arg(m_key).arg(configAppId);
+    sendErrorReply(QDBusError::AccessDenied, errorMsg);
+    qWarning() << qPrintable(errorMsg);
+    return false;
 }

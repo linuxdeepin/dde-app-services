@@ -36,7 +36,8 @@ DSGConfigServer::DSGConfigServer(QObject *parent)
     :QObject (parent),
       m_watcher(nullptr),
       m_refManager(new RefManager(this))
-    , m_syncRequestCache(new ConfigSyncRequestCache(this))
+    , m_syncRequestCache(new ConfigSyncRequestCache(this)),
+      m_appIdResolver(new AppIdResolver(this))
 {
     connect(this, &DSGConfigServer::releaseResource, this, &DSGConfigServer::onReleaseResource);
     connect(m_refManager, &RefManager::releaseResource, this, &DSGConfigServer::releaseResource);
@@ -292,6 +293,11 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
     } else {
         qCInfo(cfLog, "Reuse connection:%s", qPrintable(conn->path()));
     }
+
+    // 设置配置文件的 appId（用于 private 权限校验）
+    QString configAppId = parseConfigAppId(name, subpath);
+    conn->setConfigAppId(configAppId);
+    conn->setAppIdResolver(m_appIdResolver);
 
     if (resourceHolder) {
         m_resources.insert(genericResourceKey, resourceHolder.release());
@@ -620,4 +626,38 @@ QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatu
     }
 
     return signatures;
+}
+
+AppIdResolver* DSGConfigServer::appIdResolver() const
+{
+    return m_appIdResolver;
+}
+
+QString DSGConfigServer::parseConfigAppId(const QString &name, const QString &subpath)
+{
+    // 从配置文件路径解析 appId
+    // 配置文件路径格式：
+    // /usr/share/dsg/configs/{appId}/{name}/{subpath}.json
+    // /usr/share/dsg/configs/{name}/{subpath}.json (generic, 无 appId)
+    
+    // 尝试从各个 meta 目录查找配置文件
+    const QStringList metaDirs = DConfigMeta::genericMetaDirs(m_localPrefix);
+    
+    for (const QString &dir : metaDirs) {
+        // 尝试带 appId 的路径
+        QDirIterator it(dir, QStringList() << name + ".json", 
+                       QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QString path = it.next();
+            ConfigureId configId = getMetaConfigureId(path);
+            if (configId.resource == name && configId.subpath == subpath) {
+                if (!configId.appid.isEmpty()) {
+                    return configId.appid;
+                }
+            }
+        }
+    }
+    
+    // 未找到带 appId 的配置，返回空字符串表示 generic 配置
+    return QString();
 }

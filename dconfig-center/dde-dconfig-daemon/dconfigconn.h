@@ -5,6 +5,7 @@
 #pragma once
 
 #include "dconfig_global.h"
+#include "appidresolver.h"
 #include <dtkcore_global.h>
 #include <QObject>
 #include <QDBusObjectPath>
@@ -35,6 +36,13 @@ public:
     bool containsWithoutProp(const QString &key) const;
 
     void setResource(DSGConfigResource *resource);
+    
+    // 设置配置文件所属的 appId
+    void setConfigAppId(const QString &appId);
+    
+    // 设置 appId 解析器
+    void setAppIdResolver(AppIdResolver *resolver);
+
 Q_SIGNALS:
     void releaseChanged(const ConnServiceName &service);
 
@@ -62,15 +70,21 @@ Q_SIGNALS: // SIGNALS
 
 private:
     QString getAppid() const;
+    QString getCallerAppId() const;  // 获取调用方的标准 appId（用于权限检查）
     bool contains(const QString &key);
     DTK_CORE_NAMESPACE::DConfigMeta *meta() const;
     DTK_CORE_NAMESPACE::DConfigFile *file() const;
     DTK_CORE_NAMESPACE::DConfigCache *cache() const;
     bool hasPermissionByUid(const QString &key) const;
+    bool hasPermissionByVisibility(const QString &key) const;  // 检查 private 权限
 
 private:
     ConnKey m_key;
     DSGConfigResource *m_resource = nullptr;
-    QString m_appName;
-    QString m_lastService;
+    QString m_configAppId;       // 配置文件所属的 appId
+    mutable QString m_callerAppId;        // 调用方的标准 appId（用于权限检查）
+    mutable QString m_lastAppIdService;   // 上次解析 appId 时的 service（用于缓存）
+    AppIdResolver *m_resolver = nullptr;  // appId 解析器
+    mutable QString m_appName;
+    mutable QString m_lastService;
 };

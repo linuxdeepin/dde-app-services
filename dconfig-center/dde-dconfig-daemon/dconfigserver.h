@@ -5,6 +5,7 @@
 #pragma once
 
 #include "dconfig_global.h"
+#include "appidresolver.h"
 #include <optional>
 #include <QObject>
 #include <QDBusObjectPath>
@@ -41,6 +42,9 @@ public:
     void setEnableExit(const bool enable);
 
     int resourceSize() const;
+    
+    // 获取 AppIdResolver（用于注入到 DSGConfigConn）
+    AppIdResolver* appIdResolver() const;
 
 Q_SIGNALS:
     void releaseResource(const ConnKey& resource);
@@ -86,6 +90,9 @@ private:
     bool isConfigurePath(const QString &path, const QString& appId) const;
 
     std::optional<QString> updateInternal(const QString &path);
+    
+    // 从配置文件路径解析 appId
+    QString parseConfigAppId(const QString &name, const QString &subpath);
 
     // Reload interface related structures and methods
     struct FileSignature {
@@ -107,6 +114,9 @@ private:
     QString m_localPrefix;
     bool m_enableExit = false;
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
+
+    // AppId 解析器
+    AppIdResolver *m_appIdResolver = nullptr;
 
     // Last time of the configuration file signature
     QVector<FileSignature> m_fileSignatures;

@@ -26,12 +26,14 @@ include_directories(../common)
 
 set(HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/dconfig_global.h
+    ${CMAKE_CURRENT_LIST_DIR}/appidresolver.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigserver.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigresource.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigconn.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigrefmanager.h
 )
 set(SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/appidresolver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dconfigserver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dconfigresource.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dconfigconn.cpp
