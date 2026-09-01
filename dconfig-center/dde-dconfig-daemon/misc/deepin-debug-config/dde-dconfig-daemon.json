@@ -1,0 +1,11 @@
+{
+    "name": "dde-dconfig-daemon",
+    "group": "dde",
+    "submodules": [
+        {
+            "name": "dde-dconfig-daemon",
+            "exec": "dde-dconfig-daemon.sh"
+        }
+    ],
+    "version": "V1.0"
+}

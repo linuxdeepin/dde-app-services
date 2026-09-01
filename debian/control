@@ -1,0 +1,44 @@
+Source: dde-app-services
+Section: libdevel
+Priority: optional
+Maintainer: Deepin Packages Builder <yeshanshan@uniontech.com>
+Build-Depends:
+ debhelper (>=9),
+ pkg-config,
+ cmake,
+ qt6-base-dev,
+ libdtkcommon-dev,
+ libdtk6core-dev,
+ libdtk6gui-dev,
+ libdtk6widget-dev,
+ libgtest-dev,
+ doxygen,
+ qt6-tools-dev-tools,
+ qt6-tools-dev
+Standards-Version: 4.3.0
+
+Package: dde-dconfig-daemon
+Architecture: any
+Conflicts: dconfig-daemon
+Replaces: dconfig-daemon
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: deepin desktop-environment - dde-dconfig-daemon module
+ dde-dconfig-daemon provids dbus service for reading and writing DSG configuration.
+
+Package: dde-dconfig-editor
+Architecture: any
+Conflicts: dconfig-editor
+Replaces: dconfig-editor
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: deepin desktop-environment - dde-dconfig-editor module
+ dde-dconfig-editor is a GUI or Console tool, it's used to view and edit
+ DSG configuration for current user.
+
+Package: dde-dconfig-doc
+Architecture: any
+Description: Deepin Tool Kit DConfig (document)
+ This package contains the doc files of DConfig

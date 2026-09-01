@@ -1,0 +1,14 @@
+{
+    "name": "dde-dconfig-daemon",
+    "group": "dde",
+    "submodules": [
+        {
+            "name": "dsg.config",
+            "filter": "dsg.config",
+            "exec": "/usr/bin/dde-dconfig-daemon",
+            "logType": "journal"
+        }
+    ],
+    "visible": 1,
+    "version": "V1.0"
+}

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Handle dconfig triggers
+if [ "$1" = "triggered" ]; then
+    # Call reload interface directly via D-Bus
+    if dbus-send --system \
+        --dest="org.desktopspec.ConfigManager" \
+        --type=method_call \
+        "/" \
+        "org.desktopspec.ConfigManager.reload" >/dev/null 2>&1; then
+        logger -t "dde-dconfig-daemon" "Configuration trigger detected, reload completed successfully" 2>/dev/null || true
+        echo "Configuration trigger detected, reload completed successfully"
+    else
+        logger -t "dde-dconfig-daemon" -p daemon.err "Configuration trigger detected, reload failed" 2>/dev/null || true
+        echo "ERROR: Configuration trigger detected, reload failed" >&2
+    fi
+fi
+
