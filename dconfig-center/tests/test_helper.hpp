@@ -14,7 +14,7 @@ public:
         if (m_name)
             restore();
         if (!m_createdDir.isEmpty())
-            QDir().rmpath(m_createdDir);
+            QDir(m_createdDir).removeRecursively();
     }
     void set(const char *name, const QByteArray &value)
     {

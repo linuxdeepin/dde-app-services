@@ -48,6 +48,12 @@ protected:
 
         ASSERT_TRUE(QFile::copy(":/config/example.json", path));
         ASSERT_TRUE(QFile::copy(":/config/example.json", noAppIdConfigPath()));
+        // QFile::copy from a Qt resource preserves the source's read-only mode
+        // (chmod 0444), which makes reparse tests' writeFile.open() fail with
+        // EACCES when run in isolation. Restore owner-write (0644) so tests
+        // stay order-independent.
+        QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
+        QFile::setPermissions(noAppIdConfigPath(), QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
         qputenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS", "true");
         qputenv("STATE_DIRECTORY", LocalPrefix.toLocal8Bit());
         dsgDataDir.set("DSG_DATA_DIRS", "/usr/share/dsg");
@@ -75,7 +81,7 @@ TEST_F(ut_DConfigResource, load) {
     ASSERT_TRUE(resource->load(APP_ID));
     ASSERT_TRUE(resource->load(VirtualInterAppId));
 }
-TEST_F(ut_DConfigResource, load_fail) {
+TEST_F(ut_DConfigResource, loadFail) {
 
     DSGConfigResource resource2("example_notexist", "");
     ASSERT_FALSE(resource2.load(APP_ID));
@@ -117,6 +123,12 @@ protected:
 
         ASSERT_TRUE(QFile::copy(":/config/example.json", path));
         ASSERT_TRUE(QFile::copy(":/config/example.json", noAppIdConfigPath()));
+        // QFile::copy from a Qt resource preserves the source's read-only mode
+        // (chmod 0444), which makes reparse tests' writeFile.open() fail with
+        // EACCES when run in isolation. Restore owner-write (0644) so tests
+        // stay order-independent.
+        QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
+        QFile::setPermissions(noAppIdConfigPath(), QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
         qputenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS", "true");
         qputenv("STATE_DIRECTORY", LocalPrefix.toLocal8Bit());
         dsgDataDir.set("DSG_DATA_DIRS", "/usr/share/dsg");
@@ -142,7 +154,7 @@ protected:
     QScopedPointer<DSGConfigResource> resource;
 };
 
-TEST_F(ut_DConfigConn, description_name) {
+TEST_F(ut_DConfigConn, descriptionName) {
     ASSERT_EQ(conn->description("canExit", ""), "我是描述");
     ASSERT_EQ(conn->description("canExit", "en_US"), "I am description");
     ASSERT_EQ(conn->name("canExit", ""), "I am name");
@@ -169,11 +181,11 @@ TEST_F(ut_DConfigConn, value) {
     ASSERT_EQ(mapInArray.value("key2").toString(), "value2");
 }
 
-TEST_F(ut_DConfigConn, value_default) {
+TEST_F(ut_DConfigConn, valueDefault) {
     ASSERT_EQ(conn->value("canExit").variant(), true);
 }
 
-TEST_F(ut_DConfigConn, setValue_andGetValue) {
+TEST_F(ut_DConfigConn, setValueAndGetValue) {
     conn->setValue("canExit", QDBusVariant{false});
     ASSERT_EQ(conn->value("canExit").variant(), false);
     conn->setValue("canExit", QDBusVariant{true});
@@ -217,7 +229,7 @@ TEST_F(ut_DConfigConn, meta) {
     ASSERT_NE(conn->meta(), nullptr);
 }
 
-TEST_F(ut_DConfigConn, setResource_updatesResource) {
+TEST_F(ut_DConfigConn, setResourceUpdatesResource) {
     auto oldFile = conn->file();
     ASSERT_NE(oldFile, nullptr);
 
@@ -234,7 +246,7 @@ TEST_F(ut_DConfigConn, setResource_updatesResource) {
 }
 
 // Coverage-9: specificAppConns
-TEST_F(ut_DConfigResource, specificAppConns_returnsOnlyAppConns) {
+TEST_F(ut_DConfigResource, specificAppConnsReturnsOnlyAppConns) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     auto conns = resource->specificAppConns();
@@ -242,19 +254,19 @@ TEST_F(ut_DConfigResource, specificAppConns_returnsOnlyAppConns) {
 }
 
 // Coverage-9: cacheExist
-TEST_F(ut_DConfigResource, cacheExist_true) {
+TEST_F(ut_DConfigResource, cacheExistTrue) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     auto resourceKey = getResourceKey(APP_ID, resource->key());
     ASSERT_TRUE(resource->cacheExist(resourceKey));
 }
 
-TEST_F(ut_DConfigResource, cacheExist_false) {
+TEST_F(ut_DConfigResource, cacheExistFalse) {
     ASSERT_FALSE(resource->cacheExist("/nonexistent/resource"));
 }
 
 // Coverage-9: cachesOfTheResource
-TEST_F(ut_DConfigResource, cachesOfTheResource_returnsCaches) {
+TEST_F(ut_DConfigResource, cachesOfTheResourceReturnsCaches) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     auto resourceKey = getResourceKey(APP_ID, resource->key());
@@ -262,13 +274,13 @@ TEST_F(ut_DConfigResource, cachesOfTheResource_returnsCaches) {
     ASSERT_FALSE(caches.isEmpty());
 }
 
-TEST_F(ut_DConfigResource, cachesOfTheResource_emptyForNonExistent) {
+TEST_F(ut_DConfigResource, cachesOfTheResourceEmptyForNonExistent) {
     auto caches = resource->cachesOfTheResource("/nonexistent/resource");
     ASSERT_TRUE(caches.isEmpty());
 }
 
 // Coverage-9: connsOfTheResource
-TEST_F(ut_DConfigResource, connsOfTheResource_returnsConns) {
+TEST_F(ut_DConfigResource, connsOfTheResourceReturnsConns) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     auto resourceKey = getResourceKey(APP_ID, resource->key());
@@ -276,13 +288,13 @@ TEST_F(ut_DConfigResource, connsOfTheResource_returnsConns) {
     ASSERT_EQ(conns.size(), 1);
 }
 
-TEST_F(ut_DConfigResource, connsOfTheResource_emptyForNonExistent) {
+TEST_F(ut_DConfigResource, connsOfTheResourceEmptyForNonExistent) {
     auto conns = resource->connsOfTheResource("/nonexistent/resource");
     ASSERT_TRUE(conns.isEmpty());
 }
 
 // Coverage-9: repareCache
-TEST_F(ut_DConfigResource, repareCache_sameMeta_preservesKeys) {
+TEST_F(ut_DConfigResource, repareCacheSameMetaPreservesKeys) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     auto connKey = resource->getConnKey(APP_ID, TestUid);
@@ -307,7 +319,7 @@ TEST_F(ut_DConfigResource, getConnectionsByUid) {
     ASSERT_EQ(conns.size(), 2);
 }
 
-TEST_F(ut_DConfigResource, getConnectionsByUid_noMatch) {
+TEST_F(ut_DConfigResource, getConnectionsByUidNoMatch) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
 
@@ -346,7 +358,7 @@ TEST_F(ut_DConfigResource, removeConn) {
     ASSERT_EQ(resource->connSize(), 0);
 }
 
-TEST_F(ut_DConfigResource, save_preservesData) {
+TEST_F(ut_DConfigResource, savePreservesData) {
     resource->load(APP_ID);
     auto conn = resource->createConn(APP_ID, TestUid);
     ASSERT_TRUE(conn);
@@ -363,7 +375,7 @@ TEST_F(ut_DConfigResource, save_preservesData) {
     ASSERT_TRUE(QFile::exists(userCachePath));
 }
 
-TEST_F(ut_DConfigResource, save_withAppid_preservesData) {
+TEST_F(ut_DConfigResource, saveWithAppidPreservesData) {
     resource->load(APP_ID);
     auto conn = resource->createConn(APP_ID, TestUid);
     ASSERT_TRUE(conn);
@@ -378,7 +390,7 @@ TEST_F(ut_DConfigResource, save_withAppid_preservesData) {
     ASSERT_TRUE(QFile::exists(userCachePath));
 }
 
-TEST_F(ut_DConfigResource, reparse_existingResource) {
+TEST_F(ut_DConfigResource, reparseExistingResource) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     // reparse() calls newMeta->load() with empty localPrefix, using DSG_DATA_DIRS.
@@ -388,7 +400,7 @@ TEST_F(ut_DConfigResource, reparse_existingResource) {
     ASSERT_TRUE(resource->reparse(APP_ID));
 }
 
-TEST_F(ut_DConfigResource, reparse_metaLoadFailure_returnsFalse) {
+TEST_F(ut_DConfigResource, reparseMetaLoadFailureReturnsFalse) {
     resource->load(APP_ID);
     resource->createConn(APP_ID, TestUid);
     // reparse() calls newMeta->load() with empty localPrefix, using DSG_DATA_DIRS.
@@ -404,7 +416,7 @@ TEST_F(ut_DConfigResource, reparse_metaLoadFailure_returnsFalse) {
     EXPECT_FALSE(resource->reparse(APP_ID));
 }
 
-TEST_F(ut_DConfigResource, doGlobalValueChanged_withoutSyncCache_noCrash) {
+TEST_F(ut_DConfigResource, doGlobalValueChangedWithoutSyncCacheNoCrash) {
     resource->load(APP_ID);
     auto conn = resource->createConn(APP_ID, TestUid);
     ASSERT_TRUE(conn);
@@ -414,7 +426,7 @@ TEST_F(ut_DConfigResource, doGlobalValueChanged_withoutSyncCache_noCrash) {
     ASSERT_EQ(spy.count(), 1);
 }
 
-TEST_F(ut_DConfigResource, reparse_withRemovedKey_removesFromCache) {
+TEST_F(ut_DConfigResource, reparseWithRemovedKeyRemovesFromCache) {
     resource->load(APP_ID);
     auto conn = resource->createConn(APP_ID, TestUid);
     ASSERT_TRUE(conn);
@@ -445,7 +457,7 @@ TEST_F(ut_DConfigResource, reparse_withRemovedKey_removesFromCache) {
     }
 }
 
-TEST_F(ut_DConfigResource, reparse_withPermissionChange_removesFromCache) {
+TEST_F(ut_DConfigResource, reparseWithPermissionChangeRemovesFromCache) {
     resource->load(APP_ID);
     auto conn = resource->createConn(APP_ID, TestUid);
     ASSERT_TRUE(conn);
@@ -479,13 +491,13 @@ TEST_F(ut_DConfigResource, reparse_withPermissionChange_removesFromCache) {
     }
 }
 
-TEST_F(ut_DConfigResource, getConn_byKey) {
+TEST_F(ut_DConfigResource, getConnByKey) {
     resource->load(APP_ID);
     auto conn = resource->createConn(APP_ID, TestUid);
     ASSERT_EQ(resource->getConn(conn->key()), conn);
 }
 
-TEST_F(ut_DConfigResource, getConn_nonexistent) {
+TEST_F(ut_DConfigResource, getConnNonexistent) {
     resource->load(APP_ID);
     ASSERT_EQ(resource->getConn("nonexistent_key"), nullptr);
 }
@@ -497,17 +509,17 @@ TEST_F(ut_DConfigResource, getFile) {
     ASSERT_NE(file, nullptr);
 }
 
-TEST_F(ut_DConfigResource, getFile_nonexistent) {
+TEST_F(ut_DConfigResource, getFileNonexistent) {
     auto file = resource->getFile("/nonexistent/resource");
     ASSERT_EQ(file, nullptr);
 }
 
-TEST_F(ut_DConfigResource, getCache_nonexistent) {
+TEST_F(ut_DConfigResource, getCacheNonexistent) {
     auto cache = resource->getCache("/nonexistent/conn");
     ASSERT_EQ(cache, nullptr);
 }
 
-TEST_F(ut_DConfigConn, doSyncConfigCache_savesCache) {
+TEST_F(ut_DConfigConn, doSyncConfigCacheSavesCache) {
     conn->setValue("canExit", QDBusVariant{false});
     ASSERT_EQ(conn->value("canExit").variant(), false);
     ConfigCacheKey userKey = ConfigSyncRequestCache::userKey(conn->key());
@@ -525,25 +537,25 @@ TEST_F(ut_DConfigConn, doSyncConfigCache_savesCache) {
 // Coverage-11: Branch coverage tests for DSGConfigConn
 
 // Branch: description() with non-existent key returns ""
-TEST_F(ut_DConfigConn, description_nonExistentKey_returnsEmpty) {
+TEST_F(ut_DConfigConn, descriptionNonExistentKeyReturnsEmpty) {
     ASSERT_EQ(conn->description("nonexistent_key", ""), QString());
     ASSERT_EQ(conn->description("nonexistent_key", "en_US"), QString());
 }
 
 // Branch: name() with non-existent key returns ""
-TEST_F(ut_DConfigConn, name_nonExistentKey_returnsEmpty) {
+TEST_F(ut_DConfigConn, nameNonExistentKeyReturnsEmpty) {
     ASSERT_EQ(conn->name("nonexistent_key", ""), QString());
     ASSERT_EQ(conn->name("nonexistent_key", "zh_CN"), QString());
 }
 
 // Branch: value() with non-existent key returns empty QDBusVariant
-TEST_F(ut_DConfigConn, value_nonExistentKey_returnsEmpty) {
+TEST_F(ut_DConfigConn, valueNonExistentKeyReturnsEmpty) {
     auto result = conn->value("nonexistent_key");
     ASSERT_FALSE(result.variant().isValid());
 }
 
 // Branch: setValue() with non-existent key does nothing (early return)
-TEST_F(ut_DConfigConn, setValue_nonExistentKey_noChange) {
+TEST_F(ut_DConfigConn, setValueNonExistentKeyNoChange) {
     QSignalSpy valueSpy(conn, &DSGConfigConn::valueChanged);
     QSignalSpy globalSpy(conn, &DSGConfigConn::globalValueChanged);
     conn->setValue("nonexistent_key", QDBusVariant{42});
@@ -552,7 +564,7 @@ TEST_F(ut_DConfigConn, setValue_nonExistentKey_noChange) {
 }
 
 // Branch: setValue() with global flag key emits globalValueChanged
-TEST_F(ut_DConfigConn, setValue_globalKey_emitsGlobalValueChanged) {
+TEST_F(ut_DConfigConn, setValueGlobalKeyEmitsGlobalValueChanged) {
     QSignalSpy valueSpy(conn, &DSGConfigConn::valueChanged);
     QSignalSpy globalSpy(conn, &DSGConfigConn::globalValueChanged);
     conn->setValue("array", QDBusVariant{QStringList{"new1", "new2"}});
@@ -561,7 +573,7 @@ TEST_F(ut_DConfigConn, setValue_globalKey_emitsGlobalValueChanged) {
 }
 
 // Branch: setValue() with non-global key emits valueChanged
-TEST_F(ut_DConfigConn, setValue_nonGlobalKey_emitsValueChanged) {
+TEST_F(ut_DConfigConn, setValueNonGlobalKeyEmitsValueChanged) {
     // Ensure canExit is in a known state to avoid side effects from previous tests
     // (e.g. doSyncConfigCache_savesCache may have persisted canExit=false)
     conn->setValue("canExit", QDBusVariant{true});
@@ -573,7 +585,7 @@ TEST_F(ut_DConfigConn, setValue_nonGlobalKey_emitsValueChanged) {
 }
 
 // Branch: reset() with existing non-global key emits valueChanged
-TEST_F(ut_DConfigConn, reset_existingNonGlobalKey_emitsValueChanged) {
+TEST_F(ut_DConfigConn, resetExistingNonGlobalKeyEmitsValueChanged) {
     conn->setValue("canExit", QDBusVariant{false});
     ASSERT_EQ(conn->value("canExit").variant(), false);
     QSignalSpy valueSpy(conn, &DSGConfigConn::valueChanged);
@@ -584,7 +596,7 @@ TEST_F(ut_DConfigConn, reset_existingNonGlobalKey_emitsValueChanged) {
 }
 
 // Branch: reset() with existing global key emits globalValueChanged
-TEST_F(ut_DConfigConn, reset_globalKey_emitsGlobalValueChanged) {
+TEST_F(ut_DConfigConn, resetGlobalKeyEmitsGlobalValueChanged) {
     conn->setValue("array", QDBusVariant{QStringList{"new1", "new2"}});
     QSignalSpy valueSpy(conn, &DSGConfigConn::valueChanged);
     QSignalSpy globalSpy(conn, &DSGConfigConn::globalValueChanged);
@@ -594,7 +606,7 @@ TEST_F(ut_DConfigConn, reset_globalKey_emitsGlobalValueChanged) {
 }
 
 // Branch: reset() with non-existent key does nothing
-TEST_F(ut_DConfigConn, reset_nonExistentKey_noChange) {
+TEST_F(ut_DConfigConn, resetNonExistentKeyNoChange) {
     QSignalSpy valueSpy(conn, &DSGConfigConn::valueChanged);
     QSignalSpy globalSpy(conn, &DSGConfigConn::globalValueChanged);
     conn->reset("nonexistent_key");
@@ -603,65 +615,65 @@ TEST_F(ut_DConfigConn, reset_nonExistentKey_noChange) {
 }
 
 // Branch: isDefaultValue() returns true for unset key (default)
-TEST_F(ut_DConfigConn, isDefaultValue_defaultKey_returnsTrue) {
+TEST_F(ut_DConfigConn, isDefaultValueDefaultKeyReturnsTrue) {
     ASSERT_TRUE(conn->isDefaultValue("canExit"));
 }
 
 // Branch: isDefaultValue() returns false after value is set
-TEST_F(ut_DConfigConn, isDefaultValue_setKey_returnsFalse) {
+TEST_F(ut_DConfigConn, isDefaultValueSetKeyReturnsFalse) {
     conn->setValue("canExit", QDBusVariant{false});
     ASSERT_FALSE(conn->isDefaultValue("canExit"));
 }
 
 // Branch: isDefaultValue() with non-existent key returns false
-TEST_F(ut_DConfigConn, isDefaultValue_nonExistentKey_returnsFalse) {
+TEST_F(ut_DConfigConn, isDefaultValueNonExistentKeyReturnsFalse) {
     ASSERT_FALSE(conn->isDefaultValue("nonexistent_key"));
 }
 
 // Branch: contains() with non-existent key returns false
-TEST_F(ut_DConfigConn, contains_nonExistentKey_returnsFalse) {
+TEST_F(ut_DConfigConn, containsNonExistentKeyReturnsFalse) {
     ASSERT_FALSE(conn->contains("nonexistent_key"));
 }
 
 // Branch: contains() with existing key returns true
-TEST_F(ut_DConfigConn, contains_existingKey_returnsTrue) {
+TEST_F(ut_DConfigConn, containsExistingKeyReturnsTrue) {
     ASSERT_TRUE(conn->contains("canExit"));
 }
 
 // Branch: containsWithoutProp() with non-existent key returns false
-TEST_F(ut_DConfigConn, containsWithoutProp_nonExistentKey_returnsFalse) {
+TEST_F(ut_DConfigConn, containsWithoutPropNonExistentKeyReturnsFalse) {
     ASSERT_FALSE(conn->containsWithoutProp("nonexistent_key"));
 }
 
 // Branch: containsWithoutProp() with existing key returns true
-TEST_F(ut_DConfigConn, containsWithoutProp_existingKey_returnsTrue) {
+TEST_F(ut_DConfigConn, containsWithoutPropExistingKeyReturnsTrue) {
     ASSERT_TRUE(conn->containsWithoutProp("canExit"));
 }
 
 // Branch: visibility() with non-existent key returns ""
-TEST_F(ut_DConfigConn, visibility_nonExistentKey_returnsEmpty) {
+TEST_F(ut_DConfigConn, visibilityNonExistentKeyReturnsEmpty) {
     ASSERT_EQ(conn->visibility("nonexistent_key"), QString());
 }
 
 // Branch: permissions() with non-existent key returns ""
-TEST_F(ut_DConfigConn, permissions_nonExistentKey_returnsEmpty) {
+TEST_F(ut_DConfigConn, permissionsNonExistentKeyReturnsEmpty) {
     ASSERT_EQ(conn->permissions("nonexistent_key"), QString());
 }
 
 // Branch: path() returns formatted DBus path
-TEST_F(ut_DConfigConn, path_returnsFormattedPath) {
+TEST_F(ut_DConfigConn, pathReturnsFormattedPath) {
     ASSERT_EQ(conn->path(), formatDBusObjectPath(conn->key()));
 }
 
 // Branch: version() returns version string
-TEST_F(ut_DConfigConn, version_returnsVersionString) {
+TEST_F(ut_DConfigConn, versionReturnsVersionString) {
     QString ver = conn->version();
     ASSERT_FALSE(ver.isEmpty());
     ASSERT_TRUE(ver.contains('.'));
 }
 
 // Branch: keyList() returns list of keys
-TEST_F(ut_DConfigConn, keyList_returnsKeys) {
+TEST_F(ut_DConfigConn, keyListReturnsKeys) {
     QStringList keys = conn->keyList();
     ASSERT_TRUE(keys.contains("canExit"));
     ASSERT_TRUE(keys.contains("key2"));
@@ -669,20 +681,20 @@ TEST_F(ut_DConfigConn, keyList_returnsKeys) {
 }
 
 // Branch: flags() with global key returns non-zero
-TEST_F(ut_DConfigConn, flags_globalKey_returnsNonZero) {
+TEST_F(ut_DConfigConn, flagsGlobalKeyReturnsNonZero) {
     ASSERT_EQ(conn->flags("canExit"), 0);
     ASSERT_NE(conn->flags("array"), 0);
 }
 
 // Branch: release() emits releaseChanged signal
-TEST_F(ut_DConfigConn, release_emitsReleaseChanged) {
+TEST_F(ut_DConfigConn, releaseEmitsReleaseChanged) {
     QSignalSpy spy(conn, &DSGConfigConn::releaseChanged);
     conn->release();
     ASSERT_EQ(spy.count(), 1);
 }
 
 // Branch: hasPermissionByUid() returns true in non-DBus (test) env
-TEST_F(ut_DConfigConn, hasPermissionByUid_returnsTrueInTestEnv) {
+TEST_F(ut_DConfigConn, hasPermissionByUidReturnsTrueInTestEnv) {
     ASSERT_TRUE(conn->hasPermissionByUid("canExit"));
     ASSERT_TRUE(conn->hasPermissionByUid("key2"));
 }

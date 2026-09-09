@@ -259,7 +259,7 @@ TEST_F(ut_DConfigServer, removeUserDataSimpleValidation) {
 
 // P1-4: onTryExit checks resourceSize() <= 0, NOT m_enableExit.
 // When resources exist, onTryExit should NOT exit.
-TEST_F(ut_DConfigServer, onTryExit_withResources_doesNotExit) {
+TEST_F(ut_DConfigServer, onTryExitWithResourcesDoesNotExit) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
     emit server->tryExit();
@@ -267,7 +267,7 @@ TEST_F(ut_DConfigServer, onTryExit_withResources_doesNotExit) {
 }
 
 // P1-3: setEnableExit / exit with real assertions
-TEST_F(ut_DConfigServer, setEnableExit_true_exitClearsResources) {
+TEST_F(ut_DConfigServer, setEnableExitTrueExitClearsResources) {
     server->setEnableExit(true);
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
@@ -275,7 +275,7 @@ TEST_F(ut_DConfigServer, setEnableExit_true_exitClearsResources) {
     ASSERT_EQ(server->resourceSize(), 0);
 }
 
-TEST_F(ut_DConfigServer, setEnableExit_false_exitStillClears) {
+TEST_F(ut_DConfigServer, setEnableExitFalseExitStillClears) {
     server->setEnableExit(false);
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
@@ -284,44 +284,44 @@ TEST_F(ut_DConfigServer, setEnableExit_false_exitStillClears) {
 }
 
 // P1-3: initialize sets file signatures
-TEST_F(ut_DConfigServer, initialize_setsFileSignatures) {
+TEST_F(ut_DConfigServer, initializeSetsFileSignatures) {
     server->initialize();
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
 }
 
 // P1-3: enableVerboseLogging enables debug for dsg.config category
-TEST_F(ut_DConfigServer, enableVerboseLogging_enablesDebug) {
+TEST_F(ut_DConfigServer, enableVerboseLoggingEnablesDebug) {
     GTEST_SKIP() << "Source defect: Q_LOGGING_CATEGORY(cfLog, \"dsg.config\", QtInfoMsg) type-level parameter "
-                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp:23)";
+                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp)";
 }
 
 // P1-3: disableVerboseLogging disables debug
-TEST_F(ut_DConfigServer, disableVerboseLogging_disablesDebug) {
+TEST_F(ut_DConfigServer, disableVerboseLoggingDisablesDebug) {
     GTEST_SKIP() << "Source defect: Q_LOGGING_CATEGORY(cfLog, \"dsg.config\", QtInfoMsg) type-level parameter "
-                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp:23)";
+                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp)";
 }
 
 // P1-3: setLogRules with valid rule
-TEST_F(ut_DConfigServer, setLogRules_validRule_enablesDebug) {
+TEST_F(ut_DConfigServer, setLogRulesValidRuleEnablesDebug) {
     GTEST_SKIP() << "Source defect: Q_LOGGING_CATEGORY(cfLog, \"dsg.config\", QtInfoMsg) type-level parameter "
-                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp:23)";
+                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp)";
 }
 
 // P1-3: setLogRules with empty disables debug
-TEST_F(ut_DConfigServer, setLogRules_empty_disablesDebug) {
+TEST_F(ut_DConfigServer, setLogRulesEmptyDisablesDebug) {
     GTEST_SKIP() << "Source defect: Q_LOGGING_CATEGORY(cfLog, \"dsg.config\", QtInfoMsg) type-level parameter "
-                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp:23)";
+                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp)";
 }
 
 // P1-3: setLogRules with multiple rules
-TEST_F(ut_DConfigServer, setLogRules_multipleRules) {
+TEST_F(ut_DConfigServer, setLogRulesMultipleRules) {
     GTEST_SKIP() << "Source defect: Q_LOGGING_CATEGORY(cfLog, \"dsg.config\", QtInfoMsg) type-level parameter "
-                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp:23)";
+                    "prevents isDebugEnabled() from ever returning true; setFilterRules cannot override (dconfigserver.cpp)";
 }
 
 // P1-3: update with valid path — resourceSize should increase
-TEST_F(ut_DConfigServer, update_validPath_createsResource) {
+TEST_F(ut_DConfigServer, updateValidPathCreatesResource) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
     auto configPath = QString("%1/usr/share/dsg/configs/%2/%3.json").arg(LocalPrefix, APP_ID, FILE_NAME);
@@ -330,13 +330,13 @@ TEST_F(ut_DConfigServer, update_validPath_createsResource) {
 }
 
 // P1-3: update with invalid path
-TEST_F(ut_DConfigServer, update_invalidPath_noResource) {
+TEST_F(ut_DConfigServer, updateInvalidPathNoResource) {
     server->update("/nonexistent/path/to/config.json");
     ASSERT_EQ(server->resourceSize(), 0);
 }
 
 // P1-3: sync with valid path
-TEST_F(ut_DConfigServer, sync_validPath_resourceRemains) {
+TEST_F(ut_DConfigServer, syncValidPathResourceRemains) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
     auto configPath = QString("%1/usr/share/dsg/configs/%2/%3.json").arg(LocalPrefix, APP_ID, FILE_NAME);
@@ -345,13 +345,13 @@ TEST_F(ut_DConfigServer, sync_validPath_resourceRemains) {
 }
 
 // P1-3: sync with invalid path
-TEST_F(ut_DConfigServer, sync_invalidPath_noResource) {
+TEST_F(ut_DConfigServer, syncInvalidPathNoResource) {
     server->sync("/nonexistent/path/to/config.json");
     ASSERT_EQ(server->resourceSize(), 0);
 }
 
 // P1-3: reload with no changes
-TEST_F(ut_DConfigServer, reload_noChanges_resourceUnchanged) {
+TEST_F(ut_DConfigServer, reloadNoChangesResourceUnchanged) {
     server->initialize();
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
@@ -360,7 +360,7 @@ TEST_F(ut_DConfigServer, reload_noChanges_resourceUnchanged) {
 }
 
 // P1-3: reload after initialize detects existing files
-TEST_F(ut_DConfigServer, reload_afterInitialize) {
+TEST_F(ut_DConfigServer, reloadAfterInitialize) {
     server->initialize();
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
@@ -369,7 +369,7 @@ TEST_F(ut_DConfigServer, reload_afterInitialize) {
 }
 
 // P1-3: reload with file change detects new key
-TEST_F(ut_DConfigServer, reload_withFileChange) {
+TEST_F(ut_DConfigServer, reloadWithFileChange) {
     // reparse() (called by updateInternal inside reload()) invokes
     // newMeta->load() WITHOUT passing m_localPrefix, so it resolves the meta
     // file path via genericMetaDirs("") which reads DSG_DATA_DIRS directly.
@@ -436,7 +436,7 @@ TEST_F(ut_DConfigServer, reload_withFileChange) {
 }
 
 // Coverage-10: onReleaseResource (non-D-Bus path)
-TEST_F(ut_DConfigServer, onReleaseResource_removesConn) {
+TEST_F(ut_DConfigServer, onReleaseResourceRemovesConn) {
     auto path = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();
     ASSERT_EQ(server->resourceSize(), 1);
     auto resource = server->resourceObject(getGenericResourceKey(path));
@@ -448,7 +448,7 @@ TEST_F(ut_DConfigServer, onReleaseResource_removesConn) {
 }
 
 // Coverage-10: onReleaseResource with non-existent key (no crash, no change)
-TEST_F(ut_DConfigServer, onReleaseResource_nonExistentKey_noCrash) {
+TEST_F(ut_DConfigServer, onReleaseResourceNonExistentKeyNoCrash) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
     server->onReleaseResource("/nonexistent/key/0");
@@ -456,7 +456,7 @@ TEST_F(ut_DConfigServer, onReleaseResource_nonExistentKey_noCrash) {
 }
 
 // Coverage-10: updateInternal valid path returns nullopt (success)
-TEST_F(ut_DConfigServer, updateInternal_validPath_returnsNullopt) {
+TEST_F(ut_DConfigServer, updateInternalValidPathReturnsNullopt) {
     // Do NOT acquireManager first: when no resource is loaded, resourceObject()
     // returns nullptr and updateInternal skips reparse, returning nullopt.
     // Calling acquireManager first would cause reparse to be invoked, which
@@ -467,13 +467,13 @@ TEST_F(ut_DConfigServer, updateInternal_validPath_returnsNullopt) {
 }
 
 // Coverage-10: updateInternal invalid path returns error
-TEST_F(ut_DConfigServer, updateInternal_invalidPath_returnsError) {
+TEST_F(ut_DConfigServer, updateInternalInvalidPathReturnsError) {
     auto result = server->updateInternal("/nonexistent/path/to/config.json");
     ASSERT_TRUE(result.has_value());
 }
 
 // Coverage-10: getConfigureIdByPath valid path
-TEST_F(ut_DConfigServer, getConfigureIdByPath_validPath) {
+TEST_F(ut_DConfigServer, getConfigureIdByPathValidPath) {
     auto configPath = QString("%1/usr/share/dsg/configs/%2/%3.json").arg(LocalPrefix, APP_ID, FILE_NAME);
     auto id = server->getConfigureIdByPath(configPath);
     ASSERT_FALSE(id.isInValid());
@@ -482,36 +482,36 @@ TEST_F(ut_DConfigServer, getConfigureIdByPath_validPath) {
 }
 
 // Coverage-10: getConfigureIdByPath invalid path
-TEST_F(ut_DConfigServer, getConfigureIdByPath_invalidPath) {
+TEST_F(ut_DConfigServer, getConfigureIdByPathInvalidPath) {
     auto id = server->getConfigureIdByPath("/nonexistent/path.json");
     ASSERT_TRUE(id.isInValid());
 }
 
 // Coverage-10: isConfigurePath valid returns true
-TEST_F(ut_DConfigServer, isConfigurePath_valid_returnsTrue) {
+TEST_F(ut_DConfigServer, isConfigurePathValidReturnsTrue) {
     auto configPath = QString("%1/usr/share/dsg/configs/%2/%3.json").arg(LocalPrefix, APP_ID, FILE_NAME);
     ASSERT_TRUE(server->isConfigurePath(configPath, APP_ID));
 }
 
 // Coverage-10: isConfigurePath invalid returns false
-TEST_F(ut_DConfigServer, isConfigurePath_invalid_returnsFalse) {
+TEST_F(ut_DConfigServer, isConfigurePathInvalidReturnsFalse) {
     ASSERT_FALSE(server->isConfigurePath("/nonexistent/path.json", ""));
 }
 
 // Coverage-10: isConfigurePath generic config (no appid)
-TEST_F(ut_DConfigServer, isConfigurePath_genericConfig_returnsTrue) {
+TEST_F(ut_DConfigServer, isConfigurePathGenericConfigReturnsTrue) {
     auto configPath = QString("%1/usr/share/dsg/configs/%2.json").arg(LocalPrefix, FILE_NAME);
     ASSERT_TRUE(server->isConfigurePath(configPath, ""));
 }
 
 // Coverage-10: allConfigureFileSignatures returns non-empty
-TEST_F(ut_DConfigServer, allConfigureFileSignatures_returnsNonEmpty) {
+TEST_F(ut_DConfigServer, allConfigureFileSignaturesReturnsNonEmpty) {
     auto signatures = DSGConfigServer::allConfigureFileSignatures(LocalPrefix);
     ASSERT_FALSE(signatures.isEmpty());
 }
 
 // Coverage-10: allConfigureFileSignatures with empty prefix
-TEST_F(ut_DConfigServer, allConfigureFileSignatures_emptyPrefix_returnsEmpty) {
+TEST_F(ut_DConfigServer, allConfigureFileSignaturesEmptyPrefixReturnsEmpty) {
     auto signatures = DSGConfigServer::allConfigureFileSignatures("/nonexistent/prefix");
     ASSERT_TRUE(signatures.isEmpty());
 }
@@ -521,7 +521,7 @@ TEST_F(ut_DConfigServer, allConfigureFileSignatures_emptyPrefix_returnsEmpty) {
 // Coverage-11: Branch coverage tests for DSGConfigServer
 
 // Branch: setDelayReleaseTime with negative value does nothing (early return)
-TEST_F(ut_DConfigServer, setDelayReleaseTime_negative_noChange) {
+TEST_F(ut_DConfigServer, setDelayReleaseTimeNegativeNoChange) {
     server->setDelayReleaseTime(100);
     ASSERT_EQ(server->delayReleaseTime(), 100);
     server->setDelayReleaseTime(-1);
@@ -529,7 +529,7 @@ TEST_F(ut_DConfigServer, setDelayReleaseTime_negative_noChange) {
 }
 
 // Branch: delayReleaseTime() getter
-TEST_F(ut_DConfigServer, delayReleaseTime_getter) {
+TEST_F(ut_DConfigServer, delayReleaseTimeGetter) {
     server->setDelayReleaseTime(50);
     ASSERT_EQ(server->delayReleaseTime(), 50);
     server->setDelayReleaseTime(0);
@@ -537,13 +537,13 @@ TEST_F(ut_DConfigServer, delayReleaseTime_getter) {
 }
 
 // Branch: acquireManagerV2 with invalid UID returns empty QDBusObjectPath
-TEST_F(ut_DConfigServer, acquireManagerV2_invalidUid_returnsEmpty) {
+TEST_F(ut_DConfigServer, acquireManagerV2InvalidUidReturnsEmpty) {
     auto path = server->acquireManagerV2(999999, APP_ID, FILE_NAME, QString(""));
     ASSERT_TRUE(path.path().isEmpty());
 }
 
 // Branch: onReleaseChanged calls derefResource
-TEST_F(ut_DConfigServer, onReleaseChanged_derefResource) {
+TEST_F(ut_DConfigServer, onReleaseChangedDerefResource) {
     auto path = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();
     ASSERT_EQ(server->resourceSize(), 1);
     auto resource = server->resourceObject(getGenericResourceKey(path));
@@ -555,7 +555,7 @@ TEST_F(ut_DConfigServer, onReleaseChanged_derefResource) {
 }
 
 // Branch: doSyncConfigCache with user key
-TEST_F(ut_DConfigServer, doSyncConfigCache_userKey) {
+TEST_F(ut_DConfigServer, doSyncConfigCacheUserKey) {
     auto path = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();
     auto resource = server->resourceObject(getGenericResourceKey(path));
     ASSERT_TRUE(resource);
@@ -570,7 +570,7 @@ TEST_F(ut_DConfigServer, doSyncConfigCache_userKey) {
 }
 
 // Branch: doSyncConfigCache with global key
-TEST_F(ut_DConfigServer, doSyncConfigCache_globalKey) {
+TEST_F(ut_DConfigServer, doSyncConfigCacheGlobalKey) {
     auto path = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();
     auto resource = server->resourceObject(getGenericResourceKey(path));
     ASSERT_TRUE(resource);
@@ -586,7 +586,7 @@ TEST_F(ut_DConfigServer, doSyncConfigCache_globalKey) {
 }
 
 // Branch: doSyncConfigCache with invalid key (neither user nor global)
-TEST_F(ut_DConfigServer, doSyncConfigCache_invalidKey) {
+TEST_F(ut_DConfigServer, doSyncConfigCacheInvalidKey) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
     ConfigSyncBatchRequest request;
@@ -596,7 +596,7 @@ TEST_F(ut_DConfigServer, doSyncConfigCache_invalidKey) {
 }
 
 // Branch: getResourceKeyByConfigCache with user key
-TEST_F(ut_DConfigServer, getResourceKeyByConfigCache_userKey) {
+TEST_F(ut_DConfigServer, getResourceKeyByConfigCacheUserKey) {
     auto path = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();
     auto resource = server->resourceObject(getGenericResourceKey(path));
     auto conn = resource->getConn(APP_ID, TestUid);
@@ -606,7 +606,7 @@ TEST_F(ut_DConfigServer, getResourceKeyByConfigCache_userKey) {
 }
 
 // Branch: getResourceKeyByConfigCache with global key
-TEST_F(ut_DConfigServer, getResourceKeyByConfigCache_globalKey) {
+TEST_F(ut_DConfigServer, getResourceKeyByConfigCacheGlobalKey) {
     auto path = server->acquireManager(APP_ID, FILE_NAME, QString("")).path();
     auto resourceKey = getResourceKey(APP_ID, getGenericResourceKey(path));
     ConfigCacheKey globalKey = ConfigSyncRequestCache::globalKey(resourceKey);
@@ -615,13 +615,13 @@ TEST_F(ut_DConfigServer, getResourceKeyByConfigCache_globalKey) {
 }
 
 // Branch: getResourceKeyByConfigCache with invalid key
-TEST_F(ut_DConfigServer, getResourceKeyByConfigCache_invalidKey) {
+TEST_F(ut_DConfigServer, getResourceKeyByConfigCacheInvalidKey) {
     auto result = server->getResourceKeyByConfigCache("invalid_key");
     ASSERT_TRUE(result.isEmpty());
 }
 
 // Branch: removeUserData with no connections for that uid
-TEST_F(ut_DConfigServer, removeUserData_noConnections_noCrash) {
+TEST_F(ut_DConfigServer, removeUserDataNoConnectionsNoCrash) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
     server->removeUserData(99999);
