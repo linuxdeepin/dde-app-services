@@ -17,10 +17,12 @@
 #include <DLineEdit>
 #include <DSwitchButton>
 #include <DSpinBox>
+#include <QJsonArray>
 
 OEMDialog::OEMDialog(QWidget *parent)
     : DDialog( parent)
 {
+    setWindowFlags(windowFlags() | Qt::WindowMinMaxButtonsHint);
     m_exportView = new QTreeView();
     m_exportView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_exportView->header()->setMinimumSectionSize(400);
@@ -51,6 +53,8 @@ void OEMDialog::loadData(const QString &language)
     m_model = new QStandardItemModel(this);
     m_model->setHorizontalHeaderLabels(QStringList() << QStringLiteral("项") << QStringLiteral("值"));
     m_exportView->setModel(m_model);
+    m_exportView->header()->setSectionResizeMode(QHeaderView::Interactive);
+    m_exportView->header()->resizeSection(0, 250);
 
     const auto &apps = applications();
     for (auto app : apps) {
@@ -249,6 +253,7 @@ void OEMDialog::displayChangedResult()
     d->setAttribute(Qt::WA_DeleteOnClose, true);
 
     QTableView *view = new QTableView(this);
+    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     view->setEditTriggers(QAbstractItemView::NoEditTriggers);
     view->horizontalHeader()->setStretchLastSection(true);
     view->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -317,7 +322,17 @@ void OEMDialog::createJsonFile(const QString &fileName, const QList<DStandardIte
     qWarning() << fileName;
     QJsonObject rootObject, object, contentsObject, keyObject;
     for (auto item : items) {
-        keyObject.insert("value", QJsonValue::fromVariant(item->data(ValueRole)));
+        QVariant variant = item->data(ValueRole);
+        QJsonValue val = QJsonValue::fromVariant(variant);
+        if (variant.canConvert<QString>()) {
+            QString str = variant.toString();
+            QJsonDocument doc = QJsonDocument::fromJson(str.toUtf8());
+            if (!doc.isNull() && doc.isArray()) {
+                val = doc.array();
+            }
+        }
+
+        keyObject.insert("value", val);
         keyObject.insert("serial", 0);
         keyObject.insert("permissions", "readwrite");
         contentsObject.insert(item->data(KeyRole).toString(), keyObject);

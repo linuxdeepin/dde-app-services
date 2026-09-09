@@ -10,6 +10,7 @@
 #include <QDBusObjectPath>
 #include <QDBusContext>
 #include <QDBusServiceWatcher>
+#include <QDateTime>
 
 class DSGConfigResource;
 class RefManager;

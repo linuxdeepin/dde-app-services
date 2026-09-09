@@ -62,11 +62,14 @@ Q_SIGNALS: // SIGNALS
 
 private:
     QString getAppid() const;
+    QString getPermissions(const QString &key);
+    bool checkDBusSender(const QString &key);
     bool contains(const QString &key);
     DTK_CORE_NAMESPACE::DConfigMeta *meta() const;
     DTK_CORE_NAMESPACE::DConfigFile *file() const;
     DTK_CORE_NAMESPACE::DConfigCache *cache() const;
     bool hasPermissionByUid(const QString &key) const;
+    bool checkValid(const QString &key);
 
 private:
     ConnKey m_key;

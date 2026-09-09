@@ -14,6 +14,14 @@
 #include <QLoggingCategory>
 #include "helper.hpp"
 
+#ifdef Q_OS_LINUX
+#include <cerrno>
+#include <climits>
+#include <cstdio>
+#include <cstring>
+#include <sys/types.h>
+#endif
+
 Q_DECLARE_LOGGING_CATEGORY(cfLog);
 
 // /appid/filename/subpath/userid
@@ -26,8 +34,11 @@ using ConnServiceName = QString;
 using ConnRefCount = int;
 // user: u-${ConnKey}, global: g-${ResourceKey}
 using ConfigCacheKey = QString;
+
 static constexpr int TestUid = 0U;
 static const QString VirtualInterAppId = "_";
+const QString authorizedreadonly = QString("authorizedreadonly");
+const QString authorizedreadwrite = QString("authorizedreadwrite");
 
 inline QString formatDBusObjectPath(QString path)
 {
@@ -230,4 +241,44 @@ inline QString configPrefixPath()
         }
     }
     return path;
+}
+
+inline int check_caller_sid2(uint uid, pid_t caller_pid)
+{
+    if (uid != 0) {
+        qWarning() << "[check_caller_sid2] uid != 0, uid : " << uid;
+        return -EPERM;
+    }
+    char sid2_attr_path[PATH_MAX] = {0};
+    snprintf(sid2_attr_path, PATH_MAX, "/proc/%d/attr/sid2", caller_pid);
+    FILE* fp_sid2_attr = fopen(sid2_attr_path, "r");
+    if(fp_sid2_attr == NULL){
+        qWarning() << QString("process %1 has no sid2\n").arg(caller_pid);
+        return -EPERM;
+    }
+
+    char sid2[256] = {0};
+    size_t nread = fread(sid2, 1, sizeof(sid2) - 1, fp_sid2_attr);
+    fclose(fp_sid2_attr);
+    if(nread < 1){
+        qWarning() << QString("process %1  %2 has no sid2\n").arg(caller_pid).arg(sid2_attr_path);
+        return -EPERM;
+    }
+
+    // [APPID_TYPE] = "deepin_app",
+    // [SYSID_TYPE] = "deepin_sys",
+    // [SECID_TYPE] = "deepin_sec",
+    // [安全服务] "deepin_perm_manager_sidtwo_t"
+    // cat /proc/[pid_t]/attr/sid2 -> system_u:object_r:deepin_sec_1_t:s0
+    // 只有签名的安全厂商应用运行才有此selinux2 label。
+    if( strstr(sid2, "deepin_app") == NULL &&
+        strstr(sid2, "deepin_sys") == NULL &&
+        strstr(sid2, "deepin_sec") == NULL &&
+        strstr(sid2, "perm_manager_sidtwo_t") == NULL
+    ) {
+        qWarning() << QString("process %1 has [%2] no sid2 app label\n").arg(caller_pid).arg(sid2);
+        return -EPERM;
+    }
+
+    return 0;
 }

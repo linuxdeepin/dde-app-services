@@ -200,7 +200,7 @@ MainWindow::MainWindow(QWidget *parent) :
         oemView->show();
     });
     oemView = new OEMDialog(this);
-    oemView->setFixedSize(QSize(800, 600));
+    oemView->setMinimumSize(QSize(800, 600));
 
     installTranslate();
 

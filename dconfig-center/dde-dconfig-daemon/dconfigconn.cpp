@@ -112,7 +112,7 @@ void DSGConfigConn::release()
  */
 void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 {
-    if (!contains(key))
+    if (!checkValid(key))
         return;
 
     if (!hasPermissionByUid(key))
@@ -132,7 +132,7 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 
 void DSGConfigConn::reset(const QString &key)
 {
-    if (!contains(key))
+    if (!checkValid(key))
         return;
 
     qCDebug(cfLog) << "Reset value, key:" << key << ", old value:" << file()->value(key, cache());
@@ -230,7 +230,17 @@ QString DSGConfigConn::permissions(const QString &key)
     if (!contains(key))
         return QString();
 
-    return meta()->permissions(key) == DTK_CORE_NAMESPACE::DConfigFile::ReadWrite ? QString("readwrite") : QString("readonly");
+    switch (meta()->permissions(key)) {
+     case DTK_CORE_NAMESPACE::DConfigFile::ReadOnly:
+         return QString("readonly");
+     case DTK_CORE_NAMESPACE::DConfigFile::ReadWrite:
+         return QString("readwrite");
+     case DTK_CORE_NAMESPACE::DConfigFile::AuthorizedReadOnly:
+         return authorizedreadonly;
+     case DTK_CORE_NAMESPACE::DConfigFile::AuthorizedReadWrite:
+         return authorizedreadwrite;
+     }
+     return QString("readonly");
 }
 
 int DSGConfigConn::flags(const QString &key)
@@ -249,6 +259,45 @@ QString DSGConfigConn::getAppid() const
         return m_appName;
     }
     return QString("testappid");
+}
+
+QString DSGConfigConn::getPermissions(const QString &key)
+{
+    switch (meta()->permissions(key)) {
+     case DTK_CORE_NAMESPACE::DConfigFile::ReadOnly:
+         return QString("readonly");
+     case DTK_CORE_NAMESPACE::DConfigFile::ReadWrite:
+         return QString("readwrite");
+     case DTK_CORE_NAMESPACE::DConfigFile::AuthorizedReadOnly:
+         return authorizedreadonly;
+     case DTK_CORE_NAMESPACE::DConfigFile::AuthorizedReadWrite:
+         return authorizedreadwrite;
+     }
+     return QString("readonly");
+}
+
+bool DSGConfigConn::checkDBusSender(const QString &key)
+{
+    QString permission = getPermissions(key);
+    if (permission == authorizedreadonly || permission == authorizedreadwrite) {
+        if (!calledFromDBus()) {
+            qWarning() << "[checkDBusSender] not called by dbus.";
+            return false;
+        }
+        auto service = message().service();
+        const auto uidReply = connection().interface()->serviceUid(service);
+        const auto pidReply = connection().interface()->servicePid(service);
+        if (!uidReply.isValid() || !pidReply.isValid()) {
+            qWarning() << "[checkDBusSender] failed to get dbus sender uid or pid.";
+            return false;
+        }
+
+        uint uid = uidReply.value();
+        uint pid = pidReply.value();
+        qInfo() << "[checkDBusSender] dbus sender pid : " << pid;
+        return check_caller_sid2(uid, static_cast<pid_t>(pid)) == 0;
+    }
+    return true;
 }
 
 bool DSGConfigConn::contains(const QString &key)
@@ -300,4 +349,22 @@ bool DSGConfigConn::hasPermissionByUid(const QString &key) const
         qWarning() << qPrintable(errorMsg);
     }
     return hasPermission;
+}
+
+bool DSGConfigConn::checkValid(const QString &key)
+{
+    bool ret = false;
+    if (!contains(key)) {
+        return ret;
+    }
+
+    ret = checkDBusSender(key);
+    if (!ret) {
+        QString errorMsg = QString("[%1] requires Non-sid2 configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
+        if (calledFromDBus())
+            sendErrorReply(QDBusError::Failed, errorMsg);
+        qWarning() << errorMsg;
+    }
+
+    return ret;
 }

@@ -14,6 +14,9 @@
 #include <QLoggingCategory>
 #include <QDir>
 #include <QFile>
+#include <DConfigFile>
+
+#include <utility>
 
 #include "configmanager_adaptor.h"
 
@@ -612,7 +615,7 @@ QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatu
                 DSGConfigServer::FileSignature signature;
                 signature.filePath = filePath;
                 signature.size = fileInfo.size();
-                signature.changeTime = fileInfo.metadataChangeTime(QTimeZone::UTC);
+                signature.changeTime = fileInfo.metadataChangeTime();
 
                 signatures << signature;
             }
