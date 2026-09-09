@@ -4,13 +4,14 @@
 
 find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core DBus Test)
 find_package(Dtk${DTK_VERSION_MAJOR}Core REQUIRED)
+find_package(GTest REQUIRED)
 
 # generate moc_predefs.h
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(AUTOMOC_COMPILER_PREDEFINES ON)
 
-option(ENABLE_COVERAGE "Enable coverage instrumentation" OFF)
+option(ENABLE_COVERAGE "Enable coverage instrumentation" ON)
 # for coverage
 if(ENABLE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -50,26 +51,38 @@ target_link_libraries(dconfigtest PUBLIC ${COMMON_LIBS}
     -lpthread
 )
 
+# Register each TEST() case with CTest (one entry per gtest case, not one
+# per binary), so `ctest -R <case>` can run individual cases.
+include(GoogleTest)
+gtest_discover_tests(dconfigtest)
+
+# ---- coverage: execute all tests and generate a coverage report ----
 find_program(LCOV_PATH lcov)
 find_program(GENHTML_PATH genhtml)
+set(_run_test_coverage "")
 if(LCOV_PATH AND GENHTML_PATH)
-    add_custom_target(coverage
+    set(_run_test_coverage
         COMMAND ${LCOV_PATH} --capture --directory ${CMAKE_BINARY_DIR}
                 --rc lcov_branch_coverage=1
                 --output-file ${CMAKE_BINARY_DIR}/coverage.info
-        COMMAND ${LCOV_PATH} --remove ${CMAKE_BINARY_DIR}/coverage.info
+        COMMAND ${LCOV_PATH} --extract ${CMAKE_BINARY_DIR}/coverage.info
                 --rc lcov_branch_coverage=1
-                '*/moc_*.cpp' '*/moc_*.h' '*/qrc_*.cpp' '*/ui_*.h' '*/qml_*.h'
-                '*/qmlcache_*.cpp' '*/_autogen/*' '*_json.h' '/usr/*'
-                '*/ut_*' '*/main.cpp' '*/test_helper.hpp' '*_adaptor.*'
+                "${CMAKE_SOURCE_DIR}/dconfig-center/dde-dconfig-daemon/*"
+                "${CMAKE_SOURCE_DIR}/dconfig-center/common/*"
                 --output-file ${CMAKE_BINARY_DIR}/coverage_filtered.info
         COMMAND ${GENHTML_PATH} ${CMAKE_BINARY_DIR}/coverage_filtered.info
                 --branch-coverage
                 --output-directory ${CMAKE_BINARY_DIR}/coverage_report
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating coverage report"
     )
 endif()
+add_custom_target(coverage
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    ${_run_test_coverage}
+    DEPENDS dconfigtest
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Run all tests and generate coverage report"
+    VERBATIM
+)
 
 
 
