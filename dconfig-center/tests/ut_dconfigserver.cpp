@@ -13,6 +13,7 @@
 #include <DConfigFile>
 
 #include "dconfigserver.h"
+#include "dconfigcatalog.h"
 #include "dconfigresource.h"
 #include "dconfigconn.h"
 #include "test_helper.hpp"
@@ -34,6 +35,13 @@ protected:
 
         ASSERT_TRUE(QFile::copy(":/config/example.json", path));
         ASSERT_TRUE(QFile::copy(":/config/example.json", noAppIdConfigPath()));
+        QDir().mkpath(QFileInfo(subpathConfigPath()).path());
+        ASSERT_TRUE(QFile::copy(":/config/example.json", subpathConfigPath()));
+        ASSERT_TRUE(QDir().mkpath(emptySubpathConfigPath()));
+        QDir().mkpath(QFileInfo(invalidConfigPath()).path());
+        QFile invalidFile(invalidConfigPath());
+        ASSERT_TRUE(invalidFile.open(QIODevice::WriteOnly));
+        ASSERT_TRUE(invalidFile.write("{}") > 0);
         qputenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS", "true");
         qputenv("STATE_DIRECTORY", LocalPrefix);
         dsgDataDir.set("DSG_DATA_DIRS", "/usr/share/dsg");
@@ -41,6 +49,8 @@ protected:
     static void TearDownTestCase() {
         QFile::remove(configPath());
         QFile::remove(noAppIdConfigPath());
+        QFile::remove(subpathConfigPath());
+        QFile::remove(invalidConfigPath());
         qunsetenv("DSG_CONFIG_CONNECTION_DISABLE_DBUS");
         qunsetenv("STATE_DIRECTORY");
         QDir(LocalPrefix).removeRecursively();
@@ -64,6 +74,22 @@ protected:
 
         return QString("%1/%2.json").arg(metaPath, FILE_NAME);
     }
+    static QString subpathConfigPath()
+    {
+        const QString metaPath = QString("%1/usr/share/dsg/configs/%2/subpath").arg(LocalPrefix, APP_ID);
+
+        return QString("%1/%2.json").arg(metaPath, FILE_NAME);
+    }
+    static QString emptySubpathConfigPath()
+    {
+        return QString("%1/usr/share/dsg/configs/%2/empty").arg(LocalPrefix, APP_ID);
+    }
+    static QString invalidConfigPath()
+    {
+        const QString metaPath = QString("%1/usr/share/dsg/configs/org.invalid.app").arg(LocalPrefix);
+
+        return QString("%1/invalid.json").arg(metaPath);
+    }
     QScopedPointer<DSGConfigServer> server;
 };
 
@@ -79,6 +105,27 @@ TEST_F(ut_DConfigServer, acquireManager) {
     auto path2 = server->acquireManager(APP_ID, "example_noexist", QString("")).path();
     ASSERT_EQ(server->resourceObject(path2), nullptr);
     ASSERT_EQ(server->resourceSize(), 1);
+}
+
+TEST_F(ut_DConfigServer, internalCatalog) {
+    const auto catalog = server->internalCatalog();
+    ASSERT_TRUE(catalog);
+    const auto configurations = catalog->configurations();
+    ASSERT_FALSE(configurations.isEmpty());
+    const QStringList apps = [&configurations]() {
+        QStringList result;
+        for (const auto &config : configurations) {
+            if (!config.appId.isEmpty() && !result.contains(config.appId))
+                result.append(config.appId);
+        }
+        return result;
+    }();
+    EXPECT_TRUE(apps.contains(APP_ID));
+    EXPECT_FALSE(apps.contains("org.invalid.app"));
+    EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QString()}));
+    EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QStringLiteral("/subpath")}));
+    EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QStringLiteral("/empty")}));
+    EXPECT_TRUE(configurations.contains(ConfigInfo{NoAppId, FILE_NAME, QString()}));
 }
 
 TEST_F(ut_DConfigServer, acquireManagerV2) {

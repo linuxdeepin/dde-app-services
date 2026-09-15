@@ -4,6 +4,7 @@
 
 #include "exportdialog.h"
 #include "helper.hpp"
+#include "resourcecatalogclient.h"
 #include "valuehandler.h"
 
 #include <QHBoxLayout>
@@ -11,18 +12,28 @@
 #include <QFileDialog>
 #include <QTreeView>
 #include <QMessageBox>
+#include <QHeaderView>
+#include <QLabel>
 
 ExportDialog::ExportDialog(QWidget *parent)
     : DDialog( parent)
 {
+    setWindowTitle(tr("export configuration"));
+    setMinimumSize(QSize(720, 520));
+    resize(QSize(960, 680));
     m_exportView = new QTreeView();
     m_exportView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_exportView->setUniformRowHeights(true);
+    m_exportView->setTextElideMode(Qt::ElideMiddle);
+    m_exportView->setAlternatingRowColors(true);
 
     QCheckBox *checkbox = new QCheckBox();
     checkbox->setText(tr("select all"));
     m_exportBtn = new DSuggestButton(tr("export"));
     m_exportBtn->setEnabled(false);
+    m_selectedLabel = new QLabel(tr("0 items selected"));
     QHBoxLayout *hLayout = new QHBoxLayout();
+    hLayout->addWidget(m_selectedLabel);
     hLayout->addStretch(1);
     hLayout->addWidget(checkbox);
     hLayout->addWidget(m_exportBtn);
@@ -39,6 +50,10 @@ ExportDialog::ExportDialog(QWidget *parent)
     connect(checkbox, &QCheckBox::clicked, this, [this, checkbox] {
         for (auto item : m_rootItems)
             checkAllChild(item, checkbox->checkState() == Qt::Checked ? true : false);
+        int selected = 0;
+        for (auto item : m_childItems)
+            selected += item->checkState() == Qt::Checked;
+        m_selectedLabel->setText(tr("%1 items selected").arg(selected));
     });
     connect(m_exportBtn, &DSuggestButton::clicked, this, &ExportDialog::saveFile);
 }
@@ -47,16 +62,23 @@ void ExportDialog::loadData(const QString &language)
 {
     auto model = new QStandardItemModel(this);
     model->setHorizontalHeaderLabels(QStringList() << tr("content"));
+    m_exportView->setModel(model);
     connect(model, &QStandardItemModel::itemChanged, this, &ExportDialog::treeItemChanged);
     connect(model, &QStandardItemModel::itemChanged, this, [this] {
         m_exportBtn->setEnabled(hasChildItemChecked());
+        if (m_selectedLabel) {
+            int selected = 0;
+            for (auto item : m_childItems)
+                selected += item->checkState() == Qt::Checked;
+            m_selectedLabel->setText(tr("%1 items selected").arg(selected));
+        }
     });
     m_rootItems.clear();
     m_childItems.clear();
 
-    const auto &apps = applications();
+    const auto &apps = ResourceCatalogClient::instance().applications();
     for (auto app : apps) {
-        if (resourcesForApp(app).isEmpty()) {
+        if (ResourceCatalogClient::instance().resourcesForApp(app).isEmpty()) {
             continue;
         }
         DStandardItem *rootItem = new DStandardItem(app);
@@ -65,7 +87,7 @@ void ExportDialog::loadData(const QString &language)
         model->appendRow(rootItem);
         m_rootItems.append(rootItem);
 
-        const auto &resources = resourcesForApp(app);
+        const auto &resources = ResourceCatalogClient::instance().resourcesForApp(app);
         for (auto resource : resources) {
             auto resourceItem = new DStandardItem();
             resourceItem->setSizeHint(QSize(200, 45));
@@ -99,7 +121,7 @@ void ExportDialog::loadData(const QString &language)
             }
 
             // 添加子路径 key-value
-            const auto &subpaths = subpathsForResource(app, resource);
+            const auto &subpaths = ResourceCatalogClient::instance().subpathsForResource(app, resource);
             for (auto subpath : subpaths) {
                 auto subpathItem = new DStandardItem();
                 subpathItem->setCheckable(true);
@@ -130,8 +152,12 @@ void ExportDialog::loadData(const QString &language)
                 }
             }
         }
-        m_exportView->setModel(model);
     }
+    m_exportView->expandToDepth(0);
+    m_exportView->header()->setStretchLastSection(true);
+    m_exportView->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    if (m_selectedLabel)
+        m_selectedLabel->setText(tr("0 items selected"));
 }
 
 void ExportDialog::treeItemChanged(QStandardItem *item)

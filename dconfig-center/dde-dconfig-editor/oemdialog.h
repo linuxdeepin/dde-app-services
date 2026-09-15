@@ -13,6 +13,7 @@
 class ValueHandler;
 class QTreeView;
 class ConfigGetter;
+class QLabel;
 DWIDGET_USE_NAMESPACE
 
 class OEMDialog : public DDialog {
@@ -36,6 +37,7 @@ private:
     QTreeView *m_exportView = nullptr;
     QStandardItemModel *m_model = nullptr;
     DSuggestButton *m_exportBtn = nullptr;
+    QLabel *m_selectedLabel = nullptr;
     QScopedPointer<ValueHandler> m_getter;
     QMap<QString, QList<DStandardItem *>> m_overrides;
 };

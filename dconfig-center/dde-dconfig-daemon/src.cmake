@@ -7,6 +7,10 @@ qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktop
     dconfigserver.h DSGConfigServer
     configmanager_adaptor DSGConfigAdaptor)
 
+qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Internal.xml
+    dconfigcatalog.h DSGConfigCatalog
+    configmanager_internal_adaptor DSGConfigInternalAdaptor)
+
 qt5_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml
     dconfigconn.h DSGConfigConn
     manager_adaptor DSGConfigManagerAdaptor)
@@ -17,6 +21,10 @@ qt_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktops
     dconfigserver.h DSGConfigServer
     configmanager_adaptor DSGConfigAdaptor)
 
+qt_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Internal.xml
+    dconfigcatalog.h DSGConfigCatalog
+    configmanager_internal_adaptor DSGConfigInternalAdaptor)
+
 qt_add_dbus_adaptor(DCONFIG_DBUS_XML ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml
     dconfigconn.h DSGConfigConn
     manager_adaptor DSGConfigManagerAdaptor)
@@ -26,12 +34,15 @@ include_directories(../common)
 
 set(HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/dconfig_global.h
+    ${CMAKE_CURRENT_LIST_DIR}/dconfigcatalog.h
+    ../common/configinfo.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigserver.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigresource.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigconn.h
     ${CMAKE_CURRENT_LIST_DIR}/dconfigrefmanager.h
 )
 set(SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/dconfigcatalog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dconfigserver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dconfigresource.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dconfigconn.cpp

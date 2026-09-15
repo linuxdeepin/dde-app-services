@@ -6,6 +6,7 @@
 
 
 #include "helper.hpp"
+#include "resourcecatalogclient.h"
 #include "valuehandler.h"
 #include "iteminfo.h"
 #include "exportdialog.h"
@@ -13,12 +14,14 @@
 
 #include <QHBoxLayout>
 #include <DLabel>
+#include <DIconButton>
 #include <DSwitchButton>
 #include <DLineEdit>
 #include <DSearchEdit>
 #include <DSlider>
 #include <DTitlebar>
 #include <DStatusBar>
+#include <DStyle>
 #include <QScrollArea>
 #include <QSplitter>
 #include <QTime>
@@ -30,45 +33,141 @@
 #include <QFileDialog>
 #include <QApplication>
 #include <QClipboard>
-#include <QMessageBox>
+#include <QDir>
 #include <QActionGroup>
+#include <QScreen>
+#include <dinputdialog.h>
+
+#include <algorithm>
+
+namespace {
+QStringList sortedStrings(QStringList values)
+{
+    std::sort(values.begin(), values.end(), [](const QString &left, const QString &right) {
+        const int insensitiveOrder = QString::compare(left, right, Qt::CaseInsensitive);
+        return insensitiveOrder == 0 ? left < right : insensitiveOrder < 0;
+    });
+    return values;
+}
+
+bool normalizeDynamicSubpath(const QString &input, QString *normalized)
+{
+    QString subpath = input.trimmed();
+    if (subpath.isEmpty() || subpath.contains(QLatin1Char('\\')))
+        return false;
+
+    const QStringList components = subpath.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    if (components.isEmpty())
+        return false;
+
+    for (const QString &component : components) {
+        if (component == QLatin1String(".") || component == QLatin1String(".."))
+            return false;
+    }
+
+    if (!subpath.startsWith(QLatin1Char('/')))
+        subpath.prepend(QLatin1Char('/'));
+    *normalized = QDir::cleanPath(subpath);
+    return true;
+}
+}
 
 MainWindow::MainWindow(QWidget *parent) :
     DMainWindow(parent)
 {
     appIdToNameMaps[NoAppId] = VirtualAppName;
-    resize(800, 600);
+    const QSize available = screen() ? screen()->availableGeometry().size() : QSize(1366, 768);
+    const QSize defaultSize(qMin(1200, qMax(900, available.width() * 9 / 10)),
+                            qMin(760, qMax(600, available.height() * 9 / 10)));
+    resize(defaultSize.boundedTo(QSize(1100, 700)));
+    setMinimumSize(QSize(800, 520));
     centralwidget = new QWidget(this);
     centralwidget->setObjectName(QStringLiteral("centralwidget"));
 
-    auto layout = new QHBoxLayout(centralwidget);
-    layout->setContentsMargins(0, 0, 0, 0);
+    auto layout = new QVBoxLayout(centralwidget);
+    layout->setContentsMargins(8, 8, 8, 8);
+    layout->setSpacing(8);
+    auto navigationWidget = new QWidget(centralwidget);
+    navigationWidget->setObjectName(QStringLiteral("navigationWidget"));
+    navigationWidget->setMinimumHeight(32);
+    navigationWidget->setBackgroundRole(QPalette::AlternateBase);
+    navigationWidget->setAutoFillBackground(true);
+    auto navigationLayout = new QHBoxLayout(navigationWidget);
+    navigationLayout->setContentsMargins(12, 4, 12, 4);
+    navigationLayout->setSpacing(8);
+
+    navigationAppLabel = new DLabel(tr("Select an application and configuration"), navigationWidget);
+    navigationResourceLabel = new DLabel(navigationWidget);
+    navigationSubpathLabel = new DLabel(navigationWidget);
+    navigationResourceSeparator = new DLabel(QStringLiteral(">"), navigationWidget);
+    navigationSubpathSeparator = new DLabel(QStringLiteral(">"), navigationWidget);
+
+    QFont navigationFont = navigationAppLabel->font();
+    navigationFont.setBold(true);
+    const QList<DLabel *> navigationLabels{navigationAppLabel, navigationResourceLabel, navigationSubpathLabel};
+    for (DLabel *label : navigationLabels) {
+        label->setFont(navigationFont);
+        label->setElideMode(Qt::ElideMiddle);
+        label->setAlignment(Qt::AlignCenter);
+        label->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+        label->setMaximumWidth(320);
+    }
+    navigationResourceSeparator->hide();
+    navigationSubpathSeparator->hide();
+    navigationResourceLabel->hide();
+    navigationSubpathLabel->hide();
+    navigationLayout->addStretch();
+    navigationLayout->addWidget(navigationAppLabel);
+    navigationLayout->addWidget(navigationResourceSeparator);
+    navigationLayout->addWidget(navigationResourceLabel);
+    navigationLayout->addWidget(navigationSubpathSeparator);
+    navigationLayout->addWidget(navigationSubpathLabel);
+    navigationLayout->addStretch();
     QSplitter *hSplitter = new QSplitter(Qt::Horizontal, centralwidget);
     hSplitter->setLineWidth(1);
+    hSplitter->setHandleWidth(6);
 
     appListView = new DListView();
     appListView->setObjectName(QStringLiteral("appListView"));
-    appListView->setTextElideMode(Qt::ElideRight);
-    appListView->setMinimumWidth(200);
+    appListView->setTextElideMode(Qt::ElideMiddle);
+    appListView->setWordWrap(false);
+    appListView->setMinimumWidth(180);
     appListView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    auto appHeader = new DSearchEdit();
+    auto appHeaderWidget = new QWidget(appListView);
+    auto appHeaderLayout = new QHBoxLayout(appHeaderWidget);
+    appHeaderLayout->setContentsMargins(0, 0, 8, 0);
+    appHeaderLayout->setSpacing(2);
+
+    auto appHeader = new DSearchEdit(appHeaderWidget);
     appHeader->setPlaceHolder(tr("appid"));
     appHeader->setPlaceholderText(tr("input filter appid"));
     QObject::connect(appHeader, &DSearchEdit::textChanged, [this](const QString &appid){
         refreshApps(appid);
     });
-    appListView->addHeaderWidget(appHeader);
+    appHeaderLayout->addWidget(appHeader);
+
+    auto addAppidButton = new DIconButton(DStyle::SP_AddButton, appHeaderWidget);
+    addAppidButton->setToolTip(tr("specify appid"));
+    addAppidButton->setAccessibleName(tr("specify appid"));
+    addAppidButton->setFlat(true);
+    addAppidButton->setFixedSize(32, 32);
+    addAppidButton->setIconSize(QSize(20, 20));
+    connect(addAppidButton, &DIconButton::clicked, this, &MainWindow::addAppid);
+    appHeaderLayout->addWidget(addAppidButton);
+
+    appListView->addHeaderWidget(appHeaderWidget);
 
     hSplitter->addWidget(appListView);
 
     resourceListView = new DListView();
     resourceListView->setObjectName(QStringLiteral("resourceListView"));
-    resourceListView->setTextElideMode(Qt::ElideRight);
-    resourceListView->setMinimumWidth(200);
+    resourceListView->setTextElideMode(Qt::ElideMiddle);
+    resourceListView->setMinimumWidth(220);
+    resourceListView->setSpacing(3);
     resourceListView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     resourceListView->setItemDelegate(new LevelDelegate(resourceListView));
-    resourceListView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    resourceListView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     resourceListView->setModel(new QStandardItemModel());
     auto resourceHeader = new DSearchEdit();
     resourceHeader->setMinimumWidth(200);
@@ -83,6 +182,7 @@ MainWindow::MainWindow(QWidget *parent) :
     hSplitter->addWidget(resourceListView);
 
     auto contentViewWraper = new QWidget(this);
+    contentViewWraper->setMinimumWidth(380);
     auto contentViewLayout = new QVBoxLayout(contentViewWraper);
     contentViewLayout->setSpacing(0);
     contentViewLayout->setContentsMargins(0, 0, 0, 0);
@@ -112,8 +212,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     contentViewLayout->addWidget(contentHeader);
-    contentViewLayout->addWidget(contentView);
-
     auto scrollArea = new QScrollArea();
     scrollArea->setWidgetResizable(true);
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -122,12 +220,19 @@ MainWindow::MainWindow(QWidget *parent) :
     contentViewLayout->addWidget(scrollArea);
     hSplitter->addWidget(contentViewWraper);
 
-    layout->addWidget(hSplitter);
-    hSplitter->setSizes({200, 200, 400});
+    layout->addWidget(hSplitter, 1);
+    layout->addWidget(navigationWidget);
+    hSplitter->setChildrenCollapsible(false);
+    hSplitter->setStretchFactor(0, 24);
+    hSplitter->setStretchFactor(1, 28);
+    hSplitter->setStretchFactor(2, 48);
+    hSplitter->setSizes({240, 280, 500});
 
     connect(appListView, &QListView::clicked, this, [this, resourceHeader](const QModelIndex &index){
         if (auto model = qobject_cast<QStandardItemModel*>(appListView->model())){
-            this->refreshAppResources(model->data(index, ConfigUserRole + 2).toString(), resourceHeader->text());
+            const QString appid = model->data(index, ConfigUserRole + 2).toString();
+            this->refreshAppResources(appid, resourceHeader->text());
+            updateNavigation(appid);
             emit resourceListView->clicked(resourceListView->currentIndex());
         }
     });
@@ -144,6 +249,7 @@ MainWindow::MainWindow(QWidget *parent) :
                     return;
                 }
                 refreshResourceKeys(appid, resourceId, subpath, contentHeader->text());
+                updateNavigation(appid, resourceId, subpath);
             } else {
                 contentView->clear();
             }
@@ -152,11 +258,12 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     resourceListView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(resourceListView, &QWidget::customContextMenuRequested, this, [this](const QPoint&) {
+    connect(resourceListView, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
         if (auto model = qobject_cast<QStandardItemModel*>(resourceListView->model())){
-            const auto index = resourceListView->currentIndex();
+            const auto index = resourceListView->indexAt(position);
             if (!index.isValid())
                 return;
+            resourceListView->setCurrentIndex(index);
             const auto &type = model->data(index, ConfigUserRole + 1).toInt();
             if (type & ConfigType::ResourceType || type == ConfigType::SubpathType) {
                 const auto &appid = model->data(index, ConfigUserRole + 2).toString();
@@ -166,7 +273,8 @@ MainWindow::MainWindow(QWidget *parent) :
                     qWarning() << "error" << appid << resourceId;
                     return;
                 }
-                onCustomResourceMenuRequested(appid, resourceId, subpath);
+                onCustomResourceMenuRequested(appid, resourceId, subpath,
+                                              type != ConfigType::SubpathType);
             }
         }
     });
@@ -174,6 +282,45 @@ MainWindow::MainWindow(QWidget *parent) :
     // set history
     DTitlebar *titlebar = this->titlebar();
     titlebar->setIcon(QIcon(APP_ICON));
+    auto refreshButton = new DIconButton(QStyle::SP_BrowserReload, titlebar);
+    refreshButton->setFlat(true);
+    refreshButton->setFixedSize(32, 32);
+    refreshButton->setIconSize(QSize(20, 20));
+    refreshButton->setToolTip(tr("refresh configuration"));
+    refreshButton->setAccessibleName(tr("refresh configuration"));
+    titlebar->addWidget(refreshButton, Qt::AlignLeft);
+    connect(refreshButton, &DIconButton::clicked, this, [this, appHeader] {
+        const QString selectedApp = appListView->model()
+                ? appListView->model()->data(appListView->currentIndex(), ConfigUserRole + 2).toString()
+                : QString();
+        ResourceCatalogClient::instance().refresh();
+        refreshApps(appHeader->text());
+
+        auto model = appListView->model();
+        QModelIndex target;
+        for (int row = 0; model && row < model->rowCount(); ++row) {
+            const QModelIndex index = model->index(row, 0);
+            const QString appid = model->data(index, ConfigUserRole + 2).toString();
+            if ((!selectedApp.isEmpty() && appid == selectedApp)
+                    || (!target.isValid() && !appid.isEmpty())) {
+                target = index;
+                if (appid == selectedApp)
+                    break;
+            }
+        }
+        if (target.isValid()) {
+            appListView->setCurrentIndex(target);
+            emit appListView->clicked(target);
+        } else {
+            resourceListView->model()->removeRows(0, resourceListView->model()->rowCount());
+            contentView->clear();
+            navigationAppLabel->setText(tr("Select an application and configuration"));
+            navigationResourceLabel->hide();
+            navigationSubpathLabel->hide();
+            navigationResourceSeparator->hide();
+            navigationSubpathSeparator->hide();
+        }
+    });
     connect(titlebar->menu()->addAction(tr("setting history")), &QAction::triggered, [this](){
         qInfo() << "show history view";
         historyView->show();
@@ -182,7 +329,8 @@ MainWindow::MainWindow(QWidget *parent) :
         historyView->move(topLeft.x() - historyView->geometry().width(), topLeft.y());
     });
     historyView = new HistoryDialog(this);
-    historyView->setFixedSize(QSize(400, 600));
+    historyView->setMinimumSize(QSize(380, 520));
+    historyView->resize(QSize(520, 680));
     QObject::connect(contentView, &Content::sendValueUpdated, historyView, &HistoryDialog::onSendValueUpdated);
     QObject::connect(historyView, &HistoryDialog::refreshResourceKeys, this, [this, contentHeader](const QString &appid, const QString &resourceId, const QString &subpath){
         refreshResourceKeys(appid, resourceId, subpath, contentHeader->text());
@@ -194,17 +342,29 @@ MainWindow::MainWindow(QWidget *parent) :
         exportView->show();
     });
     exportView = new ExportDialog(this);
-    exportView->setFixedSize(QSize(400, 600));
+    exportView->setMinimumSize(QSize(720, 520));
+    exportView->resize(QSize(960, 680));
     connect(titlebar->menu()->addAction(tr("OEM")), &QAction::triggered, [this]() {
         oemView->loadData(contentView->language());
         oemView->show();
     });
     oemView = new OEMDialog(this);
-    oemView->setFixedSize(QSize(800, 600));
+    oemView->setMinimumSize(QSize(820, 560));
+    oemView->resize(QSize(1100, 720));
 
     installTranslate();
 
     refreshApps(appHeader->text());
+    if (auto model = appListView->model()) {
+        for (int row = 0; row < model->rowCount(); ++row) {
+            const QModelIndex index = model->index(row, 0);
+            if (!model->data(index, ConfigUserRole + 2).toString().isEmpty()) {
+                appListView->setCurrentIndex(index);
+                emit appListView->clicked(index);
+                break;
+            }
+        }
+    }
     setCentralWidget(centralwidget);
 }
 
@@ -212,21 +372,53 @@ MainWindow::~MainWindow()
 {
 }
 
+void MainWindow::updateNavigation(const QString &appid, const QString &resourceId,
+                                  const QString &subpath)
+{
+    const QString appText = appid.isEmpty() ? VirtualAppName : appid;
+    navigationAppLabel->setText(appText);
+    navigationAppLabel->setToolTip(appText);
+
+    const bool hasResource = !resourceId.isEmpty();
+    navigationResourceLabel->setVisible(hasResource);
+    navigationResourceSeparator->setVisible(hasResource);
+    if (hasResource) {
+        navigationResourceLabel->setText(resourceId);
+        navigationResourceLabel->setToolTip(resourceId);
+    }
+
+    const bool hasSubpath = hasResource && !subpath.isEmpty();
+    navigationSubpathLabel->setVisible(hasSubpath);
+    navigationSubpathSeparator->setVisible(hasSubpath);
+    if (hasSubpath) {
+        navigationSubpathLabel->setText(subpath);
+        navigationSubpathLabel->setToolTip(subpath);
+    }
+}
+
 void MainWindow::refreshApps(const QString &matchAppid)
 {
     auto model = new QStandardItemModel(this);
-    const auto &apps = applications();
+    auto apps = sortedStrings(ResourceCatalogClient::instance().applications());
+    for (const QString &appid : dynamicAppids) {
+        if (!apps.contains(appid))
+            apps.append(appid);
+    }
+    apps = sortedStrings(apps);
+    apps.removeAll(NoAppId);
+    apps.prepend(NoAppId);
     for (auto app : apps) {
         if (!matchAppid.isEmpty() && !app.contains(matchAppid, Qt::CaseInsensitive)) {
             continue;
         }
 
-        if (resourcesForApp(app).isEmpty()) {
+        if (ResourceCatalogClient::instance().resourcesForApp(app).isEmpty()
+                && !dynamicAppids.contains(app)) {
             continue;
         }
 
         DStandardItem *item = new DStandardItem(app);
-        item->setSizeHint(QSize(200, 45));
+        item->setSizeHint(QSize(220, 52));
         item->setToolTip(app);
         item->setData(ConfigType::AppType, ConfigUserRole + 1);
         item->setData(app, ConfigUserRole + 2);
@@ -237,48 +429,89 @@ void MainWindow::refreshApps(const QString &matchAppid)
     refreshAppTranslate();
 }
 
+void MainWindow::addAppid()
+{
+    QString appid;
+    while (true) {
+        bool accepted = false;
+        DInputDialog dialog(this);
+        dialog.setInputMode(DInputDialog::TextInput);
+        dialog.setTitle(tr("appid"));
+        dialog.setMessage(tr("Specify appid"));
+        dialog.setTextValue(appid);
+        dialog.setOkButtonText(tr("ok"));
+        dialog.setCancelButtonText(tr("cancel"));
+
+        accepted = dialog.exec() == QDialog::Accepted;
+        appid = dialog.textValue().trimmed();
+        if (!accepted)
+            return;
+
+        if (!appid.isEmpty() && !appid.contains(QLatin1Char('/'))
+                && !appid.contains(QLatin1Char('\\')))
+            break;
+
+        DDialog warning(this);
+        warning.setTitle(tr("invalid appid"));
+        warning.setMessage(tr("Enter a non-empty appid without '/' or '\\'."));
+        warning.addButton(tr("ok"), true, DDialog::ButtonNormal);
+        warning.exec();
+    }
+
+    if (!dynamicAppids.contains(appid))
+        dynamicAppids.append(appid);
+
+    refreshApps();
+    const auto model = appListView->model();
+    for (int row = 0; row < model->rowCount(); ++row) {
+        const QModelIndex index = model->index(row, 0);
+        if (model->data(index, ConfigUserRole + 2).toString() == appid) {
+            appListView->setCurrentIndex(index);
+            emit appListView->clicked(index);
+            return;
+        }
+    }
+}
+
 void MainWindow::refreshAppResources(const QString &appid, const QString &matchResource)
 {
     resourceListView->reset();
     auto model = qobject_cast<QStandardItemModel *>(resourceListView->model());
     model->clear();
 
-    const auto &resources = appid == NoAppId ? ResourceList() : resourcesForApp(appid);
+    auto appResources = appid == NoAppId
+            ? ResourceList()
+            : sortedStrings(ResourceCatalogClient::instance().resourcesForApp(appid));
 
-    for (auto resource : resources) {
-        if (!matchResource.isEmpty() && !resource.contains(matchResource, Qt::CaseInsensitive)) {
-            continue;
-        }
-
-        auto resourceItem = new DStandardItem();
-        resourceItem->setSizeHint(QSize(200, 45));
-        resourceItem->setData(ConfigType::AppResourceType, ConfigUserRole + 1);
-        resourceItem->setData(appid, ConfigUserRole + 2);
-        resourceItem->setData(resource, ConfigUserRole + 3);
-        resourceItem->setText(resource);
-
-        model->appendRow(resourceItem);
-
-        refreshResourceSubpaths(model, appid, resource);
+    const auto commons = sortedStrings(ResourceCatalogClient::instance().resourcesForAllApp());
+    QStringList resources = sortedStrings(appResources);
+    // Keep application resources together, followed by common resources.
+    const QStringList commonResources = sortedStrings(commons);
+    for (const QString &resource : commonResources) {
+        if (!appResources.contains(resource))
+            resources.append(resource);
     }
 
-    const auto &commons = resourcesForAllApp();
-
-    for (auto resource : commons) {
+    for (const QString &resource : resources) {
         if (!matchResource.isEmpty() && !resource.contains(matchResource, Qt::CaseInsensitive)) {
             continue;
         }
 
+        const bool isAppResource = appResources.contains(resource);
         auto resourceItem = new DStandardItem();
         resourceItem->setSizeHint(QSize(200, 45));
         resourceItem->setToolTip(resource);
-        resourceItem->setData(ConfigType::CommonResourceType, ConfigUserRole + 1);
+        resourceItem->setData(isAppResource ? ConfigType::AppResourceType
+                                            : ConfigType::CommonResourceType,
+                              ConfigUserRole + 1);
         resourceItem->setData(appid, ConfigUserRole + 2);
         resourceItem->setData(resource, ConfigUserRole + 3);
         resourceItem->setText(resource);
 
         model->appendRow(resourceItem);
 
+        if (isAppResource)
+            refreshResourceSubpaths(model, appid, resource);
     }
 
     if (model->rowCount() > 0) {
@@ -288,15 +521,26 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
 
 void MainWindow::refreshResourceSubpaths(QStandardItemModel *model, const QString &appid, const QString &resourceId)
 {
+    const auto installedSubpaths = ResourceCatalogClient::instance().subpathsForResource(appid, resourceId);
+    const auto runtimeSubpaths = dynamicSubpaths.value(appid).value(resourceId);
+    QStringList subpaths = installedSubpaths;
+    for (const QString &subpath : runtimeSubpaths) {
+        if (!subpaths.contains(subpath))
+            subpaths.append(subpath);
+    }
+    subpaths = sortedStrings(subpaths);
 
-    const auto &subpaths = subpathsForResource(appid, resourceId);
-    for (auto subpath : subpaths) {
+    for (const QString &subpath : subpaths) {
+
         auto subpathItem = new DStandardItem();
+        subpathItem->setSizeHint(QSize(200, 45));
         subpathItem->setData(ConfigType::SubpathType, ConfigUserRole + 1);
         subpathItem->setData(appid, ConfigUserRole + 2);
         subpathItem->setData(resourceId, ConfigUserRole + 3);
         subpathItem->setData(subpath, ConfigUserRole + 4);
         subpathItem->setText(subpath);
+        if (runtimeSubpaths.contains(subpath))
+            subpathItem->setToolTip(tr("subpath: %1").arg(subpath));
 
         model->appendRow(subpathItem);
     }
@@ -307,9 +551,18 @@ void MainWindow::refreshResourceKeys(const QString &appid, const QString &resour
     contentView->refreshResourceKeys(appid, resourceId, subpath, matchKeyId);
 }
 
-void MainWindow::onCustomResourceMenuRequested(const QString &appid, const QString &resource, const QString &subpath)
+void MainWindow::onCustomResourceMenuRequested(const QString &appid, const QString &resource,
+                                               const QString &subpath, bool canAddDynamicSubpath)
 {
      QMenu menu(resourceListView);
+
+     if (canAddDynamicSubpath) {
+         QAction *dynamicSubpathAction = menu.addAction(tr("specify subpath"));
+         connect(dynamicSubpathAction, &QAction::triggered, this, [this, appid, resource] {
+             addDynamicSubpath(appid, resource);
+         });
+         menu.addSeparator();
+     }
 
      QAction *resetCmdAction = menu.addAction(tr("reset value"));
 
@@ -331,6 +584,81 @@ void MainWindow::onCustomResourceMenuRequested(const QString &appid, const QStri
         refreshResourceKeys(appid, resource, subpath);
      });
      menu.exec(QCursor::pos());
+}
+
+void MainWindow::addDynamicSubpath(const QString &appid, const QString &resource)
+{
+    QString subpath;
+    QString input;
+    while (true) {
+        bool accepted = false;
+        DInputDialog dialog(this);
+        dialog.setInputMode(DInputDialog::TextInput);
+        dialog.setTitle(resource);
+        dialog.setMessage(tr("Specify subpath"));
+        dialog.setTextValue(input);
+        dialog.setOkButtonText(tr("ok"));
+        dialog.setCancelButtonText(tr("cancel"));
+
+        accepted = dialog.exec() == QDialog::Accepted;
+        input = dialog.textValue();
+        if (!accepted)
+            return;
+
+        if (normalizeDynamicSubpath(input, &subpath))
+            break;
+
+        DDialog warning(this);
+        warning.setTitle(tr("invalid subpath"));
+        warning.setMessage(tr("Enter a non-empty path without '.' or '..' components or backslashes."));
+        warning.addButton(tr("ok"), true, DDialog::ButtonNormal);
+        warning.exec();
+    }
+
+    auto model = qobject_cast<QStandardItemModel *>(resourceListView->model());
+    if (!model)
+        return;
+
+    for (int row = 0; row < model->rowCount(); ++row) {
+        const QModelIndex index = model->index(row, 0);
+        if (model->data(index, ConfigUserRole + 2).toString() == appid
+                && model->data(index, ConfigUserRole + 3).toString() == resource
+                && model->data(index, ConfigUserRole + 4).toString() == subpath) {
+            resourceListView->setCurrentIndex(index);
+            emit resourceListView->clicked(index);
+            return;
+        }
+    }
+
+    QStringList &runtimeSubpaths = dynamicSubpaths[appid][resource];
+    if (!runtimeSubpaths.contains(subpath))
+        runtimeSubpaths.append(subpath);
+
+    const QModelIndex resourceIndex = resourceListView->currentIndex();
+    int insertRow = resourceIndex.row() + 1;
+    while (insertRow < model->rowCount()) {
+        const QModelIndex index = model->index(insertRow, 0);
+        if (model->data(index, ConfigUserRole + 1).toInt() != ConfigType::SubpathType
+                || model->data(index, ConfigUserRole + 2).toString() != appid
+                || model->data(index, ConfigUserRole + 3).toString() != resource) {
+            break;
+        }
+        ++insertRow;
+    }
+
+    auto subpathItem = new DStandardItem();
+    subpathItem->setSizeHint(QSize(200, 45));
+    subpathItem->setData(ConfigType::SubpathType, ConfigUserRole + 1);
+    subpathItem->setData(appid, ConfigUserRole + 2);
+    subpathItem->setData(resource, ConfigUserRole + 3);
+    subpathItem->setData(subpath, ConfigUserRole + 4);
+    subpathItem->setText(subpath);
+    subpathItem->setToolTip(tr("subpath: %1").arg(subpath));
+    model->insertRow(insertRow, subpathItem);
+
+    const QModelIndex subpathIndex = model->index(insertRow, 0);
+    resourceListView->setCurrentIndex(subpathIndex);
+    emit resourceListView->clicked(subpathIndex);
 }
 
 void MainWindow::installTranslate()
@@ -425,9 +753,16 @@ void MainWindow::refreshAppTranslate()
     if (auto model = qobject_cast<QStandardItemModel*>(appListView->model())) {
         for (int i = 0; i < model->rowCount(); i++) {
             auto item = model->item(i);
-            if (appIdToNameMaps.contains(item->text())) {
-                item->setText(appIdToNameMaps.value(item->text()));
+            const QString appId = item->data(ConfigUserRole + 2).toString();
+            const QString displayName = appIdToNameMaps.value(appId, appId);
+            if (appId.isEmpty()) {
+                item->setText(VirtualAppName);
+            } else if (displayName == appId) {
+                item->setText(appId);
+            } else {
+                item->setText(QString("%1  ·  %2").arg(displayName, appId));
             }
+            item->setToolTip(appId);
         }
     }
 }
@@ -459,7 +794,7 @@ void LevelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setPen(pen);
         painter->setFont(DFontSizeManager::instance()->get(DFontSizeManager::T4, QFont::Medium, opt.font));
         QRect rect = opt.rect.marginsRemoved(QMargins(10, 0, 10, 0));
-        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideRight, rect.width());
+        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideMiddle, rect.width());
         painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
         break;
     }
@@ -468,7 +803,7 @@ void LevelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         painter->setPen(pen);
         painter->setFont(DFontSizeManager::instance()->get(DFontSizeManager::T4, QFont::ExtraBold, opt.font));
         QRect rect = opt.rect.marginsRemoved(QMargins(10, 0, 10, 0));
-        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideRight, rect.width());
+        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideMiddle, rect.width());
         painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
         break;
     }
@@ -476,7 +811,7 @@ void LevelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         QColor pen = option.palette.color(isSelected ? QPalette::HighlightedText : QPalette::WindowText);
         painter->setPen(pen);
         auto rect = option.rect.marginsRemoved(QMargins(30, 0, 10, 0));
-        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideRight, rect.width());
+        auto text = opt.fontMetrics.elidedText(index.data().toString(), Qt::ElideMiddle, rect.width());
         painter->setFont(opt.font);
         painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
         break;
@@ -705,15 +1040,53 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
             displayName = m_key;
         }
     }
-    DLabel *labelWidget = new DLabel(QString("%1 [%2]").arg(displayName, m_key));
-    labelWidget->setObjectName("label-view");
     QString description = getter->description(m_key, language);
     if (description.isEmpty()) {
         description = getter->description(m_key, QString());
     }
-    labelWidget->setToolTip(description);
 
-    m_hLay->addWidget(labelWidget);
+    auto labelContainer = new QWidget(this);
+    labelContainer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    labelContainer->setMinimumWidth(150);
+    labelContainer->setMaximumWidth(280);
+    auto labelLayout = new QVBoxLayout(labelContainer);
+    labelLayout->setContentsMargins(0, 0, 0, 0);
+    labelLayout->setSpacing(2);
+
+    if (displayName != m_key) {
+        auto nameLabel = new DLabel(displayName, labelContainer);
+        nameLabel->setObjectName("name-label");
+        nameLabel->setWordWrap(false);
+        nameLabel->setElideMode(Qt::ElideMiddle);
+        nameLabel->setToolTip(description.isEmpty() ? displayName
+                                                     : QString("%1\n%2").arg(displayName, description));
+        nameLabel->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(nameLabel, &QWidget::customContextMenuRequested,
+                this, &QWidget::customContextMenuRequested);
+        labelLayout->addWidget(nameLabel);
+    }
+
+    auto keyLabel = new DLabel(m_key, labelContainer);
+    keyLabel->setObjectName("key-label");
+    keyLabel->setWordWrap(false);
+    keyLabel->setElideMode(Qt::ElideMiddle);
+    keyLabel->setToolTip(m_key);
+    keyLabel->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+    keyLabel->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(keyLabel, &QWidget::customContextMenuRequested,
+            this, &QWidget::customContextMenuRequested);
+    labelLayout->addWidget(keyLabel);
+
+    m_hLay->setContentsMargins(8, 6, 8, 6);
+    m_hLay->setSpacing(12);
+    auto modifiedIndicator = new DLabel(QStringLiteral("*"), this);
+    modifiedIndicator->setObjectName("modified-indicator");
+    modifiedIndicator->setToolTip(tr("modified"));
+    modifiedIndicator->setFixedWidth(modifiedIndicator->fontMetrics().horizontalAdvance(QLatin1Char('*')) + 4);
+    modifiedIndicator->clear();
+    modifiedIndicator->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_hLay->addWidget(modifiedIndicator, 0, Qt::AlignVCenter);
+    m_hLay->addWidget(labelContainer, 1);
     QWidget *valueWidget = nullptr;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     const auto valueType = v.type();
@@ -731,11 +1104,13 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
     } else if (valueType == QVariant::Double) {
         auto widget = new DDoubleSpinBox(this);
         widget->setRange(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+        widget->setAlignment(Qt::AlignRight);
         widget->setEnabled(canWrite);
         connect(widget, SIGNAL(valueChanged(double)), this, SLOT(onDoubleValueChanged(double)));
         valueWidget = widget;
     } else {
         auto widget = new DLineEdit(this);
+        widget->lineEdit()->setAlignment(Qt::AlignRight);
         widget->setEnabled(canWrite);
         connect(widget, &DLineEdit::editingFinished, widget, [this, widget](){
             QString errorMsg;
@@ -750,7 +1125,13 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
     }
     if (valueWidget) {
         valueWidget->setObjectName("value-view");
-        m_hLay->addWidget(valueWidget);
+        if (qobject_cast<DLineEdit *>(valueWidget)) {
+            valueWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+            m_hLay->addWidget(valueWidget, 3);
+        } else {
+            valueWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+            m_hLay->addWidget(valueWidget, 0, Qt::AlignRight | Qt::AlignVCenter);
+        }
     }
     updateContent(getter);
 }
@@ -762,10 +1143,8 @@ QString KeyContent::key() const
 
 void KeyContent::updateContent(ConfigGetter *getter)
 {
-    if (auto widget = findChild<DLabel*>("label-view")) {
-        const bool isDefaultValue = getter->isDefaultValue(m_key);
-        widget->setText(handleModificationInfomation(widget->text(), isDefaultValue));
-    }
+    if (auto indicator = findChild<DLabel *>("modified-indicator"))
+        indicator->setText(getter->isDefaultValue(m_key) ? QString() : QStringLiteral("*"));
     if (auto viewWidget = findChild<QWidget *>("value-view")) {
         const QVariant &v = getter->value(m_key);
         if (auto widget = qobject_cast<DSwitchButton*>(viewWidget)) {
@@ -781,19 +1160,6 @@ void KeyContent::updateContent(ConfigGetter *getter)
 void KeyContent::onDoubleValueChanged(double value)
 {
     emit valueChanged(value);
-}
-
-QString KeyContent::handleModificationInfomation(const QString &text, bool isModified) const
-{
-    const QString MidificationFlag("*");
-    if (isModified) {
-        if (text.endsWith(MidificationFlag))
-            return text.chopped(MidificationFlag.size());
-    } else {
-        if (!text.endsWith(MidificationFlag))
-            return text + MidificationFlag;
-    }
-    return text;
 }
 
 HistoryDialog::HistoryDialog(QWidget *parent)
