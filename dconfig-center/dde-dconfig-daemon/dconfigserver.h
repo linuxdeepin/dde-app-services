@@ -11,6 +11,7 @@
 #include <QDBusContext>
 #include <QDBusServiceWatcher>
 
+class DSGConfigCatalog;
 class DSGConfigResource;
 class RefManager;
 class ConfigSyncBatchRequest;
@@ -35,6 +36,8 @@ public:
     void initialize();
 
     DSGConfigResource* resourceObject(const GenericResourceKey &key) const;
+
+    DSGConfigCatalog* internalCatalog() const;
 
     void setLocalPrefix(const QString &localPrefix);
 
@@ -99,6 +102,8 @@ private:
 
     // 所有链接，一个资源对应一个链接
     QMap<GenericResourceKey, DSGConfigResource *> m_resources;
+
+    DSGConfigCatalog *m_internalCatalog = nullptr;
 
     QDBusServiceWatcher *m_watcher = nullptr;
 

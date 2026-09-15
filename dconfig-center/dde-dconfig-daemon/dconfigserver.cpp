@@ -16,6 +16,8 @@
 #include <QFile>
 
 #include "configmanager_adaptor.h"
+#include "dconfigcatalog.h"
+#include "configmanager_internal_adaptor.h"
 
 #define DSG_CONFIG "org.desktopspec.ConfigManager"
 
@@ -35,7 +37,8 @@ static void registerMetaType ()
 DSGConfigServer::DSGConfigServer(QObject *parent)
     :QObject (parent),
       m_watcher(nullptr),
-      m_refManager(new RefManager(this))
+      m_internalCatalog(new DSGConfigCatalog(this))
+    , m_refManager(new RefManager(this))
     , m_syncRequestCache(new ConfigSyncRequestCache(this))
 {
     connect(this, &DSGConfigServer::releaseResource, this, &DSGConfigServer::onReleaseResource);
@@ -65,6 +68,7 @@ void DSGConfigServer::exit()
 bool DSGConfigServer::registerService()
 {
     (void) new DSGConfigAdaptor(this);
+    (void) new DSGConfigInternalAdaptor(m_internalCatalog);
 
     QDBusConnection bus = QDBusConnection::systemBus();
     if (!bus.registerService(DSG_CONFIG)) {
@@ -79,7 +83,16 @@ bool DSGConfigServer::registerService()
         qWarning() << QString("Can't register to the D-Bus object.");
         return false;
     }
+    if (!bus.registerObject("/Internal", m_internalCatalog)) {
+        qWarning() << QString("Can't register to the internal D-Bus object.");
+        return false;
+    }
     return true;
+}
+
+DSGConfigCatalog *DSGConfigServer::internalCatalog() const
+{
+    return m_internalCatalog;
 }
 
 void DSGConfigServer::initialize()
@@ -210,6 +223,7 @@ void DSGConfigServer::removeUserData(const uint &uid)
 void DSGConfigServer::setLocalPrefix(const QString &localPrefix)
 {
     m_localPrefix = localPrefix;
+    m_internalCatalog->setLocalPrefix(localPrefix);
 }
 
 void DSGConfigServer::setEnableExit(const bool enable)
@@ -469,7 +483,10 @@ void DSGConfigServer::update(const QString &path)
         if (calledFromDBus()) {
             sendErrorReply(QDBusError::Failed, *errorMsg);
         }
+        return;
     }
+
+    Q_EMIT m_internalCatalog->configurationsChanged();
 }
 
 void DSGConfigServer::sync(const QString &path)
@@ -576,6 +593,7 @@ void DSGConfigServer::reload()
 
     qCInfo(cfLog()) << "Reload completed, processed" << changedFiles.size() << "files,"
                     << failedCount << "failed";
+    Q_EMIT m_internalCatalog->configurationsChanged();
 }
 
 // Get all configuration file signatures

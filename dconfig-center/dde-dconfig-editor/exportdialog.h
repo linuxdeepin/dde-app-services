@@ -12,6 +12,7 @@
 
 class ValueHandler;
 class QTreeView;
+class QLabel;
 
 DWIDGET_USE_NAMESPACE
 
@@ -33,6 +34,7 @@ private:
 private:
     QTreeView *m_exportView = nullptr;
     DSuggestButton *m_exportBtn = nullptr;
+    QLabel *m_selectedLabel = nullptr;
     QScopedPointer<ValueHandler> m_getter;
     QList<DStandardItem *> m_rootItems, m_childItems;
 };

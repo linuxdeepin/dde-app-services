@@ -12,6 +12,7 @@
 #include <QVBoxLayout>
 #include <DAbstractDialog>
 #include <DDialog>
+#include <DLabel>
 class ValueHandler;
 class ConfigGetter;
 class ExportDialog;
@@ -45,7 +46,6 @@ Q_SIGNALS:
     void valueChanged(const QVariant &value);
 
 private:
-    QString handleModificationInfomation(const QString &text, bool isModified) const;
     QString m_key;
     QHBoxLayout *m_hLay = nullptr;
 };
@@ -117,9 +117,15 @@ private slots:
 
     void refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId = QString());
 
-    void onCustomResourceMenuRequested(const QString &appid, const QString &resource, const QString &subpath);
+    void onCustomResourceMenuRequested(const QString &appid, const QString &resource, const QString &subpath,
+                                       bool canAddDynamicSubpath);
+
+    void addAppid();
+    void addDynamicSubpath(const QString &appid, const QString &resource);
 private:
     void installTranslate();
+    void updateNavigation(const QString &appid, const QString &resourceId = QString(),
+                          const QString &subpath = QString());
 
     void translateAppName();
 
@@ -130,11 +136,18 @@ private:
     DListView *appListView;
     DListView *resourceListView;
     Content *contentView;
+    DLabel *navigationAppLabel = nullptr;
+    DLabel *navigationResourceLabel = nullptr;
+    DLabel *navigationSubpathLabel = nullptr;
+    DLabel *navigationResourceSeparator = nullptr;
+    DLabel *navigationSubpathSeparator = nullptr;
 
     HistoryDialog *historyView = nullptr;
     ExportDialog *exportView = nullptr;
     OEMDialog *oemView = nullptr;
     QMap<QString, QString> appIdToNameMaps;
+    QStringList dynamicAppids;
+    QMap<QString, QMap<QString, QStringList>> dynamicSubpaths;
 
 
 };

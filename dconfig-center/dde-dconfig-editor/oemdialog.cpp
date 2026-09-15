@@ -4,6 +4,7 @@
 
 #include "oemdialog.h"
 #include "helper.hpp"
+#include "resourcecatalogclient.h"
 #include "valuehandler.h"
 
 #include <QHBoxLayout>
@@ -21,13 +22,21 @@
 OEMDialog::OEMDialog(QWidget *parent)
     : DDialog( parent)
 {
+    setWindowTitle(tr("OEM configuration"));
+    setMinimumSize(QSize(820, 560));
+    resize(QSize(1100, 720));
     m_exportView = new QTreeView();
     m_exportView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_exportView->header()->setMinimumSectionSize(400);
+    m_exportView->setAlternatingRowColors(true);
+    m_exportView->setUniformRowHeights(false);
+    m_exportView->setTextElideMode(Qt::ElideMiddle);
+    m_exportView->header()->setStretchLastSection(true);
 
     m_exportBtn = new DSuggestButton(tr("OEM"));
     m_exportBtn->setEnabled(false);
     QHBoxLayout *hLayout = new QHBoxLayout();
+    m_selectedLabel = new QLabel(tr("No changes"));
+    hLayout->addWidget(m_selectedLabel);
     hLayout->addStretch(1);
     hLayout->addWidget(m_exportBtn);
 
@@ -47,14 +56,18 @@ OEMDialog::OEMDialog(QWidget *parent)
 void OEMDialog::loadData(const QString &language)
 {
     m_overrides.clear();
+    if (m_selectedLabel)
+        m_selectedLabel->setText(tr("No changes"));
 
     m_model = new QStandardItemModel(this);
     m_model->setHorizontalHeaderLabels(QStringList() << QStringLiteral("项") << QStringLiteral("值"));
     m_exportView->setModel(m_model);
+    m_exportView->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_exportView->header()->setSectionResizeMode(1, QHeaderView::Stretch);
 
-    const auto &apps = applications();
+    const auto &apps = ResourceCatalogClient::instance().applications();
     for (auto app : apps) {
-        if (resourcesForApp(app).isEmpty()) {
+        if (ResourceCatalogClient::instance().resourcesForApp(app).isEmpty()) {
             continue;
         }
         DStandardItem *rootItem = new DStandardItem(app);
@@ -63,7 +76,7 @@ void OEMDialog::loadData(const QString &language)
         rootItem->setData(app, AppidRole);
         m_model->appendRow(rootItem);
 
-        const auto &resources = resourcesForApp(app);
+        const auto &resources = ResourceCatalogClient::instance().resourcesForApp(app);
         for (auto resource : resources) {
             auto resourceItem = new DStandardItem();
             resourceItem->setSizeHint(QSize(200, 45));
@@ -101,7 +114,7 @@ void OEMDialog::loadData(const QString &language)
             }
 
             // 添加子路径 key-value
-            const auto &subpaths = subpathsForResource(app, resource);
+            const auto &subpaths = ResourceCatalogClient::instance().subpathsForResource(app, resource);
             for (auto subpath : subpaths) {
                 auto subpathItem = new DStandardItem();
                 subpathItem->setText(subpath);
@@ -143,6 +156,12 @@ void OEMDialog::loadData(const QString &language)
 void OEMDialog::treeItemChanged(DStandardItem *valueItem)
 {
     m_exportBtn->setEnabled(true);
+    if (m_selectedLabel) {
+        int count = 0;
+        for (auto items : m_overrides)
+            count += items.size();
+        m_selectedLabel->setText(tr("%1 changes").arg(count));
+    }
 
     auto keyIndex = valueItem->index().siblingAtColumn(0);
     auto siblingItem = m_model->itemFromIndex(keyIndex);
@@ -163,7 +182,7 @@ void OEMDialog::treeItemChanged(DStandardItem *valueItem)
     auto rootItem = parentItem->parent();
     QFont rFont = rootItem->font();
     rFont.setBold(true);
-    rootItem->setFont(pFont);
+    rootItem->setFont(rFont);
     rootItem->setText(QString("* ") + valueItem->data(AppidRole).toString());
 
     QString key = !valueItem->data(SubpathRole).toString().isEmpty() ? valueItem->data(SubpathRole).toString() :
@@ -247,14 +266,23 @@ void OEMDialog::displayChangedResult()
 {
     DDialog *d = new DDialog;
     d->setAttribute(Qt::WA_DeleteOnClose, true);
+    d->setWindowTitle(tr("OEM preview"));
+    d->setMinimumSize(QSize(900, 560));
+    d->resize(QSize(1100, 680));
 
     QTableView *view = new QTableView(this);
     view->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    view->setAlternatingRowColors(true);
+    view->setWordWrap(false);
+    view->setTextElideMode(Qt::ElideMiddle);
     view->horizontalHeader()->setStretchLastSection(true);
-    view->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    view->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     auto model = new QStandardItemModel(this);
     model->setHorizontalHeaderLabels(QStringList() << "appid" << "resource" << "key" << "value" << "path");
     view->setModel(model);
+    const int widths[] = {180, 220, 220, 220, 260};
+    for (int i = 0; i < 5; ++i)
+        view->setColumnWidth(i, widths[i]);
 
     for (auto items : m_overrides) {
         for (auto item : items) {
@@ -280,7 +308,7 @@ void OEMDialog::displayChangedResult()
     QVBoxLayout *vlayout = new QVBoxLayout(widget);
     vlayout->addWidget(view);
     vlayout->addLayout(hlayout);
-    widget->setMinimumSize(600, 300);
+    widget->setMinimumSize(860, 460);
     d->addContent(widget);
 
     connect(btn, &QPushButton::clicked, this, [this, d]() {

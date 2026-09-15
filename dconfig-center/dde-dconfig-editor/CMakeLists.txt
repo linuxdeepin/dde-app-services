@@ -13,12 +13,16 @@ set(CMAKE_AUTORCC ON)
 set(AUTOMOC_COMPILER_PREDEFINES ON)
 
 set(DCONFIG_DBUS_XML_CONFIGMANAGER ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.xml)
+set(DCONFIG_DBUS_XML_CONFIGMANAGER_INTERNAL ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Internal.xml)
+set_source_files_properties(${DCONFIG_DBUS_XML_CONFIGMANAGER_INTERNAL} PROPERTIES CLASSNAME DSGConfigInternal NO_NAMESPACE NO_NAMESPACE INCLUDE configinfo.h)
 set_source_files_properties(${DCONFIG_DBUS_XML_CONFIGMANAGER} PROPERTIES CLASSNAME DSGConfig NO_NAMESPACE NO_NAMESPACE)
 if(EnableDtk5)
     qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_CONFIGMANAGER} manager_interface)
+qt5_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_CONFIGMANAGER_INTERNAL} configmanager_internal_interface)
 endif()
 if(EnableDtk6)
     qt_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_CONFIGMANAGER} manager_interface)
+qt_add_dbus_interface(DCONFIG_DBUS_XML ${DCONFIG_DBUS_XML_CONFIGMANAGER_INTERNAL} configmanager_internal_interface)
 endif()
 
 set(DCONFIG_DBUS_XML_MANAGER ../dde-dconfig-daemon/services/org.desktopspec.ConfigManager.Manager.xml)
@@ -33,6 +37,8 @@ endif()
 set(HEADERS
     mainwindow.h
     ../common/valuehandler.h
+    ../common/configinfo.h
+    ../common/resourcecatalogclient.h
     ../common/helper.hpp
     iteminfo.h
     exportdialog.h
@@ -42,6 +48,7 @@ set(SOURCES
     main.cpp
     mainwindow.cpp
     ../common/valuehandler.cpp
+    ../common/resourcecatalogclient.cpp
     iteminfo.cpp
     exportdialog.cpp
     oemdialog.cpp

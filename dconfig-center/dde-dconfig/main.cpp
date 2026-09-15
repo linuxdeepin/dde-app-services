@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include "helper.hpp"
+#include "resourcecatalogclient.h"
 #include "valuehandler.h"
 
 class CommandManager {
@@ -153,28 +154,28 @@ int CommandManager::listCommand()
 {
     // list命令，查看app、resource、subpath
     if (isSetAppid()) {
-        if (!appid.isEmpty() && !existAppid(appid)) {
+        if (!appid.isEmpty() && !ResourceCatalogClient::instance().existAppid(appid)) {
             outpuSTDError(QString("not exist appid:%1").arg(appid));
             return 1;
         }
         // don't fallback to the same resource as appidOption
         if (parser.isSet(resourceOption)) {
-            if (!existResource(appid, resourceid)) {
+            if (!ResourceCatalogClient::instance().existResource(appid, resourceid)) {
                 outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
                 return 1;
             }
-            auto subpaths = subpathsForResource(appid, resourceid);
+            auto subpaths = ResourceCatalogClient::instance().subpathsForResource(appid, resourceid);
             for (auto item : subpaths) {
                 outpuSTD(item);
             }
         } else {
-            const auto resources = availableResourcesForApp(appid);
+            const auto resources = ResourceCatalogClient::instance().availableResourcesForApp(appid);
             for (auto item : resources) {
                 outpuSTD(item);
             }
         }
     } else if(parser.isSet(resourceOption)) {
-        const auto &commons = resourcesForAllApp();
+        const auto &commons = ResourceCatalogClient::instance().resourcesForAllApp();
         QRegularExpression re(resourceid);
         for (auto item : commons) {
             auto match = re.match(item);
@@ -183,7 +184,7 @@ int CommandManager::listCommand()
             }
         }
     } else {
-        auto apps = applications();
+        auto apps = ResourceCatalogClient::instance().applications();
         for (auto item : apps) {
             outpuSTD(item);
         }
@@ -210,7 +211,7 @@ int CommandManager::getCommand()
         return 0;
     }
 
-    if (!existResource(appid, resourceid)) {
+    if (!ResourceCatalogClient::instance().existResource(appid, resourceid)) {
         outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
         return 1;
     }
@@ -285,7 +286,7 @@ int CommandManager::setCommand()
         return 1;
     }
 
-    if (!existResource(appid, resourceid)) {
+    if (!ResourceCatalogClient::instance().existResource(appid, resourceid)) {
         outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
         return 1;
     }
@@ -330,7 +331,7 @@ int CommandManager::resetCommand()
         return 1;
     }
 
-    if (!existResource(appid, resourceid)) {
+    if (!ResourceCatalogClient::instance().existResource(appid, resourceid)) {
         outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
         return 1;
     }
@@ -367,7 +368,7 @@ int CommandManager::watchCommand()
         return 1;
     }
 
-    if (!existResource(appid, resourceid)) {
+    if (!ResourceCatalogClient::instance().existResource(appid, resourceid)) {
         outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
         return 1;
     }
