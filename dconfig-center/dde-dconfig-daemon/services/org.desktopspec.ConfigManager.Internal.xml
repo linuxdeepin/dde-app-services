@@ -1,0 +1,11 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.desktopspec.ConfigManager.Internal">
+    <method name="configurations">
+      <arg type="a(sss)" name="configurations" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="ConfigInfoList"/>
+    </method>
+    <signal name="configurationsChanged"/>
+  </interface>
+</node>
