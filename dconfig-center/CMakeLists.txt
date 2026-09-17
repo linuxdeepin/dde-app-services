@@ -12,7 +12,10 @@ add_subdirectory("dde-dconfig-daemon")
 add_subdirectory("dde-dconfig-editor")
 add_subdirectory("dde-dconfig")
 add_subdirectory("example")
-add_subdirectory("tests")
+
+if(BUILD_TESTING)
+    add_subdirectory("tests")
+endif()
 
 if (BUILD_DOCS)
     add_subdirectory(docs)

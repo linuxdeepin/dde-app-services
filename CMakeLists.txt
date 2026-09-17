@@ -26,4 +26,6 @@ set (BUILD_DOCS ON CACHE BOOL "Generate doxygen-based documentation")
 
 project(dde-app-services)
 
+include(CTest)
+
 add_subdirectory("dconfig-center")
