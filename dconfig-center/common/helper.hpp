@@ -152,9 +152,15 @@ static ResourceList availableResourcesForApp(const QString &appid, const QString
 static SubpathList subpathsForResource(const AppId &appid, const ResourceId &resourceId, const QString &localPrefix = QString())
 {
     SubpathList result;
+    QSet<QString> scannedDirs;
     for (auto item : resourcePathsForApp(appid, localPrefix)) {
         QDir resourceDir(QFileInfo(item).absoluteDir());
         auto filters = QDir::Dirs | QDir::NoDotAndDotDot;
+        if (scannedDirs.contains(resourceDir.absolutePath()))
+            continue;
+        scannedDirs.insert(resourceDir.absolutePath());
+        if (resourceDir.entryList(filters).isEmpty())
+            continue;
         resourceDir.setFilter(filters);
         QDirIterator iterator(resourceDir, QDirIterator::Subdirectories);
 

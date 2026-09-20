@@ -8,6 +8,7 @@
 #include "configmanager_internal_interface.h"
 
 #include <QDBusConnection>
+#include <QDBusInterface>
 #include <QDBusPendingReply>
 #include <QLoggingCategory>
 #include <QSet>
@@ -15,6 +16,14 @@
 namespace {
 const char kServiceName[] = "org.desktopspec.ConfigManager";
 const char kObjectPath[] = "/Internal";
+const char kInterfaceName[] = "org.desktopspec.ConfigManager.Internal";
+
+bool hasInternalInterface()
+{
+    QDBusInterface interface(kServiceName, kObjectPath, kInterfaceName,
+                             QDBusConnection::systemBus());
+    return interface.isValid();
+}
 }
 
 ResourceCatalogClient &ResourceCatalogClient::instance()
@@ -77,12 +86,20 @@ ConfigInfoList ResourceCatalogClient::configurations()
     if (m_configurationsValid)
         return m_configurations;
 
+    if (!hasInternalInterface()) {
+        m_configurations = localConfigurations();
+        m_configurationsValid = true;
+        return m_configurations;
+    }
+
     auto reply = m_interface->configurations();
     reply.waitForFinished();
     if (reply.isError()) {
         qWarning() << "Failed to query configurations from dde-dconfig-daemon:"
                    << reply.error().message() << ", fallback to local directories.";
-        return localConfigurations();
+        m_configurations = localConfigurations();
+        m_configurationsValid = true;
+        return m_configurations;
     }
 
     m_configurations = reply.value();
