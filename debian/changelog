@@ -1,3 +1,14 @@
+dde-app-services (1.0.46) unstable; urgency=medium
+
+  * feat: add internal config catalog D-Bus API
+  * feat: add config catalog query and client
+  * fix: support unupgraded daemon compatibility
+  * test(dconfig): add unit tests for dconfig-center
+  * test(dconfig-center): gate tests with BUILD_TESTING and add coverage
+    target
+
+ -- zhangkun <zhangkun2@uniontech.com>  Tue, 22 Sep 2026 20:44:43 +0800
+
 dde-app-services (1.0.45) unstable; urgency=medium
 
   * chore: Sync by
