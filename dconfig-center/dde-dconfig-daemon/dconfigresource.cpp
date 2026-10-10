@@ -245,6 +245,15 @@ DConfigFile *DSGConfigResource::getOrCreateFile(const QString &appid)
     return file.release();
 }
 
+bool DSGConfigResource::isMetaFileMissing(const QString &appid) const
+{
+    // Same lookup as getOrCreateFile(): a missing meta path means the resource
+    // was never installed, while a non-empty path with a failed load is a real
+    // failure (e.g. unparsable meta file) that must stay visible.
+    DConfigFile file(innerAppidToOuter(appid), m_fileName, m_subpath);
+    return file.meta()->metaPath(m_localPrefix).isEmpty();
+}
+
 DConfigCache *DSGConfigResource::getOrCreateCache(const QString &appid, const uint uid)
 {
     const auto connKey = getConnectionKey(getResourceKey(appid, m_key), uid);

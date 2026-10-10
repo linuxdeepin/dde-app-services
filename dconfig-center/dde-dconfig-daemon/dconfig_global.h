@@ -28,6 +28,13 @@ using ConnRefCount = int;
 using ConfigCacheKey = QString;
 static constexpr int TestUid = 0U;
 static const QString VirtualInterAppId = "_";
+// Error name returned to clients when the requested configuration resource
+// has no meta file installed. Clients may use it to demote this expected case
+// (e.g. an optional component's configuration is not packaged) to debug
+// output, while real load failures keep the generic Failed error. Keep in
+// sync with dtkcore's src/dconfig.cpp.
+static const QString ResourceNotFoundError =
+    QStringLiteral("org.desktopspec.ConfigManager.ResourceNotFound");
 
 inline QString formatDBusObjectPath(QString path)
 {
