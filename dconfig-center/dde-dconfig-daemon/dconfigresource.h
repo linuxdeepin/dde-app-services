@@ -32,6 +32,11 @@ public:
 
     bool load(const QString &appid);
 
+    // Tells whether no meta file is installed for the given appid using the
+    // same lookup as load(); used to distinguish "meta never installed"
+    // (expected) from real load failures (e.g. unparsable meta file).
+    bool isMetaFileMissing(const QString &appid) const;
+
     GenericResourceKey key() const;
     DConfigFile *getFile(const ResourceKey &key) const;
     DConfigCache *getCache(const ConnKey &key) const;

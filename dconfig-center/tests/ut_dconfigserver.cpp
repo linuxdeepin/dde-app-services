@@ -113,6 +113,21 @@ TEST_F(ut_DConfigServer, acquireManager) {
     ASSERT_EQ(server->resourceSize(), 1);
 }
 
+TEST_F(ut_DConfigServer, isMetaFileMissing) {
+    // Meta file installed: not missing.
+    DSGConfigResource installed(FILE_NAME, QString(), LocalPrefix);
+    EXPECT_FALSE(installed.isMetaFileMissing(APP_ID));
+
+    // Meta file present but unparsable: still not "missing", so real load
+    // failures keep the generic Failed error and stay visible.
+    DSGConfigResource invalid("invalid", QString(), LocalPrefix);
+    EXPECT_FALSE(invalid.isMetaFileMissing("org.invalid.app"));
+
+    // No meta file at all: expected case, reported as ResourceNotFound.
+    DSGConfigResource missing("example_noexist", QString(), LocalPrefix);
+    EXPECT_TRUE(missing.isMetaFileMissing(APP_ID));
+}
+
 TEST_F(ut_DConfigServer, internalCatalog) {
     const auto catalog = server->internalCatalog();
     ASSERT_TRUE(catalog);

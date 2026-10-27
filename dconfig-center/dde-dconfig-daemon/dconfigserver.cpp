@@ -284,8 +284,16 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
     if (!loadStatus) {
         //error
         QString errorMsg = QString("Can't load resource: %1, for the appid:[%2].").arg(genericResourceKey).arg(appid);
-        if (calledFromDBus())
-            sendErrorReply(QDBusError::Failed, errorMsg);
+        if (calledFromDBus()) {
+            // A missing meta file is an expected case (e.g. an optional
+            // component's configuration is not packaged); use a dedicated
+            // error name so clients can demote it to debug output. Real load
+            // failures keep the generic Failed error to stay visible.
+            if (resource->isMetaFileMissing(innerAppid))
+                sendErrorReply(ResourceNotFoundError, errorMsg);
+            else
+                sendErrorReply(QDBusError::Failed, errorMsg);
+        }
 
         qWarning() << qPrintable(errorMsg);
         return QDBusObjectPath();
