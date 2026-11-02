@@ -135,6 +135,9 @@ void DSGConfigConn::reset(const QString &key)
     if (!contains(key))
         return;
 
+    if (!hasPermissionByUid(key))
+        return;
+
     qCDebug(cfLog) << "Reset value, key:" << key << ", old value:" << file()->value(key, cache());
     if(!file()->setValue(key, QVariant(), getAppid(), cache()))
         return;
