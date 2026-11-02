@@ -260,7 +260,9 @@ QDBusObjectPath DSGConfigServer::acquireManager(const QString &appid, const QStr
  */
 QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString &appid, const QString &name, const QString &subpath)
 {
-    struct passwd *pw = getpwuid(uid);
+    // 当通过 DBus 调用时，使用实际调用者 UID，忽略调用者传入的 uid 参数，防止身份伪造
+    const uint &effectiveUid = calledFromDBus() ? connection().interface()->serviceUid(message().service()).value() : uid;
+    struct passwd *pw = getpwuid(effectiveUid);
     if (!pw) {
         QString errorMsg = QString("User with UID %1 does not exist.").arg(uid);
         if (calledFromDBus())
@@ -270,7 +272,7 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
     }
 
     const auto &service = calledFromDBus() ? message().service() : "test.service";
-    qCDebug(cfLog, "AcquireManager service:%s, uid:%d, appid:%s", qPrintable(service), uid, qPrintable(appid));
+    qCDebug(cfLog, "AcquireManager service:%s, uid:%d, appid:%s", qPrintable(service), effectiveUid, qPrintable(appid));
     const QString &innerAppid = outerAppidToInner(appid);
     const GenericResourceKey &genericResourceKey = getGenericResourceKey(name, subpath);
     DSGConfigResource *resource = resourceObject(genericResourceKey);
@@ -291,9 +293,9 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
         return QDBusObjectPath();
     }
 
-    auto conn = resource->getConn(innerAppid, uid);
+    auto conn = resource->getConn(innerAppid, effectiveUid);
     if (!conn) {
-        conn = resource->createConn(innerAppid, uid);
+        conn = resource->createConn(innerAppid, effectiveUid);
         if (!conn) {
             QString errorMsg = QString("Can't register Connection object:[%1], for the appid:[%2].").arg(genericResourceKey).arg(appid);
             if (calledFromDBus())
