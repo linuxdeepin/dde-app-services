@@ -172,7 +172,7 @@ public:
     void setValue(const QString &key, const QVariant &value) override
     {
         if (manager->setValue(key, value, qAppName(), userCache.get())) {
-            emit owner->valueChanged(key);
+            Q_EMIT owner->valueChanged(key);
         }
     }
 

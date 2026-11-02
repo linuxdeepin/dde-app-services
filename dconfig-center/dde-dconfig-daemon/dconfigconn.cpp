@@ -102,7 +102,7 @@ void DSGConfigConn::release()
     const QString &service = calledFromDBus() ? message().service() : "test.service";
     qCDebug(cfLog, "Received release request, service:%s, path:%s.", qPrintable(service), qPrintable(m_key));
 
-    emit releaseChanged(service);
+    Q_EMIT releaseChanged(service);
 }
 
 /*!
@@ -124,9 +124,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
         return;
 
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
-        emit globalValueChanged(key);
+        Q_EMIT globalValueChanged(key);
     } else {
-        emit valueChanged(key);
+        Q_EMIT valueChanged(key);
     }
 }
 
@@ -140,9 +140,9 @@ void DSGConfigConn::reset(const QString &key)
         return;
 
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
-        emit globalValueChanged(key);
+        Q_EMIT globalValueChanged(key);
     } else {
-        emit valueChanged(key);
+        Q_EMIT valueChanged(key);
     }
 }
 
