@@ -156,7 +156,14 @@ protected:
 
 TEST_F(ut_DConfigConn, descriptionName) {
     ASSERT_EQ(conn->description("canExit", ""), "我是描述");
-    ASSERT_EQ(conn->description("canExit", "en_US"), "I am description");
+    // Qt 6.12 起 QLocale(QLocale::AnyLanguage) 会被解析为 en_US，与 QLocale("en_US")
+    // 不可区分，DConfig 对 AnyLanguage 的判定因此会把 en_US 请求当作默认语言处理。
+    // 此处以与实现一致的判定方式给出随版本自适应的期望值。
+    const bool enUsFallsBackToDefault =
+        (QLocale(QLocale::AnyLanguage) == QLocale(QStringLiteral("en_US")));
+    ASSERT_EQ(conn->description("canExit", "en_US"),
+              enUsFallsBackToDefault ? QStringLiteral("我是描述")
+                                     : QStringLiteral("I am description"));
     ASSERT_EQ(conn->name("canExit", ""), "I am name");
     ASSERT_EQ(conn->name("canExit", "zh_CN"), QString("我是名字"));
     ASSERT_EQ(conn->name("canExit", QLocale(QLocale::Japanese).name()), "");
