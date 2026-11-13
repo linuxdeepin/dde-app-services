@@ -16,6 +16,20 @@
 #include "resourcecatalogclient.h"
 #include "valuehandler.h"
 
+// `-u` names a uid.  It used to go through toInt(), so any text that is not a
+// number ("dde") silently became 0 and the command then operated on root's own
+// configure items.  Returns -1 when the text is not a uid.
+inline int parseUidOption(const QString &text)
+{
+    static const QRegularExpression pattern(QStringLiteral("^[0-9]{1,10}$"));
+    if (!pattern.match(text).hasMatch())
+        return -1;
+
+    bool ok = false;
+    const int uid = text.toInt(&ok);
+    return ok ? uid : -1;
+}
+
 class CommandManager {
 public:
     CommandManager(const QCommandLineParser &parser,
@@ -54,7 +68,7 @@ public:
     void updateValues()
     {
         if (parser.isSet(uidOption))
-            uid = parser.value(uidOption).toInt();
+            uid = parseUidOption(parser.value(uidOption));
         appid = fetchAppid();
         resourceid = fetchResourceid();
         subpathid = parser.value(subpathOption);
@@ -472,6 +486,11 @@ int main(int argc, char *argv[])
 
     if (argc == 1) {
         parser.showHelp(0);
+    }
+
+    if (parser.isSet(uidOption) && parseUidOption(parser.value(uidOption)) < 0) {
+        outpuSTDError(QString("invalid uid: \"%1\", a numeric uid is required.").arg(parser.value(uidOption)));
+        return 1;
     }
 
     const auto positions = parser.positionalArguments();
