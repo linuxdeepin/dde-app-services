@@ -11,6 +11,7 @@
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
+#include <QDBusReply>
 #include <QFile>
 #include <QDebug>
 
@@ -133,6 +134,9 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
 void DSGConfigConn::reset(const QString &key)
 {
     if (!contains(key))
+        return;
+
+    if (!hasPermissionByUid(key))
         return;
 
     qCDebug(cfLog) << "Reset value, key:" << key << ", old value:" << file()->value(key, cache());
@@ -290,9 +294,15 @@ bool DSGConfigConn::hasPermissionByUid(const QString &key) const
         return true;
 
     const QString &service = message().service();
-    const uint callerUid = connection().interface()->serviceUid(service);
+    // The reply converts to 0 when the lookup fails, so keep it wrapped: a caller
+    // we cannot identify must not be mistaken for root.
+    const QDBusReply<uint> callerUid = connection().interface()->serviceUid(service);
     const auto connectionUid = getConnectionKey(m_key);
-    bool hasPermission = callerUid == connectionUid;
+    // root may manage the configure items of every user.  It can already write
+    // the backing files directly, so this grants no new capability; without it
+    // an administrator had no way to read or fix another user's values.
+    bool hasPermission = callerUid.isValid()
+            && (callerUid.value() == 0 || callerUid.value() == connectionUid);
 
     if (!hasPermission) {
         QString errorMsg = QString("[%1] No Permission configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);
