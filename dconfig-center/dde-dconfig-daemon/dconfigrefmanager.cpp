@@ -377,7 +377,7 @@ void RefManager::doDeleteResource(const QList<ResourceRef *> &deleteResources)
         }
 
         resources.remove(resourceRef->resource);
-        emit releaseResource(resourceRef->resource);
+        Q_EMIT releaseResource(resourceRef->resource);
     }
     qDeleteAll(deleteResources);
     qDeleteAll(deleteServiceRefs);

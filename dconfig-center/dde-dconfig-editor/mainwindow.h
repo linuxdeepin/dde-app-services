@@ -26,7 +26,7 @@ class LevelDelegate : public DStyledItemDelegate {
 public:
     explicit LevelDelegate(QAbstractItemView *parent);
     ~LevelDelegate();
-protected slots:
+protected Q_SLOTS:
     void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const;
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 };
@@ -107,7 +107,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
+private Q_SLOTS:
 
     void refreshApps(const QString &matchAppid = QString());
 
