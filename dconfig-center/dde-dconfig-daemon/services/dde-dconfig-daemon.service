@@ -9,6 +9,7 @@ After=dbus.socket
 Type=dbus
 User=deepin-daemon
 BusName=org.desktopspec.ConfigManager
+ExecStartPre=-/usr/libexec/dde-thp-disable
 ExecStart=/usr/bin/dde-dconfig-daemon
 Environment=DSG_DATA_DIRS=/usr/share/dsg:/var/lib/linglong/entries/share/dsg
 
