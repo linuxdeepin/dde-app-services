@@ -173,7 +173,7 @@ bool DSGConfigResource::reparse(const QString &appid)
         } else {
             if (auto conn = getConn(appid, iter.key()->uid())) {
                 for (const QString &key : iter.value()) {
-                    emit conn->valueChanged(key);
+                    Q_EMIT conn->valueChanged(key);
                 }
             } else {
                 qWarning() << "Invalid connection:" << getConnKey(appid, iter.key()->uid());
@@ -189,7 +189,7 @@ void DSGConfigResource::onReleaseChanged(const ConnServiceName &service)
 {
     auto conn = qobject_cast<DSGConfigConn*>(sender());
     if (conn) {
-        emit releaseConn(service, conn->key());
+        Q_EMIT releaseConn(service, conn->key());
     }
 }
 
@@ -377,7 +377,7 @@ void DSGConfigResource::doGlobalValueChanged(const QString &key, const ResourceK
         m_syncRequestCache->pushRequest(ConfigSyncRequestCache::globalKey(resourceKey));
     // emit valueChanged of all conns for the resource.
     for (auto conn : connsOfTheResource(resourceKey)) {
-        emit conn->valueChanged(key);
+        Q_EMIT conn->valueChanged(key);
     }
 }
 

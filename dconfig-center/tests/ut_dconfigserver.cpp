@@ -262,7 +262,7 @@ TEST_F(ut_DConfigServer, removeUserDataSimpleValidation) {
 TEST_F(ut_DConfigServer, onTryExitWithResourcesDoesNotExit) {
     server->acquireManager(APP_ID, FILE_NAME, QString(""));
     ASSERT_EQ(server->resourceSize(), 1);
-    emit server->tryExit();
+    Q_EMIT server->tryExit();
     ASSERT_EQ(server->resourceSize(), 1);
 }
 

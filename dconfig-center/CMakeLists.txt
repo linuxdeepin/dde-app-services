@@ -4,6 +4,8 @@
 
 project(dconfig-center)
 
+add_compile_definitions(QT_NO_KEYWORDS)
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include(GNUInstallDirs)

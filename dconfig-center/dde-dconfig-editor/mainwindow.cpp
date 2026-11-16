@@ -233,7 +233,7 @@ MainWindow::MainWindow(QWidget *parent) :
             const QString appid = model->data(index, ConfigUserRole + 2).toString();
             this->refreshAppResources(appid, resourceHeader->text());
             updateNavigation(appid);
-            emit resourceListView->clicked(resourceListView->currentIndex());
+            Q_EMIT resourceListView->clicked(resourceListView->currentIndex());
         }
     });
 
@@ -310,7 +310,7 @@ MainWindow::MainWindow(QWidget *parent) :
         }
         if (target.isValid()) {
             appListView->setCurrentIndex(target);
-            emit appListView->clicked(target);
+            Q_EMIT appListView->clicked(target);
         } else {
             resourceListView->model()->removeRows(0, resourceListView->model()->rowCount());
             contentView->clear();
@@ -360,7 +360,7 @@ MainWindow::MainWindow(QWidget *parent) :
             const QModelIndex index = model->index(row, 0);
             if (!model->data(index, ConfigUserRole + 2).toString().isEmpty()) {
                 appListView->setCurrentIndex(index);
-                emit appListView->clicked(index);
+                Q_EMIT appListView->clicked(index);
                 break;
             }
         }
@@ -467,7 +467,7 @@ void MainWindow::addAppid()
         const QModelIndex index = model->index(row, 0);
         if (model->data(index, ConfigUserRole + 2).toString() == appid) {
             appListView->setCurrentIndex(index);
-            emit appListView->clicked(index);
+            Q_EMIT appListView->clicked(index);
             return;
         }
     }
@@ -625,7 +625,7 @@ void MainWindow::addDynamicSubpath(const QString &appid, const QString &resource
                 && model->data(index, ConfigUserRole + 3).toString() == resource
                 && model->data(index, ConfigUserRole + 4).toString() == subpath) {
             resourceListView->setCurrentIndex(index);
-            emit resourceListView->clicked(index);
+            Q_EMIT resourceListView->clicked(index);
             return;
         }
     }
@@ -658,7 +658,7 @@ void MainWindow::addDynamicSubpath(const QString &appid, const QString &resource
 
     const QModelIndex subpathIndex = model->index(insertRow, 0);
     resourceListView->setCurrentIndex(subpathIndex);
-    emit resourceListView->clicked(subpathIndex);
+    Q_EMIT resourceListView->clicked(subpathIndex);
 }
 
 void MainWindow::installTranslate()
@@ -686,7 +686,7 @@ void MainWindow::installTranslate()
         contentView->setLanguage("en_US");
     });
     connect(contentView, &Content::languageChanged, this, [this](){
-        emit resourceListView->clicked(resourceListView->currentIndex());
+        Q_EMIT resourceListView->clicked(resourceListView->currentIndex());
     });
     const auto userInfos = fetchUserInfos();
     if (!userInfos.isEmpty()) {
@@ -860,7 +860,7 @@ void Content::remove(QLayout *layout)
 void Content::setLanguage(const QString &language)
 {
     m_language = language;
-    emit languageChanged();
+    Q_EMIT languageChanged();
 }
 
 void Content::refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId)
@@ -939,7 +939,7 @@ void Content::onValueChanged(const QVariant &value)
     keyContent->updateContent(manager.data());
 
     // TODO
-    emit sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << keyContent->key(), old, value);
+    Q_EMIT sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << keyContent->key(), old, value);
 }
 
 void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid, const QString &resource, const QString &subpath, const QString &key)
@@ -1012,7 +1012,7 @@ void Content::onCustomContextMenuRequested(QWidget *widget, const QString &appid
         }
         const auto value = manager->value(key);
         if (old != value) {
-            emit sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << key, old, value);
+            Q_EMIT sendValueUpdated(QStringList() << m_getter->appid << m_getter->fileName << m_getter->subpath << key, old, value);
         }
     });
     menu->exec(QCursor::pos());
@@ -1098,7 +1098,7 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
         widget->setEnabled(canWrite);
         connect(widget, &DSwitchButton::clicked, widget, [this, widget](bool checked){
             widget->clearFocus();
-            emit valueChanged(checked);
+            Q_EMIT valueChanged(checked);
         });
         valueWidget = widget;
     } else if (valueType == QVariant::Double) {
@@ -1119,7 +1119,7 @@ void KeyContent::setBaseInfo(ConfigGetter *getter, const QString &language)
                 return;
             }
             widget->clearFocus();
-            emit valueChanged(stringToQVariant(widget->text()));
+            Q_EMIT valueChanged(stringToQVariant(widget->text()));
         });
         valueWidget = widget;
     }
@@ -1159,7 +1159,7 @@ void KeyContent::updateContent(ConfigGetter *getter)
 
 void KeyContent::onDoubleValueChanged(double value)
 {
-    emit valueChanged(value);
+    Q_EMIT valueChanged(value);
 }
 
 HistoryDialog::HistoryDialog(QWidget *parent)
@@ -1194,7 +1194,7 @@ HistoryDialog::HistoryDialog(QWidget *parent)
             }
         }
         if (hasReset) {
-            emit refreshResourceKeys(appid, resourceid, subpath);
+            Q_EMIT refreshResourceKeys(appid, resourceid, subpath);
         }
     });
 }
