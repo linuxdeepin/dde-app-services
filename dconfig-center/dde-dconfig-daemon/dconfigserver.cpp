@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -55,9 +55,12 @@ DSGConfigServer::~DSGConfigServer()
 
 void DSGConfigServer::exit()
 {
+    m_subpathUpdateTimer.stop();
     m_refManager->destroy();
     qDeleteAll(m_resources);
     m_resources.clear();
+    m_connectedResources.clear();
+    m_subpathList.clear();
     m_syncRequestCache->clear();
 }
 
@@ -310,7 +313,11 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
     if (resourceHolder) {
         m_resources.insert(genericResourceKey, resourceHolder.release());
         QObject::connect(resource, &DSGConfigResource::releaseConn, this, &DSGConfigServer::onReleaseChanged);
+        QObject::connect(resource, &DSGConfigResource::subpathUpdateRequested, this, &DSGConfigServer::requestSubpathUpdate);
     }
+
+    m_connectedResources.insert(genericResourceKey);
+    requestSubpathUpdate();
 
     addConnWatchedService(service);
     m_refManager->refResource(service, conn->key());
@@ -348,7 +355,10 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
         qCInfo(cfLog, "Remove resource:%s", qPrintable(resourceKey));
 
         m_resources.remove(resourceKey);
+        m_connectedResources.remove(resourceKey);
         resource->deleteLater();
+
+        requestSubpathUpdate();
 
         if (m_enableExit) {
             Q_EMIT tryExit();
@@ -578,6 +588,7 @@ void DSGConfigServer::reload()
 
     if (changedFiles.isEmpty()) {
         qCInfo(cfLog()) << "Reload completed, no files changed";
+        requestSubpathUpdate();
         return;
     }
 
@@ -593,6 +604,7 @@ void DSGConfigServer::reload()
 
     qCInfo(cfLog()) << "Reload completed, processed" << changedFiles.size() << "files,"
                     << failedCount << "failed";
+    requestSubpathUpdate();
     Q_EMIT m_internalCatalog->configurationsChanged();
 }
 
@@ -638,4 +650,55 @@ QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatu
     }
 
     return signatures;
+}
+
+QStringList DSGConfigServer::subpathList() const
+{
+    return m_subpathList;
+}
+
+void DSGConfigServer::requestSubpathUpdate()
+{
+    if (!m_subpathUpdateTimer.isActive()) {
+        m_subpathUpdateTimer.start(SubpathUpdateDelay, this);
+    }
+}
+
+void DSGConfigServer::doSubpathUpdate()
+{
+    QStringList newList;
+    QSet<QString> seen;
+
+    for (const auto &resourceKey : std::as_const(m_connectedResources)) {
+        auto resource = m_resources.value(resourceKey);
+        if (!resource)
+            continue;
+        for (const auto &subpath : resource->subpaths(m_localPrefix)) {
+            if (seen.insert(subpath).second)
+                newList << subpath;
+        }
+    }
+
+    if (newList != m_subpathList) {
+        m_subpathList = newList;
+        emit subpathListChanged();
+
+        // Emit DBus PropertiesChanged signal so clients can react to subpath changes
+        QDBusMessage msg = QDBusMessage::createSignal(QStringLiteral("/"),
+            QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
+        QVariantMap changedProps;
+        changedProps.insert(QStringLiteral("subpathList"), m_subpathList);
+        msg << QStringLiteral(DSG_CONFIG) << changedProps << QStringList();
+        QDBusConnection::systemBus().send(msg);
+    }
+}
+
+void DSGConfigServer::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == m_subpathUpdateTimer.timerId()) {
+        m_subpathUpdateTimer.stop();
+        doSubpathUpdate();
+        return;
+    }
+    QObject::timerEvent(event);
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -59,6 +59,7 @@ public Q_SLOTS: // METHODS
 Q_SIGNALS: // SIGNALS
     void valueChanged(const QString &key);
     void globalValueChanged(const QString &key);
+    void subpathUpdateRequested();
 
 private:
     QString getAppid() const;

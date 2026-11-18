@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -124,6 +124,7 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
     if(!file()->setValue(key, v, getAppid(), cache()))
         return;
 
+    emit subpathUpdateRequested();
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {
@@ -143,6 +144,7 @@ void DSGConfigConn::reset(const QString &key)
     if(!file()->setValue(key, QVariant(), getAppid(), cache()))
         return;
 
+    emit subpathUpdateRequested();
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {

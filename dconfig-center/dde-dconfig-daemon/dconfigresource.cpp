@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -101,6 +101,7 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
     QObject::connect(conn, &DSGConfigConn::releaseChanged, this, &DSGConfigResource::onReleaseChanged);
     QObject::connect(conn, &DSGConfigConn::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
     QObject::connect(conn, &DSGConfigConn::valueChanged, this, &DSGConfigResource::onValueChanged);
+    QObject::connect(conn, &DSGConfigConn::subpathUpdateRequested, this, &DSGConfigResource::subpathUpdateRequested);
     return conn;
 }
 
@@ -494,4 +495,43 @@ QList<ConnKey> DSGConfigResource::getConnectionsByUid(const uint uid) const
         }
     }
     return userConnections;
+}
+
+QStringList DSGConfigResource::subpaths(const QString &localPrefix) const
+{
+    QStringList result;
+    QSet<QString> seen;
+    // Collect subpaths from meta (static override subpaths)
+    for (auto file : m_files) {
+        if (!file)
+            continue;
+        if (auto meta = file->meta()) {
+            for (const auto &s : meta->subpaths(localPrefix)) {
+                if (seen.insert(s).second)
+                    result << s;
+            }
+        }
+    }
+    // Collect subpaths from caches (dynamic cache subpaths)
+    for (auto cache : m_caches) {
+        if (!cache)
+            continue;
+        for (const auto &s : cache->cacheSubpaths(localPrefix)) {
+            if (seen.insert(s).second)
+                result << s;
+        }
+    }
+    // Collect subpaths from global cache
+    for (auto file : m_files) {
+        if (!file)
+            continue;
+        auto gc = file->globalCache();
+        if (!gc)
+            continue;
+        for (const auto &s : gc->cacheSubpaths(localPrefix)) {
+            if (seen.insert(s).second)
+                result << s;
+        }
+    }
+    return result;
 }
