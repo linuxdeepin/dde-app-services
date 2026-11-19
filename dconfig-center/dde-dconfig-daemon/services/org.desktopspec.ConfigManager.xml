@@ -36,6 +36,4 @@
     </method>
     <method name='reload'>
     </method>
-    <property name='subpathList' type='as' access='read'/>
-    <signal name='subpathListChanged'/>
 </interface>

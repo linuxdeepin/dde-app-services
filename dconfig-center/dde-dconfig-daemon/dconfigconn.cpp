@@ -17,6 +17,8 @@
 
 DCORE_USE_NAMESPACE
 
+#define DSG_CONFIG_MANAGER "org.desktopspec.ConfigManager.Manager"
+
 DSGConfigConn::DSGConfigConn(const ConnKey &key, QObject *parent)
     : QObject (parent),
       m_key(key)
@@ -54,6 +56,33 @@ void DSGConfigConn::setResource(DSGConfigResource *resource)
 QStringList DSGConfigConn::keyList() const
 {
     return meta()->keyList();
+}
+
+/*!
+ \brief 返回当前资源的 subpath 列表
+ \return subpath 列表
+ */
+QStringList DSGConfigConn::subpathList() const
+{
+    if (!m_resource)
+        return QStringList();
+    return m_resource->subpaths(m_resource->localPrefix());
+}
+
+/*!
+ \brief 通知 subpath 列表已更新
+ 发送 PropertiesChanged 信号到当前 Manager 对象的 DBus 路径
+ */
+void DSGConfigConn::notifySubpathListChanged()
+{
+    emit subpathListChanged();
+
+    QDBusMessage msg = QDBusMessage::createSignal(path(),
+        QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
+    QVariantMap changedProps;
+    changedProps.insert(QStringLiteral("subpathList"), subpathList());
+    msg << QStringLiteral(DSG_CONFIG_MANAGER) << changedProps << QStringList();
+    QDBusConnection::systemBus().send(msg);
 }
 
 /*!

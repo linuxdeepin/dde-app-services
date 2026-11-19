@@ -501,37 +501,36 @@ QStringList DSGConfigResource::subpaths(const QString &localPrefix) const
 {
     QStringList result;
     QSet<QString> seen;
-    // Collect subpaths from meta (static override subpaths)
+    // Collect subpaths from DConfigFile (meta override subpaths + global cache subpaths)
     for (auto file : m_files) {
         if (!file)
             continue;
-        if (auto meta = file->meta()) {
-            for (const auto &s : meta->subpaths(localPrefix)) {
-                if (seen.insert(s).second)
-                    result << s;
-            }
-        }
-    }
-    // Collect subpaths from caches (dynamic cache subpaths)
-    for (auto cache : m_caches) {
-        if (!cache)
-            continue;
-        for (const auto &s : cache->cacheSubpaths(localPrefix)) {
+        for (const auto &s : file->subpaths(localPrefix)) {
             if (seen.insert(s).second)
                 result << s;
         }
     }
-    // Collect subpaths from global cache
-    for (auto file : m_files) {
-        if (!file)
+    // Collect subpaths from user caches (dynamic cache subpaths)
+    for (auto cache : m_caches) {
+        if (!cache)
             continue;
-        auto gc = file->globalCache();
-        if (!gc)
-            continue;
-        for (const auto &s : gc->cacheSubpaths(localPrefix)) {
+        for (const auto &s : DConfigFile::cacheSubpaths(cache, localPrefix)) {
             if (seen.insert(s).second)
                 result << s;
         }
     }
     return result;
+}
+
+QString DSGConfigResource::localPrefix() const
+{
+    return m_localPrefix;
+}
+
+void DSGConfigResource::notifySubpathChanged()
+{
+    for (auto conn : m_conns) {
+        if (conn)
+            conn->notifySubpathListChanged();
+    }
 }

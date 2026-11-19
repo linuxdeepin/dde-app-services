@@ -42,10 +42,14 @@ public: // PROPERTIES
     Q_PROPERTY(QStringList keyList READ keyList)
     QStringList keyList() const;
 
+    Q_PROPERTY(QStringList subpathList READ subpathList NOTIFY subpathListChanged)
+    QStringList subpathList() const;
+
     Q_PROPERTY(QString version READ version)
     QString version() const;
 
 public Q_SLOTS: // METHODS
+    void notifySubpathListChanged();
     QString description(const QString &key, const QString &locale);
     QString name(const QString &key, const QString &locale);
     void release();
@@ -60,6 +64,7 @@ Q_SIGNALS: // SIGNALS
     void valueChanged(const QString &key);
     void globalValueChanged(const QString &key);
     void subpathUpdateRequested();
+    void subpathListChanged();
 
 private:
     QString getAppid() const;

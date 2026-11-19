@@ -59,6 +59,8 @@ public:
     QList<ConnKey> getConnectionsByUid(const uint uid) const;
 
     QStringList subpaths(const QString &localPrefix) const;
+    QString localPrefix() const;
+    void notifySubpathChanged();
 
 Q_SIGNALS:
     void releaseResource(const ConnServiceName &service);

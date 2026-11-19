@@ -24,7 +24,6 @@ class ConfigSyncRequestCache;
 class DSGConfigServer : public QObject, protected QDBusContext
 {
     Q_OBJECT
-    Q_PROPERTY(QStringList subpathList READ subpathList NOTIFY subpathListChanged)
 public:
     explicit DSGConfigServer(QObject *parent = nullptr);
 
@@ -46,13 +45,11 @@ public:
 
     int resourceSize() const;
 
-    QStringList subpathList() const;
 
 Q_SIGNALS:
     void releaseResource(const ConnKey& resource);
 
     void tryExit();
-    void subpathListChanged();
 
 public Q_SLOTS:
     QDBusObjectPath acquireManager(const QString &appid, const QString &name, const QString &subpath);
@@ -122,7 +119,6 @@ private:
 
     QSet<GenericResourceKey> m_connectedResources;
     QBasicTimer m_subpathUpdateTimer;
-    QStringList m_subpathList;
     static constexpr int SubpathUpdateDelay = 3000;
 
     void requestSubpathUpdate();

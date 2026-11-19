@@ -60,7 +60,6 @@ void DSGConfigServer::exit()
     qDeleteAll(m_resources);
     m_resources.clear();
     m_connectedResources.clear();
-    m_subpathList.clear();
     m_syncRequestCache->clear();
 }
 
@@ -652,11 +651,6 @@ QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatu
     return signatures;
 }
 
-QStringList DSGConfigServer::subpathList() const
-{
-    return m_subpathList;
-}
-
 void DSGConfigServer::requestSubpathUpdate()
 {
     if (!m_subpathUpdateTimer.isActive()) {
@@ -666,30 +660,11 @@ void DSGConfigServer::requestSubpathUpdate()
 
 void DSGConfigServer::doSubpathUpdate()
 {
-    QStringList newList;
-    QSet<QString> seen;
-
     for (const auto &resourceKey : std::as_const(m_connectedResources)) {
         auto resource = m_resources.value(resourceKey);
         if (!resource)
             continue;
-        for (const auto &subpath : resource->subpaths(m_localPrefix)) {
-            if (seen.insert(subpath).second)
-                newList << subpath;
-        }
-    }
-
-    if (newList != m_subpathList) {
-        m_subpathList = newList;
-        emit subpathListChanged();
-
-        // Emit DBus PropertiesChanged signal so clients can react to subpath changes
-        QDBusMessage msg = QDBusMessage::createSignal(QStringLiteral("/"),
-            QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
-        QVariantMap changedProps;
-        changedProps.insert(QStringLiteral("subpathList"), m_subpathList);
-        msg << QStringLiteral(DSG_CONFIG) << changedProps << QStringList();
-        QDBusConnection::systemBus().send(msg);
+        resource->notifySubpathChanged();
     }
 }
 
