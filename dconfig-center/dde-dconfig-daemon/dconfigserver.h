@@ -10,6 +10,8 @@
 #include <QDBusObjectPath>
 #include <QDBusContext>
 #include <QDBusServiceWatcher>
+#include <QBasicTimer>
+#include <QTimerEvent>
 
 class DSGConfigCatalog;
 class DSGConfigResource;
