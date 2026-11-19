@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -16,6 +16,8 @@
 #include <QDebug>
 
 DCORE_USE_NAMESPACE
+
+#define DSG_CONFIG_MANAGER "org.desktopspec.ConfigManager.Manager"
 
 DSGConfigConn::DSGConfigConn(const ConnKey &key, QObject *parent)
     : QObject (parent),
@@ -54,6 +56,36 @@ void DSGConfigConn::setResource(DSGConfigResource *resource)
 QStringList DSGConfigConn::keyList() const
 {
     return meta()->keyList();
+}
+
+/*!
+ \brief 返回当前资源的 subpath 列表
+ \return subpath 列表
+ */
+QStringList DSGConfigConn::subpathList() const
+{
+    if (!m_resource)
+        return QStringList();
+    return m_resource->subpaths(m_resource->localPrefix());
+}
+
+/*!
+ \brief 通知 subpath 列表已更新
+ 发送 PropertiesChanged 信号到当前 Manager 对象的 DBus 路径
+
+ \a paths Pre-computed subpath list to include in the notification,
+          avoiding repeated filesystem scans per connection.
+ */
+void DSGConfigConn::notifySubpathListChanged(const QStringList &paths)
+{
+    emit subpathListChanged();
+
+    QDBusMessage msg = QDBusMessage::createSignal(path(),
+        QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
+    QVariantMap changedProps;
+    changedProps.insert(QStringLiteral("subpathList"), paths);
+    msg << QStringLiteral(DSG_CONFIG_MANAGER) << changedProps << QStringList();
+    QDBusConnection::systemBus().send(msg);
 }
 
 /*!
@@ -124,6 +156,7 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
     if(!file()->setValue(key, v, getAppid(), cache()))
         return;
 
+    emit subpathUpdateRequested();
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {
@@ -143,6 +176,7 @@ void DSGConfigConn::reset(const QString &key)
     if(!file()->setValue(key, QVariant(), getAppid(), cache()))
         return;
 
+    emit subpathUpdateRequested();
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {

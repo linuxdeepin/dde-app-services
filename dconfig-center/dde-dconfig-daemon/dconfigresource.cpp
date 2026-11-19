@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -101,6 +101,7 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
     QObject::connect(conn, &DSGConfigConn::releaseChanged, this, &DSGConfigResource::onReleaseChanged);
     QObject::connect(conn, &DSGConfigConn::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
     QObject::connect(conn, &DSGConfigConn::valueChanged, this, &DSGConfigResource::onValueChanged);
+    QObject::connect(conn, &DSGConfigConn::subpathUpdateRequested, this, &DSGConfigResource::subpathUpdateRequested);
     return conn;
 }
 
@@ -494,4 +495,51 @@ QList<ConnKey> DSGConfigResource::getConnectionsByUid(const uint uid) const
         }
     }
     return userConnections;
+}
+
+QStringList DSGConfigResource::subpaths(const QString &localPrefix) const
+{
+    QStringList result;
+    QSet<QString> seen;
+    // Collect subpaths from DConfigFile (meta override subpaths + global cache subpaths)
+    for (auto file : m_files) {
+        if (!file)
+            continue;
+        for (const auto &s : file->subpaths(localPrefix)) {
+            if (!seen.contains(s)) {
+                seen.insert(s);
+                result << s;
+            }
+        }
+    }
+    // Collect subpaths from user caches (dynamic cache subpaths)
+    for (auto cache : m_caches) {
+        if (!cache)
+            continue;
+        for (const auto &s : DConfigFile::cacheSubpaths(cache, localPrefix)) {
+            if (!seen.contains(s)) {
+                seen.insert(s);
+                result << s;
+            }
+        }
+    }
+    return result;
+}
+
+QString DSGConfigResource::localPrefix() const
+{
+    return m_localPrefix;
+}
+
+void DSGConfigResource::notifySubpathChanged()
+{
+    const QStringList paths = subpaths(m_localPrefix);
+    if (paths == m_lastSubpaths)
+        return;
+    m_lastSubpaths = paths;
+
+    for (auto conn : m_conns) {
+        if (conn)
+            conn->notifySubpathListChanged(paths);
+    }
 }
