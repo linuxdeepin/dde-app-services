@@ -35,6 +35,7 @@ public:
     bool containsWithoutProp(const QString &key) const;
 
     void setResource(DSGConfigResource *resource);
+    friend class DSGConfigResource;
 Q_SIGNALS:
     void releaseChanged(const ConnServiceName &service);
 
@@ -49,7 +50,6 @@ public: // PROPERTIES
     QString version() const;
 
 public Q_SLOTS: // METHODS
-    void notifySubpathListChanged();
     QString description(const QString &key, const QString &locale);
     QString name(const QString &key, const QString &locale);
     void release();
@@ -73,6 +73,8 @@ private:
     DTK_CORE_NAMESPACE::DConfigFile *file() const;
     DTK_CORE_NAMESPACE::DConfigCache *cache() const;
     bool hasPermissionByUid(const QString &key) const;
+
+    void notifySubpathListChanged(const QStringList &paths);
 
 private:
     ConnKey m_key;

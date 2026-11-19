@@ -72,15 +72,18 @@ QStringList DSGConfigConn::subpathList() const
 /*!
  \brief 通知 subpath 列表已更新
  发送 PropertiesChanged 信号到当前 Manager 对象的 DBus 路径
+
+ \a paths Pre-computed subpath list to include in the notification,
+          avoiding repeated filesystem scans per connection.
  */
-void DSGConfigConn::notifySubpathListChanged()
+void DSGConfigConn::notifySubpathListChanged(const QStringList &paths)
 {
     emit subpathListChanged();
 
     QDBusMessage msg = QDBusMessage::createSignal(path(),
         QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
     QVariantMap changedProps;
-    changedProps.insert(QStringLiteral("subpathList"), subpathList());
+    changedProps.insert(QStringLiteral("subpathList"), paths);
     msg << QStringLiteral(DSG_CONFIG_MANAGER) << changedProps << QStringList();
     QDBusConnection::systemBus().send(msg);
 }

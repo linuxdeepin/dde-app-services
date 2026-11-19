@@ -99,4 +99,6 @@ private:
     QMap<ConnKey, DSGConfigConn *> m_conns;
 
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
+
+    QStringList m_lastSubpaths;
 };

@@ -529,8 +529,13 @@ QString DSGConfigResource::localPrefix() const
 
 void DSGConfigResource::notifySubpathChanged()
 {
+    const QStringList paths = subpaths(m_localPrefix);
+    if (paths == m_lastSubpaths)
+        return;
+    m_lastSubpaths = paths;
+
     for (auto conn : m_conns) {
         if (conn)
-            conn->notifySubpathListChanged();
+            conn->notifySubpathListChanged(paths);
     }
 }
