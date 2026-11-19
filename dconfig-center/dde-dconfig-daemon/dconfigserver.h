@@ -119,7 +119,6 @@ private:
     // Last time of the configuration file signature
     QVector<FileSignature> m_fileSignatures;
 
-    QSet<GenericResourceKey> m_connectedResources;
     QBasicTimer m_subpathUpdateTimer;
     static constexpr int SubpathUpdateDelay = 3000;
 

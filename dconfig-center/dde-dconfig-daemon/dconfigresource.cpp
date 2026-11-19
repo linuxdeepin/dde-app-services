@@ -506,8 +506,10 @@ QStringList DSGConfigResource::subpaths(const QString &localPrefix) const
         if (!file)
             continue;
         for (const auto &s : file->subpaths(localPrefix)) {
-            if (seen.insert(s).second)
+            if (!seen.contains(s)) {
+                seen.insert(s);
                 result << s;
+            }
         }
     }
     // Collect subpaths from user caches (dynamic cache subpaths)
@@ -515,8 +517,10 @@ QStringList DSGConfigResource::subpaths(const QString &localPrefix) const
         if (!cache)
             continue;
         for (const auto &s : DConfigFile::cacheSubpaths(cache, localPrefix)) {
-            if (seen.insert(s).second)
+            if (!seen.contains(s)) {
+                seen.insert(s);
                 result << s;
+            }
         }
     }
     return result;

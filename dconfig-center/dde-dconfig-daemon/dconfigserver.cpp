@@ -59,7 +59,6 @@ void DSGConfigServer::exit()
     m_refManager->destroy();
     qDeleteAll(m_resources);
     m_resources.clear();
-    m_connectedResources.clear();
     m_syncRequestCache->clear();
 }
 
@@ -315,7 +314,6 @@ QDBusObjectPath DSGConfigServer::acquireManagerV2(const uint &uid, const QString
         QObject::connect(resource, &DSGConfigResource::subpathUpdateRequested, this, &DSGConfigServer::requestSubpathUpdate);
     }
 
-    m_connectedResources.insert(genericResourceKey);
     requestSubpathUpdate();
 
     addConnWatchedService(service);
@@ -354,7 +352,6 @@ void DSGConfigServer::onReleaseResource(const ConnKey &connKey)
         qCInfo(cfLog, "Remove resource:%s", qPrintable(resourceKey));
 
         m_resources.remove(resourceKey);
-        m_connectedResources.remove(resourceKey);
         resource->deleteLater();
 
         requestSubpathUpdate();
@@ -660,11 +657,9 @@ void DSGConfigServer::requestSubpathUpdate()
 
 void DSGConfigServer::doSubpathUpdate()
 {
-    for (const auto &resourceKey : std::as_const(m_connectedResources)) {
-        auto resource = m_resources.value(resourceKey);
-        if (!resource)
-            continue;
-        resource->notifySubpathChanged();
+    for (auto resource : std::as_const(m_resources)) {
+        if (resource)
+            resource->notifySubpathChanged();
     }
 }
 
