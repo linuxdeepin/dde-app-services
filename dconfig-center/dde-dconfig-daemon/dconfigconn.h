@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -35,12 +35,16 @@ public:
     bool containsWithoutProp(const QString &key) const;
 
     void setResource(DSGConfigResource *resource);
+    friend class DSGConfigResource;
 Q_SIGNALS:
     void releaseChanged(const ConnServiceName &service);
 
 public: // PROPERTIES
     Q_PROPERTY(QStringList keyList READ keyList)
     QStringList keyList() const;
+
+    Q_PROPERTY(QStringList subpathList READ subpathList NOTIFY subpathListChanged)
+    QStringList subpathList() const;
 
     Q_PROPERTY(QString version READ version)
     QString version() const;
@@ -59,6 +63,8 @@ public Q_SLOTS: // METHODS
 Q_SIGNALS: // SIGNALS
     void valueChanged(const QString &key);
     void globalValueChanged(const QString &key);
+    void subpathUpdateRequested();
+    void subpathListChanged();
 
 private:
     QString getAppid() const;
@@ -68,9 +74,12 @@ private:
     DTK_CORE_NAMESPACE::DConfigCache *cache() const;
     bool hasPermissionByUid(const QString &key) const;
 
+    void notifySubpathListChanged();
+
 private:
     ConnKey m_key;
     DSGConfigResource *m_resource = nullptr;
     QString m_appName;
     QString m_lastService;
+    QStringList m_lastSubpaths;
 };

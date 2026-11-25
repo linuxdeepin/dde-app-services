@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -11,10 +11,14 @@
 #include <QDBusMessage>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
+#include <QDBusReply>
 #include <QFile>
 #include <QDebug>
+#include <QSet>
 
 DCORE_USE_NAMESPACE
+
+#define DSG_CONFIG_MANAGER "org.desktopspec.ConfigManager.Manager"
 
 DSGConfigConn::DSGConfigConn(const ConnKey &key, QObject *parent)
     : QObject (parent),
@@ -53,6 +57,75 @@ void DSGConfigConn::setResource(DSGConfigResource *resource)
 QStringList DSGConfigConn::keyList() const
 {
     return meta()->keyList();
+}
+
+/*!
+ \brief 返回当前连接的 subpath 列表
+ \return subpath 列表
+
+ Per-Conn 计算，合并三部分：meta override subpaths（静态）、
+ global cache subpaths（全局共享）、当前用户 cache subpaths（per-user）。
+ */
+QStringList DSGConfigConn::subpathList() const
+{
+    if (!m_resource)
+        return QStringList();
+
+    const QString &localPrefix = m_resource->localPrefix();
+    QStringList result;
+    QSet<QString> seen;
+
+    // Meta override subpaths (static)
+    const auto metaSubs = meta()->subpaths(localPrefix);
+    for (const auto &s : metaSubs) {
+        if (!seen.contains(s)) {
+            seen.insert(s);
+            result << s;
+        }
+    }
+
+    // Global cache subpaths (global shared)
+    const auto globalCacheSubs = file()->globalCache()->subpathList(localPrefix);
+    for (const auto &s : globalCacheSubs) {
+        if (!seen.contains(s)) {
+            seen.insert(s);
+            result << s;
+        }
+    }
+
+    // Current user cache subpaths (per-user)
+    const auto userCacheSubs = cache()->subpathList(localPrefix);
+    for (const auto &s : userCacheSubs) {
+        if (!seen.contains(s)) {
+            seen.insert(s);
+            result << s;
+        }
+    }
+
+    return result;
+}
+
+/*!
+ \brief 通知 subpath 列表已更新
+ 发送 PropertiesChanged 信号到当前 Manager 对象的 DBus 路径
+
+ 每个 Conn 自己计算 subpathList()，与 m_lastSubpaths 比较做变化检测。
+ */
+void DSGConfigConn::notifySubpathListChanged()
+{
+    const QStringList paths = subpathList();
+    if (paths == m_lastSubpaths)
+        return;
+    m_lastSubpaths = paths;
+
+    emit subpathListChanged();
+
+    QDBusMessage msg = QDBusMessage::createSignal(path(),
+        QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
+    QVariantMap changedProps;
+    changedProps.insert(QStringLiteral("subpathList"), paths);
+    msg << QStringLiteral(DSG_CONFIG_MANAGER) << changedProps << QStringList();
+    QDBusConnection::systemBus().send(msg);
 }
 
 /*!
@@ -123,6 +196,7 @@ void DSGConfigConn::setValue(const QString &key, const QDBusVariant &value)
     if(!file()->setValue(key, v, getAppid(), cache()))
         return;
 
+    emit subpathUpdateRequested();
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {
@@ -135,10 +209,14 @@ void DSGConfigConn::reset(const QString &key)
     if (!contains(key))
         return;
 
+    if (!hasPermissionByUid(key))
+        return;
+
     qCDebug(cfLog) << "Reset value, key:" << key << ", old value:" << file()->value(key, cache());
     if(!file()->setValue(key, QVariant(), getAppid(), cache()))
         return;
 
+    emit subpathUpdateRequested();
     if (meta()->flags(key).testFlag(DConfigFile::Global)) {
         emit globalValueChanged(key);
     } else {
@@ -290,9 +368,15 @@ bool DSGConfigConn::hasPermissionByUid(const QString &key) const
         return true;
 
     const QString &service = message().service();
-    const uint callerUid = connection().interface()->serviceUid(service);
+    // The reply converts to 0 when the lookup fails, so keep it wrapped: a caller
+    // we cannot identify must not be mistaken for root.
+    const QDBusReply<uint> callerUid = connection().interface()->serviceUid(service);
     const auto connectionUid = getConnectionKey(m_key);
-    bool hasPermission = callerUid == connectionUid;
+    // root may manage the configure items of every user.  It can already write
+    // the backing files directly, so this grants no new capability; without it
+    // an administrator had no way to read or fix another user's values.
+    bool hasPermission = callerUid.isValid()
+            && (callerUid.value() == 0 || callerUid.value() == connectionUid);
 
     if (!hasPermission) {
         QString errorMsg = QString("[%1] No Permission configure item [%2] in [%3].").arg(getAppid()).arg(key).arg(m_key);

@@ -3,6 +3,9 @@
     <!-- 所有配置项的唯一标识，即key值 -->
     <property access="read" type="as" name="keyList"/>
 
+    <!-- 当前资源的 subpath 列表 -->
+    <property access="read" type="as" name="subpathList"/>
+
     <!-- 获取配置项的值 -->
     <method name='value'>
       <!-- 配置项的唯一标识 -->
@@ -80,6 +83,9 @@
     <!--采用引用计数的方式，引用为 0 时才真正的销毁-->
     <method name='release'>
     </method>
+
+    <!-- subpath 列表发生改变的信号 -->
+    <signal name="subpathListChanged"/>
 
     <!-- 值发生改变的信号 -->
     <signal name="valueChanged">

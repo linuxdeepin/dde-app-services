@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -58,10 +58,14 @@ public:
 
     QList<ConnKey> getConnectionsByUid(const uint uid) const;
 
+    QString localPrefix() const;
+    void notifySubpathChanged();
+
 Q_SIGNALS:
     void releaseResource(const ConnServiceName &service);
     void releaseConn(const ConnServiceName &service, const ConnKey &connKey);
     void globalValueChanged(const QString &key);
+    void subpathUpdateRequested();
 
 private Q_SLOTS:
     void onValueChanged(const QString &key);
@@ -94,4 +98,5 @@ private:
     QMap<ConnKey, DSGConfigConn *> m_conns;
 
     ConfigSyncRequestCache *m_syncRequestCache = nullptr;
+
 };

@@ -1,3 +1,12 @@
+dde-app-services (1.0.48) unstable; urgency=medium
+
+  * fix(dconfig-daemon): let root read and write the configure items of any
+    uid, and reject reset() from callers without permission
+  * fix(dde-dconfig): require a numeric uid for -u instead of silently
+    falling back to uid 0
+
+ -- JiDe Zhang <zhangjide@uniontech.com>  Fri, 13 Nov 2026 15:02:20 +0800
+
 dde-app-services (1.0.47) unstable; urgency=medium
 
   * fix(CI): broken cppcheck

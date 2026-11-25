@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -10,6 +10,8 @@
 #include <QDBusObjectPath>
 #include <QDBusContext>
 #include <QDBusServiceWatcher>
+#include <QBasicTimer>
+#include <QTimerEvent>
 
 class DSGConfigCatalog;
 class DSGConfigResource;
@@ -44,6 +46,7 @@ public:
     void setEnableExit(const bool enable);
 
     int resourceSize() const;
+
 
 Q_SIGNALS:
     void releaseResource(const ConnKey& resource);
@@ -115,4 +118,12 @@ private:
 
     // Last time of the configuration file signature
     QVector<FileSignature> m_fileSignatures;
+
+    QBasicTimer m_subpathUpdateTimer;
+    static constexpr int SubpathUpdateDelay = 3000;
+
+    void requestSubpathUpdate();
+    void doSubpathUpdate();
+protected:
+    void timerEvent(QTimerEvent *event) override;
 };
