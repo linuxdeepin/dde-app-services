@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -35,12 +35,17 @@ public:
     bool containsWithoutProp(const QString &key) const;
 
     void setResource(DSGConfigResource *resource);
+    void notifySubpathsChanged();
+    friend class DSGConfigResource;
 Q_SIGNALS:
     void releaseChanged(const ConnServiceName &service);
 
 public: // PROPERTIES
     Q_PROPERTY(QStringList keyList READ keyList)
     QStringList keyList() const;
+
+    Q_PROPERTY(QStringList subpaths READ subpaths NOTIFY subpathsChanged)
+    QStringList subpaths() const;
 
     Q_PROPERTY(QString version READ version)
     QString version() const;
@@ -59,6 +64,7 @@ public Q_SLOTS: // METHODS
 Q_SIGNALS: // SIGNALS
     void valueChanged(const QString &key);
     void globalValueChanged(const QString &key);
+    void subpathsChanged();
 
 private:
     QString getAppid() const;
@@ -73,4 +79,5 @@ private:
     DSGConfigResource *m_resource = nullptr;
     QString m_appName;
     QString m_lastService;
+    QStringList m_lastSubpaths;
 };

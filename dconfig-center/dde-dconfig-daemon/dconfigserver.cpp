@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -14,6 +14,7 @@
 #include <QLoggingCategory>
 #include <QDir>
 #include <QFile>
+#include <algorithm>
 
 #include "configmanager_adaptor.h"
 #include "dconfigcatalog.h"
@@ -372,12 +373,25 @@ void DSGConfigServer::doSyncConfigCache(const ConfigSyncBatchRequest &request)
 {
     const QList<ConfigCacheKey> &keys = request.data;
     qCInfo(cfLog, "Do sync config cache, keys count:%d", keys.size());
-    for (auto key: keys) {
+    const bool refreshAll = std::any_of(keys.cbegin(), keys.cend(), ConfigSyncRequestCache::isGlobalKey);
+    QList<DSGConfigConn *> userConnections;
+    for (const auto &key : keys) {
         auto resourceKey = getResourceKeyByConfigCache(key);
         const auto genericResourceKey = getGenericResourceKeyByResourceKey(resourceKey);
         if (auto resource = m_resources.value(genericResourceKey)) {
-            resource->doSyncConfigCache(key);
+            const bool syncSuccessful = resource->doSyncConfigCache(key);
+            if (!refreshAll && syncSuccessful) {
+                if (auto conn = resource->getConn(ConfigSyncRequestCache::getUserKey(key)))
+                    userConnections.append(conn);
+            }
         }
+    }
+    // The sync queue already coalesces requests for each user connection.
+    if (refreshAll) {
+        updateSubpaths();
+    } else {
+        for (auto conn : std::as_const(userConnections))
+            conn->notifySubpathsChanged();
     }
 }
 
@@ -578,6 +592,7 @@ void DSGConfigServer::reload()
 
     if (changedFiles.isEmpty()) {
         qCInfo(cfLog()) << "Reload completed, no files changed";
+        updateSubpaths();
         return;
     }
 
@@ -593,6 +608,7 @@ void DSGConfigServer::reload()
 
     qCInfo(cfLog()) << "Reload completed, processed" << changedFiles.size() << "files,"
                     << failedCount << "failed";
+    updateSubpaths();
     Q_EMIT m_internalCatalog->configurationsChanged();
 }
 
@@ -638,4 +654,12 @@ QVector<DSGConfigServer::FileSignature> DSGConfigServer::allConfigureFileSignatu
     }
 
     return signatures;
+}
+
+void DSGConfigServer::updateSubpaths()
+{
+    for (auto resource : std::as_const(m_resources)) {
+        if (resource)
+            resource->notifySubpathChanged();
+    }
 }

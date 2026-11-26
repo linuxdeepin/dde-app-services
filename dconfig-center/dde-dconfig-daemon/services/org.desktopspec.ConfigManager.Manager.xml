@@ -1,6 +1,7 @@
 <interface name='org.desktopspec.ConfigManager.Manager'>
     <property access="read" type="s" name="version"/>
     <property access="read" type="as" name="keyList"/>
+    <property access="read" type="as" name="subpaths"/>
     <method name='value'>
       <arg type='s' name='key' direction='in'/>
       <arg type='v' name='value' direction='out'/>
@@ -41,6 +42,7 @@
     <!--采用引用计数的方式，引用为 0 时才真正的销毁-->
     <method name='release'>
     </method>
+    <signal name="subpathsChanged"/>
     <signal name="valueChanged">
       <arg name="key" type="s" direction="out"/>'
     </signal>

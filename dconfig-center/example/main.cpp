@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <QCoreApplication>
+#include <QCommandLineParser>
+#include <QDBusInterface>
+#include <QDBusReply>
 #include <QDebug>
 #include <QTimer>
 
@@ -151,13 +154,61 @@ private:
     QString fileName;
 };
 
+// dconfig-example --watch-subpaths [连接的 subpath，例如 /a 或 /a/b]
+class SubpathsExample : public QObject
+{
+    Q_OBJECT
+public:
+    int run(const QString &subpath)
+    {
+        const QString service = QStringLiteral("org.desktopspec.ConfigManager");
+        auto bus = QDBusConnection::systemBus();
+        QDBusInterface server(service, "/", service, bus);
+        QDBusReply<QDBusObjectPath> acquired = server.call("acquireManager", "dconfig-example", "example", subpath);
+        if (!acquired.isValid()) {
+            qWarning() << acquired.error().message();
+            return 1;
+        }
+
+        const QString path = acquired.value().path();
+        const QString interface = service + ".Manager";
+        QDBusInterface manager(service, path, interface, bus);
+        // 先订阅，再读取初始值，以免错过两者之间的变化。
+        const bool subscribed = bus.connect(service, path, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                                            this, SLOT(propertiesChanged(QString,QVariantMap,QStringList)));
+        QDBusInterface properties(service, path, "org.freedesktop.DBus.Properties", bus);
+        QDBusReply<QDBusVariant> initial = properties.call("Get", interface, "subpaths");
+        int status = 1;
+        if (!subscribed) {
+            qWarning() << "Failed to subscribe to PropertiesChanged:" << bus.lastError().message();
+        } else if (!initial.isValid()) {
+            qWarning() << initial.error().message();
+        } else {
+            qInfo() << "Initial subpaths:" << initial.value().variant().toStringList();
+            status = QCoreApplication::exec();
+        }
+        manager.call("release");
+        return status;
+    }
+
+private Q_SLOTS:
+    void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &)
+    {
+        if (interface == QStringLiteral("org.desktopspec.ConfigManager.Manager") && changed.contains("subpaths"))
+            qInfo() << "Changed subpaths:" << changed.value("subpaths").toStringList();
+    }
+};
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Dtk::Core::DLogManager::registerConsoleAppender();
-
-    DConfigExample example("example");
+    QCommandLineParser parser;
+    parser.addHelpOption();
+    QCommandLineOption watchSubpaths("watch-subpaths", "Print the initial subpaths and watch for changes.");
+    parser.addOption(watchSubpaths);
+    parser.addPositionalArgument("subpath", "Manager connection subpath (default: root).", "[subpath]");
+    parser.process(a);
 
     // 异常处理，调用QCoreApplication::exit，使DConfig正常析构。
     std::signal(SIGINT, &QCoreApplication::exit);
@@ -165,5 +216,14 @@ int main(int argc, char *argv[])
     std::signal(SIGTERM, &QCoreApplication::exit);
     std::signal(SIGKILL, &QCoreApplication::exit) ;
 
+    if (parser.isSet(watchSubpaths)) {
+        SubpathsExample example;
+        return example.run(parser.positionalArguments().value(0));
+    }
+
+    Dtk::Core::DLogManager::registerConsoleAppender();
+    DConfigExample example("example");
     return a.exec();
 }
+
+#include "main.moc"

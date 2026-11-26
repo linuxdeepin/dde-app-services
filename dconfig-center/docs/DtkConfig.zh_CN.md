@@ -300,14 +300,20 @@ dde-dconfig --list -a dconfig-example
 dde-dconfig --list -a ""
 dde-dconfig --get -a "" -r example -k key1
 ```
+- 列出资源的子路径：
+``` bash
+dde-dconfig list -a dconfig-example -r example
+dde-dconfig list -a dconfig-example -r example -s /a
+```
+  第一条命令从资源根列出，第二条命令只列 `/a` 的后代。例如 `/a/b/c` 在第二条命令中
+  显示为 `/b/c`。每行一个路径，覆盖已安装配置、override 和缓存。root 可通过 `-u UID`
+  查询指定用户的缓存路径。
 - 使用动态 subpath:
 ``` bash
 dde-dconfig --get -a dconfig-example -r example -s /runtime/instance -k key1
 ```
-  `subpath` 是运行时路径，并且必须以 `/` 开头。为方便输入，`-s` 的值为空时，
-  命令补全只会补上起始的 `/`；`/` 后面的动态路径不会被枚举或校验，也不要求它
-  对应已安装的固定目录。补全 Key 时只根据 appid 和 resource 查询配置结构，不会把
-  `subpath` 传给补全查询。
+  `subpath` 是以 `/` 开头的运行时路径。Bash 和 Zsh 在 `-s` 后补全已发现的完整路径。
+  也可以直接输入尚未列出的路径。补全 Key 时根据 appid 和 resource 查询配置结构。
 
   命令和位置参数也支持逐级补全。例如 `get` 后补全 appid，位置 appid 后补全 Key；
   Bash 和 Zsh 使用相同的补全步骤。对于应用无关配置，输入 `dde-dconfig get ''`（或
@@ -329,6 +335,8 @@ dde-dconfig-editor 是一个gui工具，需要单独安装。
 ``` bash
 sudo apt install dde-dconfig-editor
 ```
+- 打开应用时，每个资源下显示已发现的子路径。点击子路径可打开对应配置。重新选中资源
+  会刷新该资源的列表，也可通过资源右键菜单手动指定新路径。
 - 选中单个配置项右键可以看到常用功能。
     - 重置：清除配置项缓存
     - 复制命令：复制dde-dconfig命令行到剪切板

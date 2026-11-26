@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -54,9 +54,13 @@ public:
     bool reparse(const QString &appid);
 
     void setSyncRequestCache(ConfigSyncRequestCache *cache);
-    void doSyncConfigCache(const ConfigCacheKey &key);
+    // Returns whether a matching cache was found and save was attempted.
+    bool doSyncConfigCache(const ConfigCacheKey &key);
 
     QList<ConnKey> getConnectionsByUid(const uint uid) const;
+
+    QString localPrefix() const;
+    void notifySubpathChanged();
 
 Q_SIGNALS:
     void releaseResource(const ConnServiceName &service);

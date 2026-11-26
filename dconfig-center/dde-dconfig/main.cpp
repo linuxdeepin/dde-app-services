@@ -8,6 +8,7 @@
 #include <QCommandLineParser>
 #include <QDBusError>
 #include <QDBusPendingReply>
+#include <QDir>
 #include <QLoggingCategory>
 #include <QProcess>
 #include <iostream>
@@ -135,6 +136,8 @@ public:
     }
 
 private:
+    int listSubpaths();
+
     const QCommandLineParser &parser;
 
     int uid = -1;
@@ -166,27 +169,23 @@ inline void outpuSTDError(const QString &value)
 
 int CommandManager::listCommand()
 {
+    if (isSetAppid() && parser.isSet(resourceOption))
+        return listSubpaths();
+
+    if (parser.isSet(subpathOption)) {
+        outpuSTDError(QStringLiteral("list -s requires an application ID and -r RESOURCE."));
+        return 1;
+    }
+
     // list命令，查看app、resource、subpath
     if (isSetAppid()) {
         if (!appid.isEmpty() && !ResourceCatalogClient::instance().existAppid(appid)) {
             outpuSTDError(QString("not exist appid:%1").arg(appid));
             return 1;
         }
-        // don't fallback to the same resource as appidOption
-        if (parser.isSet(resourceOption)) {
-            if (!ResourceCatalogClient::instance().existResource(appid, resourceid)) {
-                outpuSTDError(QString("not exist resouce:[%1] for the appid:[%2]").arg(resourceid).arg(appid));
-                return 1;
-            }
-            auto subpaths = ResourceCatalogClient::instance().subpathsForResource(appid, resourceid);
-            for (auto item : subpaths) {
-                outpuSTD(item);
-            }
-        } else {
-            const auto resources = ResourceCatalogClient::instance().availableResourcesForApp(appid);
-            for (auto item : resources) {
-                outpuSTD(item);
-            }
+        const auto resources = ResourceCatalogClient::instance().availableResourcesForApp(appid);
+        for (auto item : resources) {
+            outpuSTD(item);
         }
     } else if(parser.isSet(resourceOption)) {
         const auto &commons = ResourceCatalogClient::instance().resourcesForAllApp();
@@ -203,6 +202,47 @@ int CommandManager::listCommand()
             outpuSTD(item);
         }
     }
+    return 0;
+}
+
+int CommandManager::listSubpaths()
+{
+    auto &catalog = ResourceCatalogClient::instance();
+    if (!catalog.existResource(appid, resourceid)) {
+        outpuSTDError(QStringLiteral("not exist resouce:[%1] for the appid:[%2]").arg(resourceid, appid));
+        return 1;
+    }
+
+    QString scope;
+    if (!subpathid.isEmpty()) {
+        const auto components = subpathid.split(QLatin1Char('/'));
+        if (!subpathid.startsWith(QLatin1Char('/')) || subpathid.contains(QLatin1Char('\\'))
+                || components.contains(QStringLiteral(".")) || components.contains(QStringLiteral(".."))) {
+            outpuSTDError(QStringLiteral("invalid subpath: %1").arg(subpathid));
+            return 1;
+        }
+        scope = QDir::cleanPath(subpathid);
+        if (scope == QLatin1String("/"))
+            scope.clear();
+    }
+
+    QStringList subpaths;
+    const QString prefix = scope + QLatin1Char('/');
+    for (const QString &path : catalog.subpathsForResource(appid, resourceid)) {
+        if (path.startsWith(prefix))
+            subpaths.append(path.mid(scope.size()));
+    }
+
+    ValueHandler handler(uid, appid, resourceid, scope);
+    QScopedPointer<ConfigGetter> manager(handler.createManager());
+    if (manager)
+        subpaths.append(manager->subpaths());
+
+    subpaths.removeDuplicates();
+    subpaths.sort();
+    for (const QString &path : subpaths)
+        outpuSTD(path);
+
     return 0;
 }
 
@@ -475,7 +515,8 @@ int main(int argc, char *argv[])
 
 
     // support positional argument for subcommand.
-    parser.addPositionalArgument(listOption.names().constFirst(), listOption.description(), "\n list: dde-dconfig list \n");
+    parser.addPositionalArgument(listOption.names().constFirst(), listOption.description(),
+                                 "\n list: dde-dconfig list [-a APP [-r RESOURCE [-s SUBPATH] [-u UID]]] \n");
     parser.addPositionalArgument(getOption.names().constFirst(), getOption.description(), "get: dde-dconfig get -a dconfig-example -r example -k key1 \n");
     parser.addPositionalArgument(setOption.names().constFirst(), setOption.description(), "set: dde-dconfig set -a dconfig-example -r example -k key1 -v 1 \n");
     parser.addPositionalArgument(resetOption.names().constFirst(), resetOption.description(), "reset: dde-dconfig reset -a dconfig-example -r example -k key1 \n");
