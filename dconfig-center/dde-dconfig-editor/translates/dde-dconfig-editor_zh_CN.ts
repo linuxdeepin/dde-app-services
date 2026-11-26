@@ -258,6 +258,11 @@
         <source>Switch User</source>
         <translation>切换用户</translation>
     </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="702"/>
+        <source>Current User</source>
+        <translation>当前用户</translation>
+    </message>
 </context>
 <context>
     <name>OEMDialog</name>

@@ -114,6 +114,12 @@ TEST_F(ut_DConfigServer, acquireManager) {
 }
 
 TEST_F(ut_DConfigServer, internalCatalog) {
+    const QString siblingResource = QStringLiteral("sibling");
+    const QString siblingSubpath = QStringLiteral("/other/leaf");
+    const QString siblingPath = QFileInfo(configPath()).path() + siblingSubpath
+            + QLatin1Char('/') + siblingResource + QStringLiteral(".json");
+    FileCopyGuard siblingMeta(":/config/example.json", siblingPath);
+
     const auto catalog = server->internalCatalog();
     ASSERT_TRUE(catalog);
     const auto configurations = catalog->configurations();
@@ -130,8 +136,11 @@ TEST_F(ut_DConfigServer, internalCatalog) {
     EXPECT_FALSE(apps.contains("org.invalid.app"));
     EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QString()}));
     EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QStringLiteral("/subpath")}));
-    EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QStringLiteral("/empty")}));
+    EXPECT_FALSE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, QStringLiteral("/empty")}));
+    EXPECT_FALSE(configurations.contains(ConfigInfo{APP_ID, FILE_NAME, siblingSubpath}));
+    EXPECT_TRUE(configurations.contains(ConfigInfo{APP_ID, siblingResource, siblingSubpath}));
     EXPECT_TRUE(configurations.contains(ConfigInfo{NoAppId, FILE_NAME, QString()}));
+    EXPECT_FALSE(server->acquireManager(APP_ID, FILE_NAME, siblingSubpath).path().isEmpty());
 }
 
 TEST_F(ut_DConfigServer, acquireManagerV2) {
