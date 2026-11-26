@@ -129,7 +129,8 @@ public:
 
     static bool isServiceRegistered()
     {
-        return QDBusConnection::systemBus().interface()->isServiceRegistered(DSG_CONFIG);
+        const auto interface = QDBusConnection::systemBus().interface();
+        return interface && interface->isServiceRegistered(DSG_CONFIG);
     }
 
     static bool isServiceActivatable()

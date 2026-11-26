@@ -39,6 +39,7 @@
 #include <dinputdialog.h>
 
 #include <algorithm>
+#include <unistd.h>
 
 namespace {
 QStringList sortedStrings(QStringList values)
@@ -688,26 +689,40 @@ void MainWindow::installTranslate()
     connect(contentView, &Content::languageChanged, this, [this](){
         emit resourceListView->clicked(resourceListView->currentIndex());
     });
-    const auto userInfos = fetchUserInfos();
-    if (!userInfos.isEmpty()) {
-        auto userMenu = titlebar->menu()->addMenu(tr("Switch User"));
-        QActionGroup *userGroup = new QActionGroup(this);
-        for (const auto user : userInfos) {
-            const auto uid = user.second;
-            auto action = userMenu->addAction(user.first);
-            action->setProperty("uid", uid);
-            action->setCheckable(true);
-            if (ValueHandler::currentUid() == uid) {
-                action->setChecked(true);
-            }
-            userGroup->addAction(action);
-        }
-        connect(userGroup, &QActionGroup::triggered, this, [this] (QAction *action) {
-            const auto uid = action->property("uid").toInt();
-            qDebug() << "Switch to the user" << action->text() << ", uid:" << uid;
-            ValueHandler::setCurrentUid(uid);
-        });
+    const int defaultUid = static_cast<int>(getuid());
+    auto userMenu = titlebar->menu()->addMenu(tr("Switch User"));
+    auto userGroup = new QActionGroup(this);
+    const auto addUserAction = [userMenu, userGroup](const QString &name, int uid) {
+        auto action = userMenu->addAction(name);
+        action->setProperty("uid", uid);
+        action->setCheckable(true);
+        userGroup->addAction(action);
+        action->setChecked(uid == ValueHandler::currentUid());
+    };
+    addUserAction(tr("Current User"), defaultUid);
+    for (const auto &user : fetchUserInfos()) {
+        if (user.second != defaultUid)
+            addUserAction(user.first, user.second);
     }
+    connect(userGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        const auto uid = action->property("uid").toInt();
+        if (uid == ValueHandler::currentUid())
+            return;
+        qDebug() << "Switch to the user" << action->text() << ", uid:" << uid;
+        ValueHandler::setCurrentUid(uid);
+
+        const QModelIndex appIndex = appListView->currentIndex();
+        if (appIndex.isValid()) {
+            emit appListView->clicked(appIndex);
+        } else {
+            auto model = resourceListView->model();
+            model->removeRows(0, model->rowCount());
+            contentView->clear();
+            updateNavigation(QString());
+            navigationAppLabel->setText(tr("Select an application and configuration"));
+            navigationAppLabel->setToolTip(QString());
+        }
+    });
 
     const auto systemLanguage = QLocale::system().name();
     qDebug() << systemLanguage;

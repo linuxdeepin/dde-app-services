@@ -333,6 +333,7 @@ sudo apt install dde-dconfig-editor
     - 重置：清除配置项缓存
     - 复制命令：复制dde-dconfig命令行到剪切板
 - 菜单项
+    - 在「切换用户」中选择「当前用户」，可回到启动编辑器的账户。
     - OEM： 导出override配置文件
     - config language： 切换配置项描述语言，默认为英文
 

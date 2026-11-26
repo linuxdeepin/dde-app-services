@@ -5,8 +5,8 @@
 #include "dconfigcatalog.h"
 
 #include <DConfigFile>
+#include <QDir>
 #include <QDirIterator>
-#include <QFileInfo>
 #include <QSet>
 
 namespace {
@@ -15,26 +15,6 @@ QString subpathOf(const QString &baseDir, const QString &dir)
     const QString relativePath = QDir(baseDir).relativeFilePath(dir);
     return relativePath == QLatin1String(".") || relativePath.isEmpty()
             ? QString() : QLatin1Char('/') + relativePath;
-}
-
-QStringList resourcesForSubpath(const QString &baseDir, const QString &subpath)
-{
-    QStringList result;
-    QDir dir(baseDir);
-    if (!subpath.isEmpty())
-        dir.cd(subpath.mid(1));
-
-    do {
-        const auto entries = dir.entryInfoList({QLatin1String("*.json")},
-                                                QDir::Files | QDir::Readable);
-        for (const QFileInfo &entry : entries) {
-            const QString resource = entry.fileName().chopped(QStringLiteral(".json").size());
-            if (!result.contains(resource))
-                result.append(resource);
-        }
-    } while (dir != QDir(baseDir) && dir.cdUp());
-
-    return result;
 }
 
 void appendConfigurations(ConfigInfoList &result, QSet<QString> &uniqueKeys,
@@ -53,8 +33,11 @@ void appendConfigurations(ConfigInfoList &result, QSet<QString> &uniqueKeys,
 
     for (const QString &dir : dirs) {
         const QString subpath = subpathOf(baseDir, dir);
-        const QStringList resources = resourcesForSubpath(baseDir, subpath);
-        for (const QString &resource : resources) {
+        // Catalog entries describe metadata installed at this path. Loading a
+        // configuration can also inherit metadata from a parent directory.
+        const auto entries = QDir(dir).entryList({QLatin1String("*.json")}, QDir::Files | QDir::Readable);
+        for (const QString &entry : entries) {
+            const QString resource = entry.chopped(QStringLiteral(".json").size());
             Dtk::Core::DConfigFile file(appId, resource, subpath);
             if (!file.load(localPrefix))
                 continue;
