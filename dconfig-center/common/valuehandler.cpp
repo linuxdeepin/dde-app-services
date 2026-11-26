@@ -9,6 +9,7 @@
 #include "helper.hpp"
 
 #include <DConfigFile>
+#include <unistd.h>
 
 static constexpr char const *DSG_CONFIG = "org.desktopspec.ConfigManager";
 static constexpr char const *DSG_CONFIG_MANAGER = "org.desktopspec.ConfigManager";
@@ -26,6 +27,15 @@ public:
     QStringList keyList() const override
     {
         return manager->keyList();
+    }
+
+    QStringList subpaths() const override
+    {
+        const auto callerUid = getuid();
+        if (callerUid != 0 && callerUid != static_cast<uint>(owner->getUid()))
+            return {};
+
+        return manager->subpaths();
     }
 
     void setValue(const QString &key, const QVariant &value) override
@@ -152,7 +162,6 @@ private:
 
 DCORE_USE_NAMESPACE;
 
-#include <unistd.h>
 class FileHandler : public ConfigGetter {
 
 public:
@@ -167,6 +176,11 @@ public:
     QStringList keyList() const override
     {
         return manager->meta()->keyList();
+    }
+
+    QStringList subpaths() const override
+    {
+        return {};
     }
 
     void setValue(const QString &key, const QVariant &value) override

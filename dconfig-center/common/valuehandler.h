@@ -6,6 +6,7 @@
 #define VALUEHANDLER_H
 
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 
 class ConfigGetter {
@@ -13,6 +14,7 @@ public:
     virtual ~ConfigGetter();
 
     virtual QStringList keyList() const = 0;
+    virtual QStringList subpaths() const = 0;
     virtual void setValue(const QString &key, const QVariant &value) = 0;
     virtual QVariant value(const QString &key) const = 0;
     virtual void reset(const QString &key) = 0;

@@ -93,6 +93,13 @@ static QString removeBackSlash(const QString &target)
     return target.left(target.size() - 1);
 }
 
+// Regex captures directory segments with a trailing slash. Resource keys
+// use a leading slash for nested subpaths and an empty string for the root.
+inline QString configureSubpath(const QString &captured)
+{
+    return captured.isEmpty() ? QString() : '/' + removeBackSlash(captured);
+}
+
 inline ConfigureId getMetaConfigureId(const QString &path)
 {
     ConfigureId info;
@@ -108,7 +115,7 @@ inline ConfigureId getMetaConfigureId(const QString &path)
         return info;
     }
     info.appid = removeBackSlash(match.captured("appid"));
-    info.subpath = removeBackSlash(match.captured("subpath"));
+    info.subpath = configureSubpath(match.captured("subpath"));
     info.resource = match.captured("resource");
 
     return info;
@@ -135,7 +142,7 @@ inline ConfigureId getOverrideConfigureId(const QString &path)
             return info;
     }
     info.appid = removeBackSlash(match.captured("appid"));
-    info.subpath = removeBackSlash(match.captured("subpath"));
+    info.subpath = configureSubpath(match.captured("subpath"));
     info.resource = match.captured("resource");
 
     return info;

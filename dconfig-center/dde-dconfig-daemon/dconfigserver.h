@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -115,4 +115,6 @@ private:
 
     // Last time of the configuration file signature
     QVector<FileSignature> m_fileSignatures;
+
+    void updateSubpaths();
 };

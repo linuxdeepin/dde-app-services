@@ -240,7 +240,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(resourceListView, &QListView::clicked, this, [this, scrollArea, contentHeader](const QModelIndex &index){
         if (auto model = qobject_cast<QStandardItemModel*>(resourceListView->model())){
             const auto &type = model->data(index, ConfigUserRole + 1).toInt();
-            if (type & ConfigType::ResourceType || type == ConfigType::SubpathType) {
+            const bool isResource = type == ConfigType::AppResourceType || type == ConfigType::CommonResourceType;
+            if (isResource || type == ConfigType::SubpathType) {
                 const auto &appid = model->data(index, ConfigUserRole + 2).toString();
                 const auto &resourceId = model->data(index, ConfigUserRole + 3).toString();
                 const auto &subpath = model->data(index, ConfigUserRole + 4).toString();
@@ -248,7 +249,11 @@ MainWindow::MainWindow(QWidget *parent) :
                     qWarning() << "error" << appid << resourceId;
                     return;
                 }
-                refreshResourceKeys(appid, resourceId, subpath, contentHeader->text());
+                QStringList subpaths;
+                contentView->refreshResourceKeys(appid, resourceId, subpath, contentHeader->text(),
+                                                 isResource ? &subpaths : nullptr);
+                if (isResource)
+                    refreshResourceSubpaths(model, index, subpaths);
                 updateNavigation(appid, resourceId, subpath);
             } else {
                 contentView->clear();
@@ -510,8 +515,10 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
 
         model->appendRow(resourceItem);
 
-        if (isAppResource)
-            refreshResourceSubpaths(model, appid, resource);
+        ValueHandler handler(appid, resource, QString());
+        QScopedPointer<ConfigGetter> manager(handler.createManager());
+        const QStringList subpaths = manager ? manager->subpaths() : QStringList();
+        refreshResourceSubpaths(model, resourceItem->index(), subpaths);
     }
 
     if (model->rowCount() > 0) {
@@ -519,19 +526,26 @@ void MainWindow::refreshAppResources(const QString &appid, const QString &matchR
     }
 }
 
-void MainWindow::refreshResourceSubpaths(QStandardItemModel *model, const QString &appid, const QString &resourceId)
+void MainWindow::refreshResourceSubpaths(QStandardItemModel *model, const QModelIndex &resourceIndex,
+                                         const QStringList &discoveredSubpaths)
 {
-    const auto installedSubpaths = ResourceCatalogClient::instance().subpathsForResource(appid, resourceId);
+    const QString appid = resourceIndex.data(ConfigUserRole + 2).toString();
+    const QString resourceId = resourceIndex.data(ConfigUserRole + 3).toString();
     const auto runtimeSubpaths = dynamicSubpaths.value(appid).value(resourceId);
-    QStringList subpaths = installedSubpaths;
-    for (const QString &subpath : runtimeSubpaths) {
-        if (!subpaths.contains(subpath))
-            subpaths.append(subpath);
-    }
-    subpaths = sortedStrings(subpaths);
+    QStringList subpaths = ResourceCatalogClient::instance().subpathsForResource(appid, resourceId);
+    subpaths.append(discoveredSubpaths);
+    subpaths.append(runtimeSubpaths);
+    subpaths.removeDuplicates();
 
-    for (const QString &subpath : subpaths) {
+    const int firstSubpathRow = resourceIndex.row() + 1;
+    int nextResourceRow = firstSubpathRow;
+    while (model->index(nextResourceRow, 0).data(ConfigUserRole + 1).toInt() == ConfigType::SubpathType)
+        ++nextResourceRow;
+    if (nextResourceRow > firstSubpathRow)
+        model->removeRows(firstSubpathRow, nextResourceRow - firstSubpathRow);
 
+    int row = firstSubpathRow;
+    for (const QString &subpath : sortedStrings(subpaths)) {
         auto subpathItem = new DStandardItem();
         subpathItem->setSizeHint(QSize(200, 45));
         subpathItem->setData(ConfigType::SubpathType, ConfigUserRole + 1);
@@ -539,10 +553,10 @@ void MainWindow::refreshResourceSubpaths(QStandardItemModel *model, const QStrin
         subpathItem->setData(resourceId, ConfigUserRole + 3);
         subpathItem->setData(subpath, ConfigUserRole + 4);
         subpathItem->setText(subpath);
-        if (runtimeSubpaths.contains(subpath))
+        if (runtimeSubpaths.contains(subpath) || discoveredSubpaths.contains(subpath))
             subpathItem->setToolTip(tr("subpath: %1").arg(subpath));
 
-        model->appendRow(subpathItem);
+        model->insertRow(row++, subpathItem);
     }
 }
 
@@ -863,7 +877,8 @@ void Content::setLanguage(const QString &language)
     emit languageChanged();
 }
 
-void Content::refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId)
+void Content::refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath,
+                                  const QString &matchKeyId, QStringList *subpaths)
 {
     remove(m_contentLayout);
 
@@ -872,6 +887,9 @@ void Content::refreshResourceKeys(const QString &appid, const QString &resourceI
     if(!manager) {
         return;
     }
+    if (subpaths)
+        *subpaths = manager->subpaths();
+
     for (auto key : manager->keyList()) {
 
         if (!matchKeyId.isEmpty() && !key.contains(matchKeyId, Qt::CaseInsensitive)) {

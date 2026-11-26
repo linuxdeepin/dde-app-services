@@ -143,11 +143,27 @@ _dde_dconfig_add_matches()
 
 _dde_dconfig_complete_subpath()
 {
-	local typed=$1
-	# A subpath is runtime-defined. Complete only its required leading slash;
-	# do not enumerate or validate any content below it.
-	[[ / == "$typed"* ]] && COMPREPLY+=(/)
-	compopt -o nospace 2>/dev/null
+	local typed=$1 line quoted
+	local -a command_line
+	_dde_dconfig_context
+	if ((_dde_dconfig_appid_set)) && [[ -n $_dde_dconfig_resource ]] &&
+		[[ $_dde_dconfig_command != list || $_dde_dconfig_resource_option_set == 1 ]]; then
+		command_line=(dde-dconfig list -a "$_dde_dconfig_appid" -r "$_dde_dconfig_resource")
+		_dde_dconfig_read_option -u
+		if ((_dde_dconfig_option_set)); then
+			command_line+=(-u "$_dde_dconfig_option_value")
+		fi
+		while IFS= read -r line; do
+			[[ -n $line ]] || continue
+			# Quote the argument without letting Readline treat it as a local directory.
+			printf -v quoted '%q' "$line"
+			[[ $line == "$typed"* || $quoted == "$typed"* ]] && COMPREPLY+=("$quoted")
+		done < <(command "${command_line[@]}" 2>/dev/null)
+	fi
+	if ((${#COMPREPLY[@]} == 0)) && [[ / == "$typed"* ]]; then
+		COMPREPLY=(/)
+		compopt -o nospace 2>/dev/null
+	fi
 }
 
 _dde_dconfig_complete_resource_option()
@@ -191,8 +207,7 @@ _dde_dconfig_complete_keys()
 	[[ -n $_dde_dconfig_resource ]] || return
 
 	command_line=(dde-dconfig --get -a "$_dde_dconfig_appid" -r "$_dde_dconfig_resource")
-	# Subpath is dynamic. Key completion intentionally queries the resource
-	# schema without trying to enumerate or validate the current -s value.
+	# Key completion uses the resource schema so it also works for new subpaths.
 	while IFS= read -r line; do
 		[[ -n $line ]] && candidates+=("$line")
 	done < <(command "${command_line[@]}" 2>/dev/null)
@@ -216,7 +231,7 @@ _dde_dconfig_complete_options()
 	local option
 	local -a options=()
 	case $_dde_dconfig_command in
-	list) options=(-h --help -a -r -p) ;;
+	list) options=(-h --help -u -a -r -s -p) ;;
 	get) options=(-h --help -u -a -r -s -k -p -m -l) ;;
 	set) options=(-h --help -u -a -r -s -k -v -p) ;;
 	reset | watch) options=(-h --help -u -a -r -s -k -p) ;;
