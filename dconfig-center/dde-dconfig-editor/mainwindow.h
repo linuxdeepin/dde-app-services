@@ -57,7 +57,8 @@ public:
 
     ~Content();
 
-    void refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId = QString());
+    void refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath,
+                             const QString &matchKeyId = QString(), QStringList *subpaths = nullptr);
 
     void clear();
 
@@ -113,8 +114,6 @@ private slots:
 
     void refreshAppResources(const QString &appid, const QString &matchResource = QString());
 
-    void refreshResourceSubpaths(QStandardItemModel *model, const QString &appid, const QString &resourceId);
-
     void refreshResourceKeys(const QString &appid, const QString &resourceId, const QString &subpath, const QString &matchKeyId = QString());
 
     void onCustomResourceMenuRequested(const QString &appid, const QString &resource, const QString &subpath,
@@ -124,6 +123,8 @@ private slots:
     void addDynamicSubpath(const QString &appid, const QString &resource);
 private:
     void installTranslate();
+    void refreshResourceSubpaths(QStandardItemModel *model, const QModelIndex &resourceIndex,
+                                 const QStringList &discoveredSubpaths);
     void updateNavigation(const QString &appid, const QString &resourceId = QString(),
                           const QString &subpath = QString());
 

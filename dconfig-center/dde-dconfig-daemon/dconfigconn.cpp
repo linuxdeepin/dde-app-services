@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -16,6 +16,8 @@
 #include <QDebug>
 
 DCORE_USE_NAMESPACE
+
+#define DSG_CONFIG_MANAGER "org.desktopspec.ConfigManager.Manager"
 
 DSGConfigConn::DSGConfigConn(const ConnKey &key, QObject *parent)
     : QObject (parent),
@@ -54,6 +56,60 @@ void DSGConfigConn::setResource(DSGConfigResource *resource)
 QStringList DSGConfigConn::keyList() const
 {
     return meta()->keyList();
+}
+
+/*!
+ \brief 返回当前连接的 subpath 列表
+ \return subpath 列表
+
+ Per-Conn 计算，合并三部分：meta override subpaths（静态）、
+ global cache subpaths（全局共享）、当前用户 cache subpaths（per-user）。
+ */
+QStringList DSGConfigConn::subpaths() const
+{
+    if (!m_resource)
+        return QStringList();
+
+    const QString &localPrefix = m_resource->localPrefix();
+    QStringList result;
+
+    // Meta override subpaths (static)
+    result << meta()->subpaths(localPrefix);
+
+    // Global cache subpaths (global shared)
+    result << file()->globalCache()->subpaths(localPrefix);
+
+    // Current user cache subpaths (per-user)
+    result << cache()->subpaths(localPrefix);
+
+    result.removeDuplicates();
+    result.sort();
+
+    return result;
+}
+
+/*!
+ \brief 通知 subpath 列表已更新
+ 发送 PropertiesChanged 信号到当前 Manager 对象的 DBus 路径
+
+ 每个 Conn 自己计算 subpaths()，与 m_lastSubpaths 比较做变化检测。
+ */
+void DSGConfigConn::notifySubpathsChanged()
+{
+    const QStringList paths = subpaths();
+    if (paths == m_lastSubpaths)
+        return;
+    qCDebug(cfLog) << "Subpaths changed" << path() << "count" << paths.size();
+    m_lastSubpaths = paths;
+
+    emit subpathsChanged();
+
+    QDBusMessage msg = QDBusMessage::createSignal(path(),
+        QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("PropertiesChanged"));
+    QVariantMap changedProps;
+    changedProps.insert(QStringLiteral("subpaths"), paths);
+    msg << QStringLiteral(DSG_CONFIG_MANAGER) << changedProps << QStringList();
+    QDBusConnection::systemBus().send(msg);
 }
 
 /*!

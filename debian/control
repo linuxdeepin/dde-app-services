@@ -8,7 +8,7 @@ Build-Depends:
  cmake,
  qt6-base-dev,
  libdtkcommon-dev,
- libdtk6core-dev,
+ libdtk6core-dev (>> 6.7.54),
  libdtk6gui-dev,
  libdtk6widget-dev,
  libgtest-dev,
@@ -21,7 +21,9 @@ Package: dde-dconfig-daemon
 Architecture: any
 Conflicts: dconfig-daemon
 Replaces: dconfig-daemon
+Breaks: dde-dconfig-editor (<< ${binary:Version})
 Depends:
+ libdtk6core (>> 6.7.54),
  ${shlibs:Depends},
  ${misc:Depends}
 Description: deepin desktop-environment - dde-dconfig-daemon module
@@ -32,6 +34,7 @@ Architecture: any
 Conflicts: dconfig-editor
 Replaces: dconfig-editor
 Depends:
+ dde-dconfig-daemon (= ${binary:Version}),
  ${shlibs:Depends},
  ${misc:Depends}
 Description: deepin desktop-environment - dde-dconfig-editor module

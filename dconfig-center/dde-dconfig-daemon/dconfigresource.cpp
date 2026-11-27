@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021 - 2023 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2021 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -101,6 +101,7 @@ DSGConfigConn *DSGConfigResource::createConn(const QString &appid, const uint ui
     QObject::connect(conn, &DSGConfigConn::releaseChanged, this, &DSGConfigResource::onReleaseChanged);
     QObject::connect(conn, &DSGConfigConn::globalValueChanged, this, &DSGConfigResource::onGlobalValueChanged);
     QObject::connect(conn, &DSGConfigConn::valueChanged, this, &DSGConfigResource::onValueChanged);
+    conn->notifySubpathsChanged();
     return conn;
 }
 
@@ -193,23 +194,26 @@ void DSGConfigResource::onReleaseChanged(const ConnServiceName &service)
     }
 }
 
-void DSGConfigResource::doSyncConfigCache(const ConfigCacheKey &key)
+bool DSGConfigResource::doSyncConfigCache(const ConfigCacheKey &key)
 {
     if (ConfigSyncRequestCache::isUserKey(key)) {
         const auto connKey = ConfigSyncRequestCache::getUserKey(key);
         if (auto cache = getCache(connKey)) {
             qCDebug(cfLog()) << "Sync conn cache for user cache, key:" << key;
             cache->save(m_localPrefix);
+            return true;
         }
     } else if (ConfigSyncRequestCache::isGlobalKey(key)) {
         const auto resourceKey = ConfigSyncRequestCache::getGlobalKey(key);
         if (auto file = getFile(resourceKey)) {
             qCDebug(cfLog()) << "Sync conn cache for global cache, key:" << key;
             file->save(m_localPrefix);
+            return true;
         }
     } else {
         qCWarning(cfLog()) << "It's not exist config cache key" << key;
     }
+    return false;
 }
 
 bool DSGConfigResource::fallbackToGenericConfig() const
@@ -494,4 +498,17 @@ QList<ConnKey> DSGConfigResource::getConnectionsByUid(const uint uid) const
         }
     }
     return userConnections;
+}
+
+QString DSGConfigResource::localPrefix() const
+{
+    return m_localPrefix;
+}
+
+void DSGConfigResource::notifySubpathChanged()
+{
+    for (auto conn : m_conns) {
+        if (conn)
+            conn->notifySubpathsChanged();
+    }
 }

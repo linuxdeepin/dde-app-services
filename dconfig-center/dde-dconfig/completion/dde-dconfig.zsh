@@ -139,8 +139,21 @@ _dde_dconfig_zsh_context()
 
 _dde_dconfig_zsh_complete_subpath()
 {
-  # A subpath is runtime-defined. Complete only its required leading slash;
-  # an empty suffix keeps the cursor directly after `/` for further input.
+  local -a command_line result
+  _dde_dconfig_zsh_context
+  if ((_dde_dconfig_zsh_appid_set)) && [[ -n $_dde_dconfig_zsh_resource ]] &&
+    [[ $_dde_dconfig_zsh_command != list || $_dde_dconfig_zsh_resource_option_set == 1 ]]; then
+    command_line=(dde-dconfig list -a "$_dde_dconfig_zsh_appid" -r "$_dde_dconfig_zsh_resource")
+    _dde_dconfig_zsh_read_option -u
+    if ((_dde_dconfig_zsh_option_set)); then
+      command_line+=(-u "$_dde_dconfig_zsh_option_value")
+    fi
+    result=("${(@f)$(command "${command_line[@]}" 2>/dev/null)}")
+    result=(${result:#})
+    if ((${#result[@]})); then
+      compadd -a result && return 0
+    fi
+  fi
   compadd -S '' -- /
 }
 
@@ -205,8 +218,8 @@ _dde_dconfig_zsh_complete_options()
     list)
       supported=(
         '-h:display help information' '--help:display help information'
-        '-a:指定应用Id，空字符串表示应用无关配置'
-        '-r:指定配置Id(resource)' '-p:指定工作目录前缀'
+        '-u:指定用户uid' '-a:指定应用Id，空字符串表示应用无关配置'
+        '-r:指定配置Id(resource)' '-s:指定列表起点' '-p:指定工作目录前缀'
       )
       ;;
     get)
@@ -268,8 +281,7 @@ _dde_dconfig_zsh_complete_keys()
   [[ -n $_dde_dconfig_zsh_resource ]] || return 1
 
   command_line=(dde-dconfig --get -a "$_dde_dconfig_zsh_appid" -r "$_dde_dconfig_zsh_resource")
-  # Subpath is dynamic. Key completion intentionally queries the resource
-  # schema without trying to enumerate or validate the current -s value.
+  # Key completion uses the resource schema so it also works for new subpaths.
   result=("${(@f)$(command "${command_line[@]}" 2>/dev/null)}")
   result=(${result:#})
   if ((${#result[@]})); then
@@ -322,7 +334,7 @@ _dde-dconfig()
 {
   local ret=1 state
   local -a commands=(
-    'list:list模式，列出可配置的应用Id和配置Id'
+    'list:list模式，列出应用Id、配置Id或子路径'
     'get:get模式，用于查询指定配置项的信息'
     'set:set模式，用于设置配置项的值'
     'reset:reset模式，用于重置配置项的值'
@@ -337,8 +349,10 @@ _dde-dconfig()
   case $_dde_dconfig_zsh_command in
     list)
       argument_options+=(
+        '(-u)-u+[operate configuration for uid]:uid:->uid'
         '(-a)-a+[application id; empty means generic configuration]:appid:->appid'
         '(-r)-r+[configuration resource id]:resource:->resource'
+        '(-s)-s+[subpath to list below]:subpath:->subpath'
         '(-p)-p+[working prefix directory]:directory:->directory'
       )
       ;;

@@ -151,7 +151,7 @@ TEST(ut_dconfig_global, getMetaConfigureIdWithSubpath) {
     ASSERT_FALSE(id.isInValid());
     ASSERT_EQ(id.appid, "org.foo.app");
     ASSERT_EQ(id.resource, "example");
-    ASSERT_EQ(id.subpath, "sub");
+    ASSERT_EQ(id.subpath, "/sub");
 }
 
 TEST(ut_dconfig_global, getMetaConfigureIdGeneric) {
@@ -174,13 +174,15 @@ TEST(ut_dconfig_global, getOverrideConfigureIdValid) {
     ASSERT_FALSE(id.isInValid());
     ASSERT_EQ(id.appid, "org.foo.app");
     ASSERT_EQ(id.resource, "example");
+    ASSERT_TRUE(id.subpath.isEmpty());
 }
 
 TEST(ut_dconfig_global, getOverrideConfigureIdEtcPath) {
-    auto id = getOverrideConfigureId("/etc/dsg/configs/overrides/org.foo.app/example/a.json");
+    auto id = getOverrideConfigureId("/etc/dsg/configs/overrides/org.foo.app/example/a/b/override.json");
     ASSERT_FALSE(id.isInValid());
     ASSERT_EQ(id.appid, "org.foo.app");
     ASSERT_EQ(id.resource, "example");
+    ASSERT_EQ(id.subpath, "/a/b");
 }
 
 TEST(ut_dconfig_global, getOverrideConfigureIdInvalid) {

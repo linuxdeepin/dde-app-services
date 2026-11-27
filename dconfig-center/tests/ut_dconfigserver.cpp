@@ -113,6 +113,142 @@ TEST_F(ut_DConfigServer, acquireManager) {
     ASSERT_EQ(server->resourceSize(), 1);
 }
 
+TEST_F(ut_DConfigServer, subpathsFromRootSingleAndNestedConnections) {
+    const QString name = "depths";
+    FileCopyGuard meta(":/config/example.json", QFileInfo(configPath()).dir().filePath(name + ".json"));
+    const QString overrides = LocalPrefix + "/usr/share/dsg/configs/overrides/" + APP_ID + "/" + name;
+    const QStringList expected{"/a", "/a/b/c", "/abc", "/b"};
+    for (const QString &path : expected) {
+        ASSERT_TRUE(QDir().mkpath(overrides + path));
+        QFile file(overrides + path + "/override.json");
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        ASSERT_GT(file.write(R"({"magic":"dsg.config.override","version":"1.0","contents":{}})"), 0);
+    }
+
+    const QMap<QString, QStringList> byConnection{
+        {QString(), expected}, {"/a", {"/b/c"}}, {"/a/b", {"/c"}}, {"/a/b/c", {}}
+    };
+    for (const auto &subpath : byConnection.keys()) {
+        SCOPED_TRACE(subpath.toStdString());
+        const auto path = server->acquireManager(APP_ID, name, subpath);
+        auto resource = server->resourceObject(getGenericResourceKey(path.path()));
+        ASSERT_TRUE(resource);
+        auto conn = resource->getConn(APP_ID, TestUid);
+        ASSERT_TRUE(conn);
+        EXPECT_EQ(conn->property("subpaths").toStringList(), byConnection.value(subpath));
+    }
+}
+
+TEST_F(ut_DConfigServer, subpathsChangedWhenOverridesAddedAndRemoved) {
+    const QString name = "overrides";
+    FileCopyGuard meta(":/config/example.json", QFileInfo(configPath()).dir().filePath(name + ".json"));
+    server->initialize();
+    const auto path = server->acquireManager(APP_ID, name, {});
+    auto resource = server->resourceObject(getGenericResourceKey(path.path()));
+    ASSERT_TRUE(resource);
+    auto conn = resource->getConn(APP_ID, TestUid);
+    ASSERT_TRUE(conn);
+    ASSERT_TRUE(conn->subpaths().isEmpty());
+    QSignalSpy changed(conn, &DSGConfigConn::subpathsChanged);
+
+    const QString dir = LocalPrefix + "/usr/share/dsg/configs/overrides/" + APP_ID + "/" + name + "/a/b";
+    ASSERT_TRUE(QDir().mkpath(dir));
+    QFile first(dir + "/first.json");
+    ASSERT_TRUE(first.open(QIODevice::WriteOnly));
+    ASSERT_GT(first.write(R"({"magic":"dsg.config.override","version":"1.0","contents":{}})"), 0);
+    first.close();
+    ASSERT_TRUE(QFile::copy(first.fileName(), dir + "/second.json"));
+    EXPECT_EQ(server->acquireManager(APP_ID, name, {}), path);
+    EXPECT_EQ(conn->subpaths(), QStringList{"/a/b"});
+    EXPECT_EQ(changed.count(), 0);
+    server->reload();
+    ASSERT_EQ(changed.count(), 1);
+    EXPECT_EQ(conn->subpaths(), QStringList{"/a/b"});
+
+    // One remaining override keeps the path visible without another notification.
+    ASSERT_TRUE(first.remove());
+    server->reload();
+    EXPECT_EQ(changed.count(), 1);
+    EXPECT_EQ(conn->subpaths(), QStringList{"/a/b"});
+
+    ASSERT_TRUE(QFile::remove(dir + "/second.json"));
+    server->reload();
+    EXPECT_EQ(changed.count(), 2);
+    EXPECT_TRUE(conn->subpaths().isEmpty());
+}
+
+TEST_F(ut_DConfigServer, userCacheWriteNotifiesAncestorOnReload) {
+    const QString name = "writes";
+    FileCopyGuard meta(":/config/example.json", QFileInfo(configPath()).dir().filePath(name + ".json"));
+    const auto rootPath = server->acquireManager(APP_ID, name, {});
+    const auto leafPath = server->acquireManager(APP_ID, name, "/branch/leaf");
+    auto rootResource = server->resourceObject(getGenericResourceKey(rootPath.path()));
+    auto leafResource = server->resourceObject(getGenericResourceKey(leafPath.path()));
+    ASSERT_TRUE(rootResource);
+    ASSERT_TRUE(leafResource);
+    auto root = rootResource->getConn(APP_ID, TestUid);
+    auto leaf = leafResource->getConn(APP_ID, TestUid);
+    ASSERT_TRUE(root);
+    ASSERT_TRUE(leaf);
+    ASSERT_TRUE(root->subpaths().isEmpty());
+    QSignalSpy changed(root, &DSGConfigConn::subpathsChanged);
+
+    server->m_syncRequestCache->setDelaySyncTime(1);
+    leaf->setValue("key2", QDBusVariant(QString("updated")));
+    ASSERT_EQ(changed.count(), 0);
+    QSignalSpy synced(server->m_syncRequestCache, &ConfigSyncRequestCache::syncConfigRequest);
+    ASSERT_TRUE(synced.wait(5000));
+    ASSERT_EQ(changed.count(), 0);
+    server->reload();
+    EXPECT_EQ(changed.count(), 1);
+    EXPECT_EQ(root->subpaths(), QStringList{"/branch/leaf"});
+    EXPECT_TRUE(leaf->subpaths().isEmpty());
+}
+
+TEST_F(ut_DConfigServer, globalCacheBatchRefreshesAllConnections) {
+    const QString name = "flush";
+    FileCopyGuard meta(":/config/example.json", QFileInfo(configPath()).dir().filePath(name + ".json"));
+    // Use a second connection on the same resource without depending on host user accounts.
+    server->acquireManager(APP_ID, name, "/a");
+    auto ancestor = server->resourceObject(getGenericResourceKey(name, "/a"));
+    ASSERT_TRUE(ancestor);
+    auto first = ancestor->getConn(APP_ID, TestUid);
+    auto second = ancestor->createConn(APP_ID, TestUid + 1);
+    ASSERT_TRUE(first);
+    ASSERT_TRUE(second);
+    QSignalSpy firstChanged(first, &DSGConfigConn::subpathsChanged);
+    QSignalSpy secondChanged(second, &DSGConfigConn::subpathsChanged);
+
+    server->acquireManager(APP_ID, name, "/a/user");
+    auto userResource = server->resourceObject(getGenericResourceKey(name, "/a/user"));
+    ASSERT_TRUE(userResource);
+    auto userWriter = userResource->getConn(APP_ID, TestUid);
+    ASSERT_TRUE(userWriter);
+    server->m_syncRequestCache->setDelaySyncTime(1);
+    userWriter->setValue("key2", QDBusVariant(QString("updated")));
+    userWriter->release();
+    EXPECT_EQ(firstChanged.count(), 0);
+    EXPECT_EQ(secondChanged.count(), 0);
+    EXPECT_EQ(server->m_syncRequestCache->requestsCount(), 1);
+
+    const QString globalMetaPath = QFileInfo(configPath()).dir().filePath("a/global/" + name + ".json");
+    FileCopyGuard globalMeta(":/config/example.json", globalMetaPath);
+    server->acquireManager(APP_ID, name, "/a/global");
+    auto globalResource = server->resourceObject(getGenericResourceKey(name, "/a/global"));
+    ASSERT_TRUE(globalResource);
+    auto globalWriter = globalResource->getConn(APP_ID, TestUid);
+    ASSERT_TRUE(globalWriter);
+    globalWriter->setValue("array", QDBusVariant(QStringList{"updated"}));
+    server->sync(globalMetaPath);
+    EXPECT_EQ(firstChanged.count(), 0);
+    QSignalSpy synced(server->m_syncRequestCache, &ConfigSyncRequestCache::syncConfigRequest);
+    ASSERT_TRUE(synced.wait(5000));
+    EXPECT_EQ(firstChanged.count(), 1);
+    EXPECT_EQ(secondChanged.count(), 1);
+    EXPECT_EQ(second->subpaths(), QStringList{"/global"});
+    EXPECT_EQ(server->m_syncRequestCache->requestsCount(), 0);
+}
+
 TEST_F(ut_DConfigServer, internalCatalog) {
     const auto catalog = server->internalCatalog();
     ASSERT_TRUE(catalog);
